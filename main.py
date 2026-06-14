@@ -1,5 +1,9 @@
 import argparse
+import io
 import sys
+
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 
 def cmd_ingest(args):
@@ -7,8 +11,17 @@ def cmd_ingest(args):
     run(data_dir="data", corpus=args.corpus)
 
 
+def cmd_build_index(args):
+    from retrieve.store import build
+    build(corpus=args.corpus)
+
+
 def cmd_query(args):
-    print("query: not implemented yet (coming in M2)")
+    from retrieve.query import search
+    results = search(args.query_text, corpus=args.corpus, k=args.k)
+    for i, r in enumerate(results, 1):
+        print(f"\n[{i}] score={r['score']:.3f} | {r['source_file']} p.{r['page']} | {r['chunk_id']}")
+        print(r["text"][:300])
 
 
 def cmd_make_quiz(args):
@@ -25,6 +38,10 @@ def build_parser():
     p_ingest = sub.add_parser("ingest", help="Ingest documents from data/ into the vector store")
     p_ingest.add_argument("--corpus", default="default", help="Corpus name (default: default)")
     p_ingest.set_defaults(func=cmd_ingest)
+
+    p_build = sub.add_parser("build-index", help="Embed chunks and store in ChromaDB")
+    p_build.add_argument("--corpus", default="default")
+    p_build.set_defaults(func=cmd_build_index)
 
     p_query = sub.add_parser("query", help="Retrieve top-k chunks for a query")
     p_query.add_argument("query_text", help="Query string")
