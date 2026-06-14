@@ -3,7 +3,8 @@ import sys
 
 
 def cmd_ingest(args):
-    print("ingest: not implemented yet (coming in M1)")
+    from ingest.pipeline import run
+    run(data_dir="data", corpus=args.corpus)
 
 
 def cmd_query(args):
