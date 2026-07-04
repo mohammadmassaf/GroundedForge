@@ -3,3 +3,4 @@ python-dotenv
 pypdf
 sentence-transformers
 chromadb
+pydantic
