@@ -144,4 +144,22 @@ def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
     4. After the loop: raise SystemExit(f"Generator failed after "
                                         f"{MAX_RETRIES} retries: {last_error}")
     """
-    raise NotImplementedError
+    valid_ids = set(c["chunk_id"] for c in chunks)
+    messages = [
+    {"role": "system", "content": SYSTEM_PROMPT},
+    {"role": "user",   "content": _build_user_prompt(topic, chunks, n)},
+]
+    for i in range(MAX_RETRIES + 1):
+        resp = _get_client().chat.completions.create(
+            model = MODEL , messages = messages , temperature = 0.3
+        )
+        raw  = resp.choices[0].message.content
+        try:
+            return _parse_and_validate(raw,valid_ids)
+        except ValueError as e:
+            last_error = e 
+            messages.append({"role": "assistant", "content": raw})
+            messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
+    raise SystemExit(f"Generator failed after "
+                                        f"{MAX_RETRIES} retries: {last_error}")
+   
