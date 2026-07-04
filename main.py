@@ -25,7 +25,22 @@ def cmd_query(args):
 
 
 def cmd_make_quiz(args):
-    print("make-quiz: not implemented yet (coming in M3)")
+    from pathlib import Path
+
+    from retrieve.query import search
+    from generate.generator import generate
+    from generate.renderer import render
+
+    print(f"Retrieving chunks for: {args.topic}")
+    chunks = search(args.topic, corpus=args.corpus, k=args.k)
+    print(f"Generating {args.n} quiz items from {len(chunks)} chunks...")
+    quiz = generate(args.topic, chunks, n=args.n)
+    markdown = render(quiz, chunks, args.topic)
+
+    out = Path(args.out) if args.out else Path(f"quiz_{args.corpus}.md")
+    out.write_text(markdown, encoding="utf-8")
+    print(f"\n{markdown}")
+    print(f"\nSaved to {out}")
 
 
 def build_parser():
@@ -53,6 +68,8 @@ def build_parser():
     p_quiz.add_argument("topic", help="Topic or chapter to quiz on")
     p_quiz.add_argument("--corpus", default="default")
     p_quiz.add_argument("-n", type=int, default=5, help="Number of quiz items")
+    p_quiz.add_argument("-k", type=int, default=8, help="Number of chunks to retrieve as context")
+    p_quiz.add_argument("--out", default=None, help="Output markdown file (default: quiz_<corpus>.md)")
     p_quiz.set_defaults(func=cmd_make_quiz)
 
     return parser
