@@ -28,14 +28,15 @@ def cmd_make_quiz(args):
     from pathlib import Path
 
     from retrieve.query import search
-    from generate.generator import generate
+    from critic.loop import run_loop
     from generate.renderer import render
 
     print(f"Retrieving chunks for: {args.topic}")
     chunks = search(args.topic, corpus=args.corpus, k=args.k)
-    print(f"Generating {args.n} quiz items from {len(chunks)} chunks...")
-    quiz = generate(args.topic, chunks, n=args.n)
-    markdown = render(quiz, chunks, args.topic)
+    print(f"Generating {args.n} quiz items from {len(chunks)} chunks (cite-or-strike)...")
+    kept, struck = run_loop(args.topic, chunks, n=args.n)
+    print(f"Critic: {len(kept)} kept, {len(struck)} struck")
+    markdown = render(kept, chunks, args.topic, struck=struck)
 
     out = Path(args.out) if args.out else Path(f"quiz_{args.corpus}.md")
     out.write_text(markdown, encoding="utf-8")
