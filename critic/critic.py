@@ -65,7 +65,7 @@ def _build_critic_prompt(question: str, answer: str, cited_chunks: list[dict]) -
 
 
 def _parse_verdict(raw: str) -> Verdict:
-    """
+   """
     TODO(you): raw model reply -> Verdict, or raise ValueError.
 
     Same three-layer idea as _parse_and_validate, minus the semantic layer
@@ -75,11 +75,26 @@ def _parse_verdict(raw: str) -> Verdict:
     3. Verdict.model_validate -> ValueError(f"Schema error: {e}")
     4. return the Verdict
     """
-    raise NotImplementedError
+   raw = raw.strip()
+   if raw.startswith("```"):
+    raw = raw.split("\n", 1)[1]      # drop the first line, whatever fence it was
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    raw = raw.strip()
+
+   try:
+      data = json.loads(raw)
+   except json.JSONDecodeError as e :
+       raise  ValueError(f"expected data in json format : {e}")
+   try:
+      verdict = Verdict.model_validate(data)
+   except ValidationError as e:
+      raise ValueError(f"Schema error: {e}") 
+   return verdict
 
 
 def check_claim(question: str, answer: str, cited_chunks: list[dict]) -> Verdict:
-    """
+   """
     TODO(you): the Critic call with a retry loop.
 
     Same shape as generate(), smaller:
@@ -91,4 +106,21 @@ def check_claim(question: str, answer: str, cited_chunks: list[dict]) -> Verdict
            + a correction message (same pattern as generate())
     3. after the loop: raise SystemExit(f"Critic failed: {last_error}")
     """
-    raise NotImplementedError
+   messages = [
+      {"role": "system", "content": CRITIC_SYSTEM_PROMPT},
+      {"role": "user",   "content": _build_critic_prompt(question,answer,cited_chunks)},
+]
+   for i in range(MAX_RETRIES + 1):
+        resp = _get_client().chat.completions.create(
+            model = MODEL , messages = messages , temperature = 0.0
+        )
+        raw  = resp.choices[0].message.content
+        try:
+            return _parse_verdict(raw)
+        except ValueError as e:
+            last_error = e 
+            messages.append({"role": "assistant", "content": raw})
+            messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
+   raise SystemExit(f"Critic failed: {last_error}")
+   
+   
