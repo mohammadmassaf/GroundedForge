@@ -20,9 +20,9 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-04
 - [x] **Retrieval-augmented generation (RAG)** — `built` · prereqs: prompt-engineering, vector-embeddings · code: `retrieve/query.py:36`
 
 ### M4: The Critic
-- [ ] **Multi-agent loop (Generator → Critic → Refiner)** — `new` · prereqs: grounded-generation, claim-verification
-- [ ] **Claim verification against source chunks** — `new` · prereqs: nearest-neighbor-retrieval
-- [ ] **Agent run tracing and observability** — `new` · prereqs: multi-agent-loop
+- [x] **Multi-agent loop (Generator → Critic → Refiner)** — `checkpointed` (8/10) · prereqs: grounded-generation, claim-verification · code: `critic/loop.py:31` · gap: termination as budget
+- [x] **Claim verification against source chunks** — `checkpointed` (7/10) · prereqs: nearest-neighbor-retrieval · code: `critic/critic.py:96` · gap: independence vs scope
+- [x] **Agent run tracing and observability** — `checkpointed` (8/10) · prereqs: multi-agent-loop · code: `critic/trace.py:21`
 
 ### M5: Grounding Eval
 - [ ] **Grounding evaluation and hallucination measurement** — `new` · prereqs: claim-verification, multi-agent-loop
