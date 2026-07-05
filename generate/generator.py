@@ -68,10 +68,10 @@ def _build_user_prompt(topic: str, chunks: list[dict], n: int) -> str:
   
    block = []
    for chunk in chunks:
-       block.append(
-           f"[{chunk['chunk_id']}] (source: {chunk['source_file']}, p.{chunk['page']})\n"
-           f"{chunk['text']}"
-       )
+         block.append(
+            f"[{chunk['chunk_id']}] (source: {chunk['source_file']}, p.{chunk['page']})\n"
+            f"{chunk['text']}"
+         )
    context = "\n\n".join(block)
 
    return (

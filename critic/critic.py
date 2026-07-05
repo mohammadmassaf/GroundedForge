@@ -37,7 +37,7 @@ MAX_RETRIES = 1
 
 
 def _build_critic_prompt(question: str, answer: str, cited_chunks: list[dict]) -> str:
-    """
+   """
     TODO(you): build the Critic's user prompt.
 
     Steps:
@@ -49,8 +49,19 @@ def _build_critic_prompt(question: str, answer: str, cited_chunks: list[dict]) -
            Answer: <answer>
     3. End with: "Is the claim fully supported by the evidence? JSON only."
     4. Return the full string.
-    """
-    raise NotImplementedError
+   """
+   block = []
+   for chunk in cited_chunks:
+       block.append(
+           f"[{chunk['chunk_id']}] (source: {chunk['source_file']}, p.{chunk['page']})\n"
+           f"{chunk['text']}"
+       )
+   context = "\n\n".join(block)
+   return (
+       f"EVIDENCE\n{context}\n\n"
+       f"CLAIM\nQuestion: {question}\nAnswer: {answer}\n\n"
+       f"Is the claim fully supported by the evidence? JSON only."
+   )
 
 
 def _parse_verdict(raw: str) -> Verdict:
