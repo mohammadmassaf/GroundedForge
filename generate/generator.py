@@ -114,7 +114,7 @@ def _parse_and_validate(raw: str, valid_ids: set[str]) -> Quiz:
    try:
        quiz = Quiz.model_validate(data)
    except ValidationError as e:
-      raise ValueError(f"Schema error: {e}") 
+         raise ValueError(f"Schema error: {e}") 
    for item in quiz.items:
        bad = set(item.citations) - valid_ids
        if bad:

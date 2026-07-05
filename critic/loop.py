@@ -29,7 +29,7 @@ MAX_ROUNDS = 2
 
 
 def run_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list]:
-    """
+   """
     TODO(you): the orchestration.
 
     Steps:
@@ -52,4 +52,25 @@ def run_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list]:
        print(f"Trace: {tracer.path}")
     4. return kept, struck
     """
-    raise NotImplementedError
+   tracer = Tracer("quiz")
+   by_id = {c["chunk_id"]: c for c in chunks}
+   kept ,struck = [] , []
+   for round_num in range(1, MAX_ROUNDS + 1):
+       need = n - len(kept)
+       if need == 0: break
+       quiz = generate(topic,chunks,n = need)
+       tracer.log("generated" , round = round_num , count = len(quiz.items))
+       for item in quiz.items:
+           cited_chunks = [by_id[cid] for cid in item.citations]
+           verdict = check_claim(item.question, item.answer,cited_chunks)
+           tracer.log("critic_verdict", round=round_num,
+                         question=item.question,
+                         supported=verdict.supported, reason=verdict.reason)
+           if verdict.supported: kept.append(item)
+           else: struck.append((item, verdict.reason))
+   tracer.log("done", kept=len(kept), struck=len(struck))
+   print(f"Trace: {tracer.path}")
+
+   return kept,struck
+   
+   
