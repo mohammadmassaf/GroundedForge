@@ -1,5 +1,5 @@
 {
-  "_comment": "Fixed eval set. Each item: a question a student would ask, plus where the answer ACTUALLY lives (you know the PDFs). 'expected' lists acceptable source pages - retrieval is correct if a top-k chunk comes from ANY listed (source_file, page) pair. Extend to ~20 items covering all 3 PDFs.",
+  "_comment": "Fixed eval set - 20 items. e1-e5 hand-written; e6-e20 DRAFTED from chunks and pending human review: verify each page actually answers the question, and reword ~6 into your own phrasing so recall isn't flattered by slide wording. Retrieval is correct if a top-k chunk comes from ANY listed (source_file, page) pair.",
   "items": [
     {
       "id": "e1",
@@ -25,6 +25,81 @@
       "id": "e5",
       "question": "What is the difference between data and communication?",
       "expected": [{"source_file": "I2208-2024-2025-Part-1.pdf", "pages": [7]}]
+    },
+    {
+      "id": "e6",
+      "question": "What characteristics of a network system must be evaluated to determine its overall performance?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-1.pdf", "pages": [16]}]
+    },
+    {
+      "id": "e7",
+      "question": "How are the three main categories of transmission impairments caused by an imperfect medium?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [30]}]
+    },
+    {
+      "id": "e8",
+      "question": "In what ways do single-mode fiber and multimode fiber differ in their construction and typical applications?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [65]}]
+    },
+    {
+      "id": "e9",
+      "question": "Why is the term bandwidth used differently in networking contexts compared to its use in signal analysis?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [51]}]
+    },
+    {
+      "id": "e10",
+      "question": "What is the relationship between the number of bits per symbol level and the number of discrete signal levels available?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [21]}]
+    },
+    {
+      "id": "e11",
+      "question": "How does the bandwidth-delay product provide a useful analogy for understanding link capacity?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [56]}]
+    },
+    {
+      "id": "e12",
+      "question": "What advantages does shielded twisted pair offer compared to unshielded twisted pair cabling?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [62]}]
+    },
+    {
+      "id": "e13",
+      "question": "Why does increasing the number of signal levels in a modulation scheme reduce the reliability of a transmission system?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [44]}]
+    },
+    {
+      "id": "e14",
+      "question": "What is the purpose of adding redundant bits to data in error detection and correction schemes?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [6]}]
+    },
+    {
+      "id": "e15",
+      "question": "How is attenuation in a transmission medium measured and what does the decibel unit express?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [32]}]
+    },
+    {
+      "id": "e16",
+      "question": "What conditions must be met for a code to reliably detect all occurrences of up to s errors?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [13]}]
+    },
+    {
+      "id": "e17",
+      "question": "How does modulo-2 arithmetic differ from standard decimal arithmetic, and what is its role in coding theory?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [9]}]
+    },
+    {
+      "id": "e18",
+      "question": "What are the key characteristics that distinguish the two approaches to handling detected errors in transmission?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [7]}]
+    },
+    {
+      "id": "e19",
+      "question": "How does the Hamming distance metric help determine the error detection capability of a coding scheme?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [10]}]
+    },
+    {
+      "id": "e20",
+      "question": "What are the practical limitations of wireless media communication compared to guided transmission channels?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [68]}]
     }
   ]
 }
