@@ -1,0 +1,30 @@
+{
+  "_comment": "Fixed eval set. Each item: a question a student would ask, plus where the answer ACTUALLY lives (you know the PDFs). 'expected' lists acceptable source pages - retrieval is correct if a top-k chunk comes from ANY listed (source_file, page) pair. Extend to ~20 items covering all 3 PDFs.",
+  "items": [
+    {
+      "id": "e1",
+      "question": "What is the formula for propagation delay?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [53, 54]}]
+    },
+    {
+      "id": "e2",
+      "question": "What is the formula for transmission delay?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [53, 55, 56]}]
+    },
+    {
+      "id": "e3",
+      "question": "What does delivery mean as a criterion for effective data communication?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-1.pdf", "pages": [8]}]
+    },
+    {
+      "id": "e4",
+      "question": "When does transmission time dominate over propagation time?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [55, 56]}]
+    },
+    {
+      "id": "e5",
+      "question": "What is the difference between data and communication?",
+      "expected": [{"source_file": "I2208-2024-2025-Part-1.pdf", "pages": [7]}]
+    }
+  ]
+}

@@ -44,6 +44,16 @@ def cmd_make_quiz(args):
     print(f"\nSaved to {out}")
 
 
+def cmd_eval(args):
+    from eval.run_eval import load_eval_set, retrieval_eval, grounding_eval, report
+
+    items = load_eval_set()
+    print(f"Eval set: {len(items)} questions")
+    retrieval = retrieval_eval(items, corpus=args.corpus)
+    grounding = grounding_eval(items[:args.limit] if args.limit else items, corpus=args.corpus)
+    print(report(retrieval, grounding))
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="grounded-forge",
@@ -72,6 +82,12 @@ def build_parser():
     p_quiz.add_argument("-k", type=int, default=8, help="Number of chunks to retrieve as context")
     p_quiz.add_argument("--out", default=None, help="Output markdown file (default: quiz_<corpus>.md)")
     p_quiz.set_defaults(func=cmd_make_quiz)
+
+    p_eval = sub.add_parser("eval", help="Run retrieval (recall@k) + grounding evals")
+    p_eval.add_argument("--corpus", default="default")
+    p_eval.add_argument("--limit", type=int, default=None,
+                        help="Grounding eval on first N questions only (LLM cost control)")
+    p_eval.set_defaults(func=cmd_eval)
 
     return parser
 
