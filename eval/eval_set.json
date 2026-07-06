@@ -33,12 +33,12 @@
     },
     {
       "id": "e7",
-      "question": "How are the three main categories of transmission impairments caused by an imperfect medium?",
+      "question": "How are the main categories of transmission impairments caused by a bad  medium?",
       "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [30]}]
     },
     {
       "id": "e8",
-      "question": "In what ways do single-mode fiber and multimode fiber differ in their construction and typical applications?",
+      "question": "what are the differences between single-mode fiber and multimode fiber?",
       "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [65]}]
     },
     {
@@ -58,7 +58,7 @@
     },
     {
       "id": "e12",
-      "question": "What advantages does shielded twisted pair offer compared to unshielded twisted pair cabling?",
+      "question": "how does sheilded twisted pair differ from unsheilded pair ",
       "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [62]}]
     },
     {
@@ -68,12 +68,12 @@
     },
     {
       "id": "e14",
-      "question": "What is the purpose of adding redundant bits to data in error detection and correction schemes?",
+      "question": "What is the purpose of adding redundant bits to data in error detection and correction?",
       "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [6]}]
     },
     {
       "id": "e15",
-      "question": "How is attenuation in a transmission medium measured and what does the decibel unit express?",
+      "question": "How is attenuation in a transmission medium measured and what is its unit?",
       "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [32]}]
     },
     {
