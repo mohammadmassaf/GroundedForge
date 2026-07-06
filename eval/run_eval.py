@@ -41,7 +41,13 @@ def _hit(results: list[dict], expected: list[dict]) -> bool:
     (You've done this kind of cross-checking before - the semantic
     citation check in _parse_and_validate.)
     """
-    raise NotImplementedError
+    for result in results:
+        for actual in expected:
+            if (result["source_file"] == actual["source_file"] and
+                result["page"] in actual["pages"]): 
+                return True
+
+    return False
 
 
 def retrieval_eval(items: list[dict], corpus: str) -> dict:
