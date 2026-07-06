@@ -62,7 +62,21 @@ def retrieval_eval(items: list[dict], corpus: str) -> dict:
     Return {"recall@3": 0.8, "recall@5": ..., "recall@10": ...} plus a
     list of the questions that missed at the largest k (for the report).
     """
-    raise NotImplementedError
+    hits = {k:0 for k in KS}
+    misses = []
+    for item in items:
+        result = search(item["question"], corpus , k = max(KS))
+        if not _hit(result, item["expected"]):
+            misses.append(item["question"])
+        for k in KS:
+            if _hit(result[:k],item["expected"]):
+                hits[k] +=1
+    out = {f"recall@{k}": hits[k] / len(items) for k in KS}
+    out["misses"] = misses
+    return out
+
+
+
 
 
 def grounding_eval(items: list[dict], corpus: str, n: int = 2) -> dict:
