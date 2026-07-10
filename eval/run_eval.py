@@ -94,7 +94,25 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2) -> dict:
     Note: this makes 2 LLM calls per claim - on the free tier, run it on
     a SUBSET first (items[:5]) while debugging.
     """
-    raise NotImplementedError
+    total_kept = total_struck = 0
+    struck_examples = []
+    grounding = {}
+    for item in items:
+        chunks = search(item["question"], corpus , k = 8)
+        kept , struck  = run_loop(item["question"] , chunks , n=n )
+        total_kept += len(kept)
+        total_struck += len(struck)
+        
+        for quiz_item , reason in struck:
+            struck_examples.append((quiz_item.question,reason))
+    total_claims = total_kept + total_struck
+    grounded = total_kept / total_claims if total_claims else 0.0
+
+    grounding["grounded"] = grounded                    
+    grounding["total_claims"] = total_claims               
+    grounding["struck_examples"] = struck_examples 
+     
+    return grounding
 
 
 def report(retrieval: dict, grounding: dict) -> str:
