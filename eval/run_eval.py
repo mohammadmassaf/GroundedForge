@@ -21,6 +21,7 @@ from pathlib import Path
 
 from retrieve.query import search
 from critic.loop import run_loop
+from generate.generator import GenerationError
 
 EVAL_SET = Path("eval/eval_set.json")
 
@@ -94,12 +95,18 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2) -> dict:
     Note: this makes 2 LLM calls per claim - on the free tier, run it on
     a SUBSET first (items[:5]) while debugging.
     """
-    total_kept = total_struck = 0
+    total_kept = total_struck = failed = 0
     struck_examples = []
     grounding = {}
     for item in items:
-        chunks = search(item["question"], corpus , k = 8)
-        kept , struck  = run_loop(item["question"] , chunks , n=n )
+        try:
+            chunks = search(item["question"], corpus , k = 8)
+            kept , struck  = run_loop(item["question"] , chunks , n=n )
+        except  GenerationError as e:
+            failed += 1
+            print(f"  skipped '{item['question'][:50]}': {e}")
+            continue
+
         total_kept += len(kept)
         total_struck += len(struck)
         
@@ -111,6 +118,7 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2) -> dict:
     grounding["grounded"] = grounded                    
     grounding["total_claims"] = total_claims               
     grounding["struck_examples"] = struck_examples 
+    grounding["failed"] = failed
      
     return grounding
 
@@ -127,6 +135,8 @@ def report(retrieval: dict, grounding: dict) -> str:
     lines.append("-" * 52)
     pct = grounding["grounded"] * 100
     lines.append(f"  grounding : {pct:5.1f}%  ({grounding['total_claims']} claims)")
+    if grounding.get("failed"):
+        lines.append(f"  !! {grounding['failed']} question(s) failed generation and were excluded")
     for q, reason in grounding.get("struck_examples", []):
         lines.append(f"    struck: {q[:60]} - {reason[:80]}")
     lines.append("=" * 52)
