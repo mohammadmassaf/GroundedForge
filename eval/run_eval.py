@@ -18,6 +18,7 @@ Run:  python main.py eval --corpus networks
 """
 import json
 from pathlib import Path
+from groq import RateLimitError 
 
 from retrieve.query import search
 from critic.loop import run_loop
@@ -106,6 +107,9 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2) -> dict:
             failed += 1
             print(f"  skipped '{item['question'][:50]}': {e}")
             continue
+        except RateLimitError as e:
+            print(f"  rate limit hit - stopping early: {e}")
+            break
 
         total_kept += len(kept)
         total_struck += len(struck)
