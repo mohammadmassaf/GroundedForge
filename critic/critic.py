@@ -15,7 +15,7 @@ import json
 from pydantic import ValidationError
 
 from critic.schema import Verdict
-from generate.generator import _get_client, MODEL
+from generate.generator import _get_client, MODEL, GenerationError
 
 CRITIC_SYSTEM_PROMPT = """\
 You are a strict fact-checker. You will be given a CLAIM (a quiz question
@@ -121,6 +121,6 @@ def check_claim(question: str, answer: str, cited_chunks: list[dict]) -> Verdict
             last_error = e 
             messages.append({"role": "assistant", "content": raw})
             messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
-   raise SystemExit(f"Critic failed: {last_error}")
+   raise GenerationError(f"Critic failed: {last_error}")
    
    

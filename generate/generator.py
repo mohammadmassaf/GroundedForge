@@ -27,6 +27,8 @@ load_dotenv()
 
 MODEL = "llama-3.3-70b-versatile"
 MAX_RETRIES = 2
+class GenerationError(Exception):
+    pass
 
 SYSTEM_PROMPT = """\
 You are a quiz generator for a student studying from their own course material.
@@ -160,6 +162,6 @@ def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
             last_error = e 
             messages.append({"role": "assistant", "content": raw})
             messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
-    raise SystemExit(f"Generator failed after "
+    raise GenerationError(f"Generator failed after "
                                         f"{MAX_RETRIES} retries: {last_error}")
    
