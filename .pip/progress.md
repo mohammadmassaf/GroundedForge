@@ -25,8 +25,8 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-04
 - [x] **Agent run tracing and observability** — `checkpointed` (8/10) · prereqs: multi-agent-loop · code: `critic/trace.py:21`
 
 ### M5: Grounding Eval
-- [ ] **Grounding evaluation and hallucination measurement** — `new` · prereqs: claim-verification, multi-agent-loop
-- [ ] **Retrieval quality metrics (recall@k)** — `new` · prereqs: nearest-neighbor-retrieval
+- [x] **Grounding evaluation and hallucination measurement** — `checkpointed` (7/10) · prereqs: claim-verification, multi-agent-loop · code: `eval/run_eval.py:84` · gap: calibrating the evaluator
+- [x] **Retrieval quality metrics (recall@k)** — `checkpointed` (8/10) · prereqs: nearest-neighbor-retrieval · code: `eval/run_eval.py:55`
 
 ### M7–M9: v1.5 extensions
 - [ ] **Hybrid retrieval (BM25 + vector fusion)** — `new` · prereqs: nearest-neighbor-retrieval, retrieval-metrics
