@@ -11,7 +11,10 @@ Run: `python main.py eval --corpus networks` (add `--limit N` to cap the LLM-cos
 | recall@3 | 90% | full 20-question set |
 | recall@5 | 95% | full set |
 | recall@10 | **100%** | full set — every eval answer is findable |
-| grounding | **83.3%** | preliminary: 12 claims over a 5-question subset (free-tier cap); full-set number pending |
+| grounding | **92.7%** | 41 claims over 19/20 questions (1 question failed generation and was excluded); 3 struck |
+
+All three full-run strikes follow the patterns below: two are the formula-vs-worked-result
+strictness case, one is an evidence-coverage case. No fabricated claim passed the Critic.
 
 recall@10 = 100% means quality problems downstream are never "the chunk isn't findable" —
 they are ranking (the @3↔@10 gap, the M7 re-ranker's target) or generation issues.
