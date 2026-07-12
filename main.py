@@ -8,7 +8,7 @@ if hasattr(sys.stdout, "buffer"):
 
 def cmd_ingest(args):
     from ingest.pipeline import run
-    run(data_dir="data", corpus=args.corpus)
+    run(data_dir=args.data_dir, corpus=args.corpus)
 
 
 def cmd_build_index(args):
@@ -63,6 +63,7 @@ def build_parser():
 
     p_ingest = sub.add_parser("ingest", help="Ingest documents from data/ into the vector store")
     p_ingest.add_argument("--corpus", default="default", help="Corpus name (default: default)")
+    p_ingest.add_argument("--data-dir",default ="data" , help="Folder containing documents to ingest (default: data)") 
     p_ingest.set_defaults(func=cmd_ingest)
 
     p_build = sub.add_parser("build-index", help="Embed chunks and store in ChromaDB")
