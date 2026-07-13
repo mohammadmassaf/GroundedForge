@@ -40,4 +40,23 @@ def rrf_merge(list_a: list[dict], list_b: list[dict], k: int = 5) -> list[dict]:
     4. Return their result dicts, with "score" replaced by the fused RRF
        score (so downstream printing still works).
     """
-    raise NotImplementedError
+    points = {}
+    rep ={}
+    for rank , r in enumerate(list_a , start = 1):
+        cid = r["chunk_id"]
+        points[cid]= points.get(cid , 0)
+        points[cid] += 1 / (RRF_K + rank)
+        rep[cid] = r
+    for rank , r in enumerate(list_b , start = 1):
+        cid = r["chunk_id"]
+        points[cid]= points.get(cid , 0)
+        points[cid] += 1 / (RRF_K + rank)
+        rep[cid] = r 
+    sorted_points = sorted(points , key = lambda i:  points[i] , reverse=True)[:k]
+    results = []
+    for cid in sorted_points:
+        results.append({**rep[cid] , "score":points[cid]})
+    return results
+    
+    
+    
