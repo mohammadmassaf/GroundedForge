@@ -58,4 +58,12 @@ def search_bm25(query_text: str, corpus: str = "default", k: int = 5) -> list[di
     4. Build the usual result dicts (chunk_id, source_file, page, score,
        text) from those chunks, best first, and return them.
     """
-    raise NotImplementedError
+    query_tokens = _tokenize(query_text)
+    index , chunks = _get_index(corpus)
+    scores = index.get_scores(query_tokens)
+    top_k = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
+    
+    results = []
+    for i in top_k:
+        results.append({**chunks[i] , "score" : scores[i]})
+    return results
