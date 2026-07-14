@@ -49,7 +49,7 @@ def cmd_eval(args):
 
     items = load_eval_set()
     print(f"Eval set: {len(items)} questions")
-    retrieval = retrieval_eval(items, corpus=args.corpus)
+    retrieval = retrieval_eval(items, corpus=args.corpus,mode=args.retrieval)
     grounding = grounding_eval(items[:args.limit] if args.limit else items, corpus=args.corpus)
     print(report(retrieval, grounding))
 
@@ -88,6 +88,7 @@ def build_parser():
     p_eval.add_argument("--corpus", default="default")
     p_eval.add_argument("--limit", type=int, default=None,
                         help="Grounding eval on first N questions only (LLM cost control)")
+    p_eval.add_argument("--retrieval" , choices=["vector", "hybrid", "rerank"] , default="vector")
     p_eval.set_defaults(func=cmd_eval)
 
     return parser

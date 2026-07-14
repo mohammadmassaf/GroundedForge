@@ -23,6 +23,7 @@ from groq import RateLimitError
 from retrieve.query import search
 from critic.loop import run_loop
 from generate.generator import GenerationError
+from retrieve.hybrid import hybrid_search
 
 EVAL_SET = Path("eval/eval_set.json")
 
@@ -52,7 +53,7 @@ def _hit(results: list[dict], expected: list[dict]) -> bool:
     return False
 
 
-def retrieval_eval(items: list[dict], corpus: str) -> dict:
+def retrieval_eval(items: list[dict], corpus: str , mode = "vector") -> dict:
     """
     TODO(you): compute recall@k for each k in KS.
 
@@ -67,7 +68,12 @@ def retrieval_eval(items: list[dict], corpus: str) -> dict:
     hits = {k:0 for k in KS}
     misses = []
     for item in items:
-        result = search(item["question"], corpus , k = max(KS))
+        if mode == "vector":
+            result = search(item["question"], corpus , k = max(KS))
+        elif mode == "hybrid":
+            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=False)
+        else:
+            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=True)
         if not _hit(result, item["expected"]):
             misses.append(item["question"])
         for k in KS:
