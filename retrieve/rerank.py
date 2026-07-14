@@ -15,7 +15,10 @@ Model: cross-encoder/ms-marco-MiniLM-L-6-v2 (~80MB, local, free; trained
 on MS MARCO passage-ranking - exactly this "given a query, order passages
 by relevance" task).
 """
+from dotenv import load_dotenv
 from sentence_transformers import CrossEncoder
+
+load_dotenv()  # HF_TOKEN from .env -> authenticated model downloads
 
 MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
@@ -46,4 +49,14 @@ def rerank(query_text: str, candidates: list[dict], k: int = 5) -> list[dict]:
     3. Sort candidates by their score, best first; take top k.
     4. Return them with "score" replaced by the cross-encoder score.
     """
-    raise NotImplementedError
+    pairs  = [(query_text,c["text"] )for c in candidates]
+    scores = _get_model().predict(pairs)
+    top = sorted(range(len(scores)), key = lambda i : scores[i], reverse = True)[:k]
+    results  = []
+    for i in top:
+        results.append({**candidates[i] , "score" : scores[i]})
+
+    return results
+        
+
+    
