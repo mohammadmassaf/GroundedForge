@@ -71,15 +71,28 @@ Full sample artifact: [quiz_networks.md](quiz_networks.md). When the Critic stri
 
 Separating the two localizes every failure: a bad quiz item is either a retrieval miss or a generation failure — different bugs, different fixes. Full analysis, struck-claim case studies, and the Critic strictness tradeoff: [eval/notes.md](eval/notes.md).
 
+### Hybrid retrieval (M7)
+
+Retrieval also runs in hybrid mode — BM25 keyword search fused with vector search via Reciprocal Rank Fusion, then re-ranked by a cross-encoder (`--retrieval vector|hybrid|rerank` on `eval`). Measured head-to-head on the same eval set:
+
+| mode | recall@3 | recall@5 | recall@10 |
+|---|---|---|---|
+| vector (baseline) | **90%** | 95% | 100% |
+| hybrid (BM25 + RRF) | 80% | 90% | 100% |
+| hybrid + rerank | **90%** | 95% | 100% |
+
+The honest finding: on a paraphrase-style eval set the pipeline **matched** the baseline rather than beating it — fusion alone diluted the top-3 with keyword noise and the re-ranker won it back. What hybrid buys is robustness the headline number doesn't reward: the one question vector missed (a misspelled "sheilded twisted pair") is the one hybrid fixed, via exact-token matching. Full per-question diff in [eval/notes.md](eval/notes.md).
+
 ## Tech stack
 
-Python · Groq (llama-3.3-70b-versatile) · sentence-transformers (all-MiniLM-L6-v2, local) · ChromaDB (local, cosine) · Pydantic v2 (schema-validated LLM output with retry-on-invalid) · pypdf
+Python · Groq (llama-3.3-70b-versatile) · sentence-transformers (all-MiniLM-L6-v2 embeddings + ms-marco-MiniLM-L-6-v2 cross-encoder, both local) · ChromaDB (local, cosine) · rank_bm25 · Pydantic v2 (schema-validated LLM output with retry-on-invalid) · pypdf
 
 ## Project structure
 
 ```
 ingest/     loader (pypdf), chunker (~700 chars, 100 overlap), pipeline -> chunks/<corpus>.json
-retrieve/   embed + store (ChromaDB, one collection per corpus), top-k query with scores
+retrieve/   embed + store (ChromaDB, one collection per corpus), top-k query with scores,
+            BM25 keyword search, RRF fusion, cross-encoder re-ranking, hybrid pipeline
 generate/   Generator agent, Pydantic schema, validation + retry loop, markdown renderer
 critic/     Critic agent (claim vs cited evidence), orchestration loop, JSONL run tracer
 eval/       fixed eval set, recall@k + grounding harness, findings (notes.md)
