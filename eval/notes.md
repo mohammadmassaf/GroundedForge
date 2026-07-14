@@ -57,6 +57,49 @@ cases above, but with n=1 off-corpus observation we note the tradeoff rather tha
 Revisit with more off-corpus probes in M7, where hybrid retrieval changes the score
 distribution anyway.
 
+## M7: hybrid retrieval (BM25 + RRF + cross-encoder re-ranking)
+
+Setup: same 20-question eval set, same networks corpus, three retrieval modes via the new
+`--retrieval` flag on `eval`. The hybrid pipeline fetches 20 candidates from vector search
+and 20 from BM25 (rank_bm25), fuses them with Reciprocal Rank Fusion (positions, not scores —
+cosine and BM25 aren't comparable currencies), and optionally re-scores all fused candidates
+with a cross-encoder (ms-marco-MiniLM-L-6-v2) before taking top-k. Wide-then-narrow: every
+stage fetches more than it keeps.
+
+| mode | recall@3 | recall@5 | recall@10 |
+|---|---|---|---|
+| vector (v1 baseline) | **90%** | 95% | 100% |
+| hybrid (BM25 + RRF) | 80% | 90% | 100% |
+| hybrid + rerank | **90%** | 95% | 100% |
+
+### Analysis
+
+- **Hybrid alone dropped recall@3 (90% → 80%).** Per-question diff: hybrid flipped 4
+  questions — lost 3, gained 1. The 3 losses share a shape: abstract, wordy eval questions
+  ("what characteristics of a network system must be evaluated…"). BM25 matches exact
+  tokens, and words like "characteristics" / "evaluated" appear all over a textbook, so
+  BM25's top ranks were topically scattered and RRF — which trusts both lists equally —
+  diluted vector's correct top-3 down to fused ranks 4–6.
+- **Re-ranking recovered the full 90%.** recall@10 stayed 100% in every mode: the right
+  chunk never left the 20-candidate pool, and the cross-encoder (which reads query and
+  chunk *together*, token-level) promoted it back up. This is two-stage retrieval doing
+  exactly its job — fusion widens the net, the re-ranker sharpens the order. The
+  re-ranker's ceiling is the candidate set's recall, and here the ceiling was 100%.
+- **The one hybrid win is the most instructive case:** the eval question misspelled
+  "sheilded twisted pair". Vector@3 missed (embeddings drifted to p.60–61); hybrid@3 hit
+  p.62 at rank 2 because BM25 anchored on the exact tokens "twisted pair". That's the
+  exact-token complementarity hybrid retrieval exists for — this eval set just barely
+  exercises it.
+
+### Conclusion
+
+On this corpus there was no headroom: recall@10 was already 100%, and the paraphrase-style
+questions are vector search's home turf. Hybrid + rerank **matched** the baseline rather
+than beating it — the real gain is robustness to keyword-shaped queries (acronyms, error
+codes, formula names, misspellings), which the headline number doesn't reward. A negative-ish
+result, but only an eval harness makes it visible at all; without one, "added hybrid
+retrieval" would have shipped as an assumed improvement while silently costing recall@3.
+
 ## Harness behavior worth keeping
 
 - Per-item generation failures (`GenerationError`) are skipped and counted (`failed` in the
