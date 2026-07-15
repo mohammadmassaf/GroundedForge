@@ -29,3 +29,12 @@ class QuizItem(BaseModel):
 
 class Quiz(BaseModel):
     items: list[QuizItem] = Field(min_length=1)
+
+class GuideClaim(BaseModel):
+    text : str = Field(min_length=10)
+    citations : list[str] = Field(min_length=1)
+class GuideSection(BaseModel):
+    heading : str = Field(min_length=1)
+    claims : list[GuideClaim] = Field(min_length=1)
+class Guide(BaseModel):
+    sections : list[GuideSection] = Field(min_length=1)
