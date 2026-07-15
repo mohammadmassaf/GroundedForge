@@ -20,8 +20,8 @@ verdicts (drop, regenerate, stop) is deterministic logic — another case of
 
 Every step logs to the Tracer, so a run is reconstructable from its trace.
 """
-from generate.generator import generate
-from generate.schema import QuizItem
+from generate.generator import generate , generate_guide
+from generate.schema import QuizItem , GuideSection
 from critic.critic import check_claim
 from critic.trace import Tracer
 
@@ -73,4 +73,25 @@ def run_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list]:
 
    return kept,struck
    
+def run_guide_loop(topic, chunks) -> tuple[list, list]:
+   tracer = Tracer("guide")
+   by_id = {c["chunk_id"]: c for c in chunks}
+   struck = [] 
+   kept_sections = []
+   guide = generate_guide(topic, chunks) 
+   tracer.log("generated", sections=len(guide.sections))
+   for section in guide.sections:
+       survivors = []
+       for claim in section.claims:
+           cited_chunks = [by_id[cid] for cid in claim.citations]
+           verdict = check_claim("" , claim.text , cited_chunks)
+           tracer.log("critic_verdict", heading=section.heading, claim=claim.text, 
+                      supported=verdict.supported, reason=verdict.reason)
+           if verdict.supported: survivors.append(claim)
+           else : struck.append((claim , verdict.reason))
+       if survivors:
+          kept_sections.append(GuideSection(heading=section.heading, claims=survivors))
+   tracer.log("done", kept=len(kept_sections), struck=len(struck))
    
+   print(f"Trace: {tracer.path}")
+   return kept_sections , struck
