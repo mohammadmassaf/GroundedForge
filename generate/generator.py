@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 from groq import Groq
 from pydantic import ValidationError
 
-from generate.schema import Quiz
+from generate.schema import Quiz , Guide
 
 load_dotenv()
 
@@ -43,6 +43,19 @@ RULES — these are absolute:
    {"items": [{"question": "...", "answer": "...", "citations": ["<chunk_id>"]}]}
 """
 
+GUIDE_SYSTEM_PROMPT = """\
+You are a study-guide generator for a student studying from their own course material.
+
+RULES — these are absolute:
+1. Use ONLY the context provided by the user. Do NOT use any outside knowledge.
+2. Organize the guide into sections. Every section has a "heading" and a list of
+   "claims". Every claim must have a "citations" list naming the chunk_id(s) that
+   claim is based on. Use chunk_ids exactly as given, e.g. [I2208-Part-1_p7_c0].
+3. If the context cannot support a claim, leave it out. NEVER invent material.
+4. Respond with ONLY a JSON object, no markdown fences, no commentary:
+   {"sections": [{"heading": "...", "claims": [{"text": "...", "citations": ["<chunk_id>"]}]}]}
+"""
+
 _client = None
 
 
@@ -53,7 +66,7 @@ def _get_client() -> Groq:
     return _client
 
 
-def _build_user_prompt(topic: str, chunks: list[dict], n: int) -> str:
+def _build_prompt(chunks:list[dict],task :str) -> str:
    """
     TODO(you): build the user prompt string.
 
@@ -75,16 +88,16 @@ def _build_user_prompt(topic: str, chunks: list[dict], n: int) -> str:
             f"{chunk['text']}"
          )
    context = "\n\n".join(block)
-
+       
    return (
        f"{context}\n\n"
-       f"Generate {n} quiz items about: {topic}. "
+       f"{task}\n"
        f"Remember: JSON only, cite only the chunk_ids above."
    )
   
 
 
-def _parse_and_validate(raw: str, valid_ids: set[str]) -> Quiz:
+def _parse_and_validate(raw: str, valid_ids: set[str] , model = Quiz) -> Quiz:
    """
     TODO(you): turn the raw model reply into a validated Quiz, or raise
     ValueError with a message the model can act on.
@@ -114,42 +127,21 @@ def _parse_and_validate(raw: str, valid_ids: set[str]) -> Quiz:
    except json.JSONDecodeError as e :
        raise  ValueError(f"expected data in json format : {e}")
    try:
-       quiz = Quiz.model_validate(data)
+       obj = model.model_validate(data)
    except ValidationError as e:
          raise ValueError(f"Schema error: {e}") 
-   for item in quiz.items:
-       bad = set(item.citations) - valid_ids
-       if bad:
-           raise ValueError(f"Unknown chunk_id(s) cited: {bad} — "
+
+   bad = set(obj.all_citations()) - valid_ids
+   if bad:
+        raise ValueError(f"Unknown chunk_id(s) cited: {bad} — "
                                 "cite only chunk_ids from the context")
-   return quiz
+   return obj
 
-
-def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
-    """
-    TODO(you): the retry loop.
-
-    Steps:
-    1. valid_ids = set of chunk_id from chunks
-    2. messages = [system prompt, user prompt from _build_user_prompt(...)]
-    3. Loop MAX_RETRIES + 1 times:
-       a. call the LLM:
-              resp = _get_client().chat.completions.create(
-                  model=MODEL, messages=messages, temperature=0.3)
-              raw = resp.choices[0].message.content
-       b. try: return _parse_and_validate(raw, valid_ids)
-       c. except ValueError as e:
-              append the model's raw reply as an "assistant" message and
-              a new "user" message: f"Your response was invalid: {e}. "
-                                    "Reply again with corrected JSON only."
-              (this is how the model sees its own mistake)
-    4. After the loop: raise SystemExit(f"Generator failed after "
-                                        f"{MAX_RETRIES} retries: {last_error}")
-    """
+def _run(system_prompt, chunks, task, model):
     valid_ids = set(c["chunk_id"] for c in chunks)
     messages = [
-    {"role": "system", "content": SYSTEM_PROMPT},
-    {"role": "user",   "content": _build_user_prompt(topic, chunks, n)},
+    {"role": "system", "content": system_prompt},
+    {"role": "user",   "content": _build_prompt(chunks, task)},
 ]
     for i in range(MAX_RETRIES + 1):
         resp = _get_client().chat.completions.create(
@@ -157,11 +149,19 @@ def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
         )
         raw  = resp.choices[0].message.content
         try:
-            return _parse_and_validate(raw,valid_ids)
+            return _parse_and_validate(raw,valid_ids , model = model)
         except ValueError as e:
             last_error = e 
             messages.append({"role": "assistant", "content": raw})
             messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
     raise GenerationError(f"Generator failed after "
                                         f"{MAX_RETRIES} retries: {last_error}")
+def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
+    
+    
+    
+    
+    return _run(SYSTEM_PROMPT, chunks, f"Generate {n} quiz items about: {topic}.", Quiz)
    
+def generate_guide(topic, chunks, n=5) -> Guide:
+    return _run(GUIDE_SYSTEM_PROMPT, chunks, f"Write a study guide about: {topic}.", Guide)
