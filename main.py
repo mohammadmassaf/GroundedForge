@@ -43,6 +43,25 @@ def cmd_make_quiz(args):
     print(f"\n{markdown}")
     print(f"\nSaved to {out}")
 
+def cmd_make_guide(args):
+    from pathlib import Path
+
+    from retrieve.hybrid import hybrid_search
+    from critic.loop import run_guide_loop
+    from generate.renderer import render_guide
+
+    print(f"Retrieving chunks for: {args.topic}")
+    chunks = hybrid_search(args.topic, corpus=args.corpus, k=args.k , use_rerank = True)
+    print(f"Generating a guide from  {len(chunks)} chunks (cite-or-strike)...")
+    kept, struck = run_guide_loop(args.topic, chunks)
+    print(f"Critic: {len(kept)} kept, {len(struck)} struck")
+    markdown = render_guide(kept, chunks, args.topic, struck=struck)
+
+    out = Path(args.out) if args.out else Path(f"guide_{args.corpus}.md")
+    out.write_text(markdown, encoding="utf-8")
+    print(f"\n{markdown}")
+    print(f"\nSaved to {out}")
+
 
 def cmd_eval(args):
     from eval.run_eval import load_eval_set, retrieval_eval, grounding_eval, report
@@ -83,6 +102,13 @@ def build_parser():
     p_quiz.add_argument("-k", type=int, default=8, help="Number of chunks to retrieve as context")
     p_quiz.add_argument("--out", default=None, help="Output markdown file (default: quiz_<corpus>.md)")
     p_quiz.set_defaults(func=cmd_make_quiz)
+
+    p_quiz = sub.add_parser("make-guide", help="Generate a cited guide from retrieved chunks")
+    p_quiz.add_argument("topic", help="Topic or chapter to guide on")
+    p_quiz.add_argument("--corpus", default="default")
+    p_quiz.add_argument("-k", type=int, default=8, help="Number of chunks to retrieve as context")
+    p_quiz.add_argument("--out", default=None, help="Output markdown file (default: guide_<corpus>.md)")
+    p_quiz.set_defaults(func=cmd_make_guide)
 
     p_eval = sub.add_parser("eval", help="Run retrieval (recall@k) + grounding evals")
     p_eval.add_argument("--corpus", default="default")
