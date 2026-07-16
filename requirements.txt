@@ -5,3 +5,4 @@ sentence-transformers
 chromadb
 pydantic
 rank_bm25
+pytest
