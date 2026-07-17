@@ -156,10 +156,8 @@ def _run(system_prompt, chunks, task, model):
             messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
     raise GenerationError(f"Generator failed after "
                                         f"{MAX_RETRIES} retries: {last_error}")
+
 def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
-    
-    
-    
     
     return _run(SYSTEM_PROMPT, chunks, f"Generate {n} quiz items about: {topic}.", Quiz)
    
