@@ -1,5 +1,7 @@
 # Grounded Forge
 
+![tests](https://github.com/mohammadmassaf/GroundedForge/actions/workflows/tests.yml/badge.svg)
+
 **A cite-or-strike quiz generator: every answer cites your own course material, an independent Critic agent strikes any claim the sources don't support, and the no-hallucination guarantee is measured, not asserted.**
 
 > **92.7% grounding** (38/41 claims independently verified against source) · **100% recall@10** on a fixed 20-question eval set
