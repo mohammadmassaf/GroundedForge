@@ -9,17 +9,23 @@ import os
 from dotenv import load_dotenv
 import groq
 
-load_dotenv()
 
-key = os.getenv("GROQ_API_KEY")
-if not key:
-    raise SystemExit("GROQ_API_KEY not found in .env — copy .env.example to .env and add your key")
+def main():
+    load_dotenv()
 
-client = groq.Groq(api_key=key)
+    key = os.getenv("GROQ_API_KEY")
+    if not key:
+        raise SystemExit("GROQ_API_KEY not found in .env — copy .env.example to .env and add your key")
 
-response = client.chat.completions.create(
-    model="llama-3.1-8b-instant",
-    messages=[{"role": "user", "content": "Reply with exactly: Grounded Forge smoke test OK"}],
-)
+    client = groq.Groq(api_key=key)
 
-print(response.choices[0].message.content)
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[{"role": "user", "content": "Reply with exactly: Grounded Forge smoke test OK"}],
+    )
+
+    print(response.choices[0].message.content)
+
+
+if __name__ == "__main__":
+    main()
