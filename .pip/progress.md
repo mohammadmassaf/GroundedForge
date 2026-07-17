@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-14._
+_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-17._
 
 ## Concept tree
 
@@ -31,7 +31,7 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-14
 ### M7–M9: v1.5 extensions
 - [x] **Hybrid retrieval (BM25 + vector fusion)** — `checkpointed` (8/10) · prereqs: nearest-neighbor-retrieval, retrieval-metrics · code: `retrieve/fusion.py:26`
 - [x] **Cross-encoder re-ranking** — `checkpointed` (7/10) · prereqs: hybrid-retrieval · code: `retrieve/rerank.py:35` · gap: ceiling = candidate-set recall, not k
-- [ ] **Testing LLM systems** — `new` · prereqs: structured-llm-output, multi-agent-loop
+- [x] **Testing LLM systems** — `checkpointed` (8/10) · prereqs: structured-llm-output, multi-agent-loop · code: `tests/test_loop_integration.py:52` · gap: non-determinism (not just cost) as why model judgment resists unit tests
 - [ ] **Framework tradeoffs (hand-rolled vs LangChain)** — `new` · prereqs: rag-pipeline
 
 ## Mastery list (deduped — known across all projects)
