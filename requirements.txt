@@ -6,3 +6,5 @@ chromadb
 pydantic
 rank_bm25
 pytest
+langchain-huggingface
+langchain-chroma
