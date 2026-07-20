@@ -107,16 +107,20 @@ Extends existing pytest + GitHub Actions CI:
 
 ## Learning checkpoints (PIP teaches + grades)
 
+Aligned with PIP's ledger (`.pip/progress.md`) — one concept per milestone.
+
 v2 (this phase):
 
-9. **Corpus adapters for semi-structured data** — per-source chunk units + metadata design (→ V2-M1)
-10. **Verifying quantitative claims + honest gap reporting** — deterministic pre-checks in front of LLM judgment; decline-to-claim guardrails (→ V2-M3)
-11. **Cross-source evidence synthesis** — per-section retrieval with metadata filtering; evidence pools per output section (→ V2-M4)
+9. **Corpus adapters for semi-structured sources** — per-source chunk units + metadata design (→ V2-M1); prereqs: ingestion-pipeline, text-chunking
+10. **Metadata-filtered retrieval** — filter the vector store by `source_type` etc. (→ V2-M2); prereqs: vector-store, nearest-neighbor-retrieval
+11. **Deterministic pre-checks before LLM judgment** — quant pre-check + honest gap reporting / decline-to-claim (→ V2-M3); prereqs: claim-verification, structured-llm-output (targets v1 gaps on both)
+12. **Cross-source evidence synthesis** — per-section retrieval + evidence pools per output section (→ V2-M4); prereqs: metadata-filtered-retrieval, multi-agent-loop
+13. **Adversarial eval traps** — deliberate inflation / wrong-number items measuring the Critic (→ V2-M5); prereqs: grounding-eval (targets v1 gap: calibrating the evaluator)
 
 v2.5 (December, out of scope now):
 
-12. **Query decomposition / structured extraction** — JD → structured requirements → per-requirement retrieval
-13. **Requirement–evidence matching (gap analysis)** — map each JD requirement to strongest evidence; report "no evidence" honestly
+14. **Query decomposition / structured extraction** — JD → structured requirements → per-requirement retrieval
+15. **Requirement–evidence matching (gap analysis)** — map each JD requirement to strongest evidence; report "no evidence" honestly
 
 ## Out of scope (v2)
 

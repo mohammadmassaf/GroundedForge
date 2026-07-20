@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-17 (v1.5 complete)._
+_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-19 (v2 planned — job mode)._
 
 ## Concept tree
 
@@ -33,6 +33,21 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-17
 - [x] **Cross-encoder re-ranking** — `checkpointed` (7/10) · prereqs: hybrid-retrieval · code: `retrieve/rerank.py:35` · gap: ceiling = candidate-set recall, not k
 - [x] **Testing LLM systems** — `checkpointed` (8/10) · prereqs: structured-llm-output, multi-agent-loop · code: `tests/test_loop_integration.py:52` · gap: non-determinism (not just cost) as why model judgment resists unit tests
 - [x] **Framework tradeoffs (hand-rolled vs LangChain)** — `checkpointed` (8/10) · prereqs: rag-pipeline · code: `docs/langchain-notes.md` · gap: naming the forward conditions under which a hand-rolled layer should move onto a framework
+
+### V2-M0–M1: Corpus adapters (job mode)
+- [ ] **Corpus adapters for semi-structured sources** — `new` · prereqs: ingestion-pipeline, text-chunking · code: TBD (`ingest/adapters/`)
+
+### V2-M2: Job-corpus retrieval
+- [ ] **Metadata-filtered retrieval** — `new` · prereqs: vector-store, nearest-neighbor-retrieval · code: TBD
+
+### V2-M3: make-bullets + quant pre-check
+- [ ] **Deterministic pre-checks before LLM judgment** — `new` (incl. honest gap reporting) · prereqs: claim-verification, structured-llm-output · code: TBD · will target v1 gaps on both prereqs
+
+### V2-M4: make-star synthesis
+- [ ] **Cross-source evidence synthesis** — `new` · prereqs: metadata-filtered-retrieval, multi-agent-loop · code: TBD
+
+### V2-M5: Job eval + ship
+- [ ] **Adversarial eval traps** — `new` · prereqs: grounding-eval · code: TBD · will target v1 gap on grounding-eval (calibrating the evaluator)
 
 ## Mastery list (deduped — known across all projects)
 - (none yet ≥9 — grounded-generation at 8, passed)
