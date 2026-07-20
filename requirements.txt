@@ -4,6 +4,7 @@ pypdf
 sentence-transformers
 chromadb
 pydantic
+pyyaml
 rank_bm25
 pytest
 langchain-huggingface

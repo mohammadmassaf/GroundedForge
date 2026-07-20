@@ -1,0 +1,32 @@
+# Corpus definitions — copy this file to `corpus.yaml` (gitignored) and edit paths.
+#
+# A "corpus" is a named collection of sources. Each source has a `type` (which
+# adapter handles it) and type-specific fields. `ingest --corpus <name>` reads
+# the matching entry here, runs each source through its adapter, and writes the
+# combined chunks to chunks/<name>.json.
+#
+# Paths are resolved relative to the repo root (where you run the CLI).
+
+corpora:
+
+  # v1 study mode — unchanged behavior. The `files` adapter wraps the original
+  # PDF/txt/md loader + character chunker.
+  default:
+    - type: files
+      path: data
+
+  # v2 job mode — git history + repo docs + hand-picked notes.
+  # Fill these in with your own repo and note paths in corpus.yaml.
+  job:
+    - type: git            # 1 commit = 1 chunk (message + diff stats)
+      path: ../your-repo
+      repo: your-repo      # short name used in citations, e.g. your-repo@a1b2c3d
+
+    - type: docs           # README / CLAUDE.md / docs/*.md, chunked by heading
+      path: ../your-repo
+      repo: your-repo
+
+    - type: vault          # only these explicitly-listed notes are read
+      paths:
+        - ../path/to/note-one.md
+        - ../path/to/note-two.md
