@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-19 (v2 planned — job mode)._
+_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-24 (V2-M1 — corpus adapters checkpointed)._
 
 ## Concept tree
 
@@ -35,7 +35,7 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-19
 - [x] **Framework tradeoffs (hand-rolled vs LangChain)** — `checkpointed` (8/10) · prereqs: rag-pipeline · code: `docs/langchain-notes.md` · gap: naming the forward conditions under which a hand-rolled layer should move onto a framework
 
 ### V2-M0–M1: Corpus adapters (job mode)
-- [ ] **Corpus adapters for semi-structured sources** — `new` · prereqs: ingestion-pipeline, text-chunking · code: TBD (`ingest/adapters/`)
+- [x] **Corpus adapters for semi-structured sources** — `checkpointed` (8/10) · prereqs: ingestion-pipeline, text-chunking · code: `ingest/adapters/git_adapter.py:62` + `ingest/adapters/base.py:76` · gap: naming the concrete failure of sha-in-text-only (citation must regex-parse free text; can't metadata-filter on it)
 
 ### V2-M2: Job-corpus retrieval
 - [ ] **Metadata-filtered retrieval** — `new` · prereqs: vector-store, nearest-neighbor-retrieval · code: TBD
