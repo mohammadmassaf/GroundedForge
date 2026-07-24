@@ -55,4 +55,7 @@ def split_sections(text: str) -> list[dict]:
 
     if current:                               # tail: the last open section
         sections.append(_section(current, sec_start, pos))
-    return sections
+
+    # drop sections with no real content (e.g. a blank line between a note's
+    # frontmatter and its first heading) — an empty chunk is retrieval noise
+    return [s for s in sections if s["text"].strip()]
