@@ -18,7 +18,7 @@ from ingest.adapters.base import (
 from ingest.adapters import git_adapter    # noqa: F401,E402  ("git")
 from ingest.adapters import docs_adapter   # noqa: F401,E402  ("docs")
 from ingest.adapters import vault_adapter  # noqa: F401,E402  ("vault")
-# from ingest.adapters import files_adapter  # noqa: F401  ("files")
+from ingest.adapters import files_adapter  # noqa: F401,E402  ("files")
 
 __all__ = [
     "make_chunk",
