@@ -73,7 +73,7 @@ def load_git(source: dict) -> list[dict]:
         sha = lines[0]
         date = lines[1]
         subject = lines[2]
-        
+        x = len(lines)
         for i , line in enumerate(lines[3:], start=3):
             if line == "":
                 x = i
