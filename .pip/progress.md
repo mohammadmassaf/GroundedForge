@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-24 (V2-M1 — corpus adapters checkpointed)._
+_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-24 (V2-M2 — metadata-filtered retrieval mastered 9/10)._
 
 ## Concept tree
 
@@ -38,7 +38,7 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-24
 - [x] **Corpus adapters for semi-structured sources** — `checkpointed` (8/10) · prereqs: ingestion-pipeline, text-chunking · code: `ingest/adapters/git_adapter.py:62` + `ingest/adapters/base.py:76` · gap: naming the concrete failure of sha-in-text-only (citation must regex-parse free text; can't metadata-filter on it)
 
 ### V2-M2: Job-corpus retrieval
-- [ ] **Metadata-filtered retrieval** — `new` · prereqs: vector-store, nearest-neighbor-retrieval · code: TBD
+- [x] **Metadata-filtered retrieval** — `checkpointed` (9/10 · mastered) · prereqs: vector-store, nearest-neighbor-retrieval · code: `retrieve/store.py:19` (_chunk_metadata) + `retrieve/query.py:33` (where=/filter=)
 
 ### V2-M3: make-bullets + quant pre-check
 - [ ] **Deterministic pre-checks before LLM judgment** — `new` (incl. honest gap reporting) · prereqs: claim-verification, structured-llm-output · code: TBD · will target v1 gaps on both prereqs
@@ -50,7 +50,7 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-24
 - [ ] **Adversarial eval traps** — `new` · prereqs: grounding-eval · code: TBD · will target v1 gap on grounding-eval (calibrating the evaluator)
 
 ## Mastery list (deduped — known across all projects)
-- (none yet ≥9 — grounded-generation at 8, passed)
+- **metadata-filtered-retrieval** — 9/10 (grounded-forge, V2-M2, 2026-07-24) — first mastered concept
 
 ## Dropped prerequisite edges (log)
 - (none)
