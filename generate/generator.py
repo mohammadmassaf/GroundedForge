@@ -71,9 +71,15 @@ RULES — these are absolute:
    write the bullet without one.
 4. Voice: first person implied (no "I"), past tense, strong concrete verbs.
    Say what was built and how, not adjectives about how good it was.
-5. LENGTH AND FOCUS: ONE accomplishment per bullet, 25 words maximum. Lead with
-   the verb. Name the specific thing (a component, a technique, a fix) — do not
-   summarise the whole project, and do not paraphrase a README overview.
+5. LENGTH AND SUBSTANCE: ONE accomplishment per bullet, 12 to 25 words. Lead with
+   the verb, and name the SPECIFIC technical content the evidence shows — the
+   structure, endpoint, technique, or technology involved.
+   - Too vague (a restated commit subject): "Implemented get meal plan from DB"
+   - Right: "Added a meal-plan retrieval endpoint backed by SQLAlchemy models,
+     with parsing split into a dedicated service module"
+   Mine the DETAIL in the evidence — changed file paths, structure names,
+   described behaviour — don't just reword the commit's one-line subject, and
+   don't paraphrase a README overview of the whole project.
 6. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
    bullet you have already written.
 7. If the context cannot support the requested number of bullets, produce fewer.
