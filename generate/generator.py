@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 from groq import Groq
 from pydantic import ValidationError
 
-from generate.schema import Quiz , Guide , Bullets
+from generate.schema import Quiz , Guide , Bullets , STARAnswer
 
 load_dotenv()
 
@@ -101,6 +101,36 @@ RULES — these are absolute:
    NEVER invent material to fill the count.
 9. Respond with ONLY a JSON object, no markdown fences, no commentary:
    {"bullets": [{"text": "...", "citations": ["<chunk_id>"]}]}
+"""
+
+STAR_SYSTEM_PROMPT = """\
+You are preparing a STAR interview answer for a developer, from evidence drawn
+from their own git history, repo docs, and project notes.
+
+The context is grouped into FOUR labeled evidence pools — one per STAR section.
+
+RULES — these are absolute:
+1. Use ONLY the context provided. No outside knowledge, no inferred impact.
+2. Each section may cite ONLY chunk_ids from ITS OWN pool. Never cite an
+   ACTION chunk in the Situation section, etc. Cite every chunk you used.
+3. NUMBERS: state a figure ONLY if that exact figure appears in the cited pool.
+   Never estimate, round, or invent. No "~", no "over N".
+4. Write in first person, past tense, spoken-interview voice — 2 to 4 sentences
+   per section. Natural speech, not resume shorthand.
+5. Content of each section:
+   - Situation: the context and why it mattered
+   - Task: what specifically had to be solved, and the constraints
+   - Action: what YOU did — the concrete technical steps
+   - Result: what came of it. If the pool has no outcome evidence, say plainly
+     what shipped; NEVER invent an impact or a metric.
+6. If a pool is empty or too thin to support its section, write that the
+   evidence doesn't cover it rather than filling it in from imagination.
+7. Respond with ONLY a JSON object, no markdown fences, no commentary:
+   {"question": "...",
+    "situation": {"text": "...", "citations": ["<chunk_id>"]},
+    "task":      {"text": "...", "citations": ["<chunk_id>"]},
+    "action":    {"text": "...", "citations": ["<chunk_id>"]},
+    "result":    {"text": "...", "citations": ["<chunk_id>"]}}
 """
 
 _client = None
@@ -210,6 +240,52 @@ def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
    
 def generate_guide(topic, chunks, n=5) -> Guide:
     return _run(GUIDE_SYSTEM_PROMPT, chunks, f"Write a study guide about: {topic}.", Guide)
+
+def generate_star(question: str, pools: dict[str, list[dict]]) -> STARAnswer:
+    """
+    One generation call over FOUR labeled evidence pools (see star_evidence).
+
+    Note the shape difference from every other generator: the context isn't one
+    flat chunk list, it's pools with headers, so the model can tell which chunks
+    each section is allowed to cite.
+    """
+    blocks = []
+    for name in ("situation", "task", "action", "result"):
+        chunks = pools.get(name, [])
+        header = f"=== {name.upper()} POOL ==="
+        if not chunks:
+            blocks.append(f"{header}\n(no evidence retrieved for this section)")
+            continue
+        body = "\n\n".join(
+            f"[{c['chunk_id']}] (source: {c['source_file']})\n{c['text']}"
+            for c in chunks
+        )
+        blocks.append(f"{header}\n{body}")
+    context = "\n\n".join(blocks)
+
+    # all pooled chunks are valid ids; per-section scoping is enforced in the loop
+    all_chunks = [c for pool in pools.values() for c in pool]
+    valid_ids = set(c["chunk_id"] for c in all_chunks)
+
+    messages = [
+        {"role": "system", "content": STAR_SYSTEM_PROMPT},
+        {"role": "user", "content":
+            f"{context}\n\nAnswer this interview question: {question}\n"
+            f"Remember: JSON only, each section cites only its own pool."},
+    ]
+    for _ in range(MAX_RETRIES + 1):
+        resp = _get_client().chat.completions.create(
+            model=MODEL, messages=messages, temperature=0.3)
+        raw = resp.choices[0].message.content
+        try:
+            return _parse_and_validate(raw, valid_ids, model=STARAnswer)
+        except ValueError as e:
+            last_error = e
+            messages.append({"role": "assistant", "content": raw})
+            messages.append({"role": "user", "content":
+                f"Your response was invalid: {e}. Reply again with corrected JSON only."})
+    raise GenerationError(f"STAR generation failed after {MAX_RETRIES} retries: {last_error}")
+
 
 def generate_bullets(topic: str, chunks: list[dict], n: int = 5,
                      avoid: list[str] | None = None) -> Bullets:

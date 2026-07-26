@@ -95,6 +95,28 @@ def cmd_make_bullets(args):
     print(f"\nSaved to {out}")
 
 
+def cmd_make_star(args):
+    from pathlib import Path
+
+    from retrieve.star_evidence import gather_evidence
+    from critic.loop import run_star_loop
+    from generate.renderer import render_star
+
+    print(f"Gathering per-section evidence for: {args.question}")
+    pools = gather_evidence(args.question, corpus=args.corpus, k=args.k)
+    for name, pool in pools.items():
+        print(f"  {name:10} {len(pool)} chunks")
+    print("Generating STAR answer (cite-or-strike)...")
+    answer, flagged = run_star_loop(args.question, pools)
+    print(f"Critic: {len(flagged)} section(s) flagged")
+    markdown = render_star(answer, pools, flagged=flagged)
+
+    out = Path(args.out) if args.out else Path(f"star_{args.corpus}.md")
+    out.write_text(markdown, encoding="utf-8")
+    print(f"\n{markdown}")
+    print(f"\nSaved to {out}")
+
+
 def cmd_eval(args):
     from eval.run_eval import load_eval_set, retrieval_eval, grounding_eval, report
 
@@ -152,6 +174,13 @@ def build_parser():
                            help="Restrict evidence to one repo (e.g. mealwise)")
     p_bullets.add_argument("--out", default=None, help="Output markdown file (default: bullets_<corpus>.md)")
     p_bullets.set_defaults(func=cmd_make_bullets)
+
+    p_star = sub.add_parser("make-star", help="Generate a cited STAR interview answer")
+    p_star.add_argument("question", help="The interview question")
+    p_star.add_argument("--corpus", default="job")
+    p_star.add_argument("-k", type=int, default=6, help="Chunks retrieved per STAR section")
+    p_star.add_argument("--out", default=None, help="Output markdown file (default: star_<corpus>.md)")
+    p_star.set_defaults(func=cmd_make_star)
 
     p_eval = sub.add_parser("eval", help="Run retrieval (recall@k) + grounding evals")
     p_eval.add_argument("--corpus", default="default")

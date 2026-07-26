@@ -55,6 +55,31 @@ class Bullets(BaseModel):
         return out
 
 
+class StarSection(BaseModel):
+    """One part of a STAR answer, citing only its own evidence pool."""
+    text: str = Field(min_length=10)
+    citations: list[str] = Field(min_length=1)
+
+
+class STARAnswer(BaseModel):
+    question: str = Field(min_length=5)
+    situation: StarSection
+    task: StarSection
+    action: StarSection
+    result: StarSection
+
+    def sections(self) -> list[tuple[str, StarSection]]:
+        return [("Situation", self.situation), ("Task", self.task),
+                ("Action", self.action), ("Result", self.result)]
+
+    def all_citations(self) -> list[str]:
+        out = []
+        for _, section in self.sections():
+            for cid in section.citations:
+                out.append(cid)
+        return out
+
+
 class GuideClaim(BaseModel):
     text : str = Field(min_length=10)
     citations : list[str] = Field(min_length=1)
