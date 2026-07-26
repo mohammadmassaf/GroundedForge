@@ -92,6 +92,11 @@ RULES — these are absolute:
    subject, and never paraphrase a README overview of the whole project.
 7. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
    bullet you have already written.
+8. MERGE overlapping bullets. If two bullets would cite the same evidence, they
+   describe the SAME capability — write one bullet, not two.
+   - WRONG (same evidence, split in two): "Implemented authentication with JWT"
+     + "Built user management with registration and login endpoints"
+   - RIGHT: "Built JWT authentication with user registration and login endpoints"
 8. If the context cannot support the requested number of bullets, produce fewer.
    NEVER invent material to fill the count.
 9. Respond with ONLY a JSON object, no markdown fences, no commentary:
