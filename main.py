@@ -70,8 +70,16 @@ def cmd_make_bullets(args):
     from critic.loop import run_bullets_loop
     from generate.renderer import render_bullets
 
-    where = {"source_type": args.source_type} if args.source_type else None
-    print(f"Retrieving chunks for: {args.topic}" + (f" [{args.source_type} only]" if where else ""))
+    where = {}
+    if args.source_type:
+        where["source_type"] = args.source_type
+    if args.repo:
+        where["repo"] = args.repo
+    # Chroma wants a single condition or an explicit $and for several
+    if len(where) > 1:
+        where = {"$and": [{k: v} for k, v in where.items()]}
+    where = where or None
+    print(f"Retrieving chunks for: {args.topic}" + (f" [filter: {where}]" if where else ""))
     chunks = hybrid_search(args.topic, corpus=args.corpus, k=args.k, use_rerank=True, where=where)
     print(f"Generating {args.n} bullets from {len(chunks)} chunks (cite-or-strike)...")
     kept, struck, gap = run_bullets_loop(args.topic, chunks, n=args.n)
@@ -140,6 +148,8 @@ def build_parser():
     p_bullets.add_argument("-k", type=int, default=8, help="Number of chunks to retrieve as context")
     p_bullets.add_argument("--source-type", choices=["git", "docs", "vault", "files"], default=None,
                            help="Restrict evidence to one source type")
+    p_bullets.add_argument("--repo", default=None,
+                           help="Restrict evidence to one repo (e.g. mealwise)")
     p_bullets.add_argument("--out", default=None, help="Output markdown file (default: bullets_<corpus>.md)")
     p_bullets.set_defaults(func=cmd_make_bullets)
 

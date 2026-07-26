@@ -71,9 +71,14 @@ RULES — these are absolute:
    write the bullet without one.
 4. Voice: first person implied (no "I"), past tense, strong concrete verbs.
    Say what was built and how, not adjectives about how good it was.
-5. If the context cannot support the requested number of bullets, produce fewer.
+5. LENGTH AND FOCUS: ONE accomplishment per bullet, 25 words maximum. Lead with
+   the verb. Name the specific thing (a component, a technique, a fix) — do not
+   summarise the whole project, and do not paraphrase a README overview.
+6. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
+   bullet you have already written.
+7. If the context cannot support the requested number of bullets, produce fewer.
    NEVER invent material to fill the count.
-6. Respond with ONLY a JSON object, no markdown fences, no commentary:
+8. Respond with ONLY a JSON object, no markdown fences, no commentary:
    {"bullets": [{"text": "...", "citations": ["<chunk_id>"]}]}
 """
 
@@ -185,6 +190,13 @@ def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
 def generate_guide(topic, chunks, n=5) -> Guide:
     return _run(GUIDE_SYSTEM_PROMPT, chunks, f"Write a study guide about: {topic}.", Guide)
 
-def generate_bullets(topic: str, chunks: list[dict], n: int = 5) -> Bullets:
-    return _run(BULLETS_SYSTEM_PROMPT, chunks,
-                f"Write {n} resume bullets about: {topic}.", Bullets)
+def generate_bullets(topic: str, chunks: list[dict], n: int = 5,
+                     avoid: list[str] | None = None) -> Bullets:
+    """`avoid` = bullets already kept in an earlier round; the model must not
+    repeat them (otherwise a top-up round just re-emits its best bullet)."""
+    task = f"Write {n} resume bullets about: {topic}."
+    if avoid:
+        already = "\n".join(f"- {t}" for t in avoid)
+        task += ("\n\nYou have ALREADY written the bullets below. Write about "
+                 f"DIFFERENT accomplishments — do not repeat or reword these:\n{already}")
+    return _run(BULLETS_SYSTEM_PROMPT, chunks, task, Bullets)

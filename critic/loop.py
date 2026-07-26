@@ -109,14 +109,24 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
         return [], [], gap
 
     kept, struck = [], []
+    seen: set[str] = set()          # normalized bullet text, for dedupe
     for round_num in range(1, MAX_ROUNDS + 1):
         need = n - len(kept)
         if need == 0:
             break
-        result = generate_bullets(topic, chunks, n=need)
+        # tell the Generator what it already produced, or a top-up round just
+        # re-emits its best bullet
+        result = generate_bullets(topic, chunks, n=need,
+                                  avoid=[b.text for b in kept])
         tracer.log("generated", round=round_num, count=len(result.bullets))
 
         for bullet in result.bullets:
+            key = " ".join(bullet.text.lower().split())
+            if key in seen:         # safety net if the model ignores `avoid`
+                tracer.log("duplicate_dropped", round=round_num, bullet=bullet.text)
+                continue
+            seen.add(key)
+
             cited_chunks = [by_id[cid] for cid in bullet.citations]
 
             # stage 1 — deterministic, no LLM
