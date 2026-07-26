@@ -26,9 +26,19 @@ testing) — see the spec for the full rationale.
 """
 import re
 
-# Matches numeric tokens with an optional trailing unit/symbol:
+# Matches standalone numeric tokens with an optional trailing unit/symbol:
 #   92.7%   41   1,200   3x   $50   10ms
-NUMBER_RE = re.compile(r"\d[\d,]*\.?\d*\s*(?:%|percent|x|ms|s|k|m)?", re.IGNORECASE)
+#
+# The boundary guards matter: without them, digits GLUED INSIDE a word also
+# match — "mealwise@8912ac4" would yield ["8912", "4"]. Sha fragments landing in
+# the evidence haystack would make the check far too permissive (a claim of
+# "4 services" would pass because some commit sha contains a 4).
+#   (?<![\w.])  not preceded by a letter/digit/dot  -> kills the "4" in "ac4"
+#   (?![\w])    not followed by a letter/digit      -> kills "8912" in "8912ac4"
+NUMBER_RE = re.compile(
+    r"(?<![\w.])\d[\d,]*(?:\.\d+)?\s*(?:%|percent|x|ms|k|m)?(?![\w])",
+    re.IGNORECASE,
+)
 
 
 def normalize(token: str) -> str:
@@ -59,7 +69,8 @@ def extract_numbers(text: str) -> list[str]:
       3. Return the list (duplicates are fine; empty list if the text has no
          numbers — that's the common, healthy case).
     """
-    raise NotImplementedError("quant.extract_numbers — your turn (V2-M3)")
+    numbers = NUMBER_RE.findall(text)
+    return [normalize(n) for n in numbers]
 
 
 def check_quantities(claim_text: str, cited_chunks: list[dict]) -> tuple[bool, str]:
@@ -92,4 +103,19 @@ def check_quantities(claim_text: str, cited_chunks: list[dict]) -> tuple[bool, s
         these two layers are deliberately different jobs.
       - a claim citing several chunks: the number may come from ANY of them.
     """
-    raise NotImplementedError("quant.check_quantities — your turn (V2-M3)")
+    numbers = extract_numbers(claim_text)
+    if not numbers:
+        return (True , "")
+    haystack = set()
+    for chunk in cited_chunks:
+        haystack.update(extract_numbers(chunk["text"]))
+
+    missing = [n for n in numbers if n not in haystack]
+    
+    if missing:
+        miss_nbs = ", ".join(missing)
+        return (False , f"these numbers from claim are missing from cited evidence: {miss_nbs}")
+    return (True , "")
+  
+
+
