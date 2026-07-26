@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-24 (V2-M2 — metadata-filtered retrieval mastered 9/10)._
+_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-26 (V2-M3 — deterministic pre-checks checkpointed 7/10)._
 
 ## Concept tree
 
@@ -41,7 +41,7 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-24
 - [x] **Metadata-filtered retrieval** — `checkpointed` (9/10 · mastered) · prereqs: vector-store, nearest-neighbor-retrieval · code: `retrieve/store.py:19` (_chunk_metadata) + `retrieve/query.py:33` (where=/filter=)
 
 ### V2-M3: make-bullets + quant pre-check
-- [ ] **Deterministic pre-checks before LLM judgment** — `new` (incl. honest gap reporting) · prereqs: claim-verification, structured-llm-output · code: TBD · will target v1 gaps on both prereqs
+- [x] **Deterministic pre-checks before LLM judgment** — `checkpointed` (7/10) · prereqs: claim-verification, structured-llm-output · code: `critic/quant.py:66` (check_quantities) + `critic/loop.py:78` (two-stage loop) · gap: silent-failure asymmetry — judged permissive vs strict guards equally bad by frequency; the deciding factor is observability (a weakened guard reports success while not checking)
 
 ### V2-M4: make-star synthesis
 - [ ] **Cross-source evidence synthesis** — `new` · prereqs: metadata-filtered-retrieval, multi-agent-loop · code: TBD
