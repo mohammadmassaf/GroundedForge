@@ -52,23 +52,31 @@ def render_bullets(bullets: list[CVBullet], chunks: list[dict], topic: str,
         lines.append("")
         return "\n".join(lines)
 
-    # bullets read as a CV: claim + compact citation tags, evidence below
-    used: list[str] = []
+    # bullets read as a CV: claim + numbered refs, evidence listed below.
+    # Refs (not bare text) keep each claim traceable to ITS evidence; numbers
+    # (not raw chunk_ids) keep the line readable.
+    order: list[str] = []
     for bullet in bullets:
-        tags = " ".join(f"`[{cid}]`" for cid in bullet.citations)
-        lines.append(f"- {bullet.text} {tags}")
         for cid in bullet.citations:
-            if cid not in used:
-                used.append(cid)
+            if cid not in order:
+                order.append(cid)
+    ref_no = {cid: i + 1 for i, cid in enumerate(order)}
+
+    for bullet in bullets:
+        refs = "".join(f"[{ref_no[cid]}]" for cid in bullet.citations)
+        lines.append(f"- {bullet.text} {refs}")
     lines.append("")
 
-    if used:
+    if order:
         lines.append("### Sources")
         lines.append("")
-        for cid in used:
+        for cid in order:
             chunk = by_id[cid]
             quote = chunk["text"][:QUOTE_LEN].replace("\n", " ").strip()
-            lines.append(f"- `[{cid}]` **{chunk['source_file']}** — “{quote}…”")
+            # git chunks use the same string for both; don't print it twice
+            label = (f"`{cid}`" if chunk["source_file"] == cid
+                     else f"`{cid}` — **{chunk['source_file']}**")
+            lines.append(f"{ref_no[cid]}. {label} — “{quote}…”")
         lines.append("")
 
     if struck:
