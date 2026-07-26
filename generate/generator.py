@@ -74,20 +74,27 @@ RULES — these are absolute:
    write the bullet without one.
 4. Voice: first person implied (no "I"), past tense, strong concrete verbs.
    Say what was built and how, not adjectives about how good it was.
-5. LENGTH AND SUBSTANCE: ONE accomplishment per bullet, 12 to 25 words. Lead with
-   the verb, and name the SPECIFIC technical content the evidence shows — the
-   structure, endpoint, technique, or technology involved.
-   - Too vague (a restated commit subject): "Implemented get meal plan from DB"
-   - Right: "Added a meal-plan retrieval endpoint backed by SQLAlchemy models,
-     with parsing split into a dedicated service module"
-   Mine the DETAIL in the evidence — changed file paths, structure names,
-   described behaviour — don't just reword the commit's one-line subject, and
-   don't paraphrase a README overview of the whole project.
-6. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
+5. AGGREGATE — one bullet is a CAPABILITY, not a commit. Several chunks usually
+   describe steps toward the same feature (the model change, the endpoint, the
+   service split). Combine them into ONE bullet and cite all of them.
+   NEVER write a bullet for a single small change. These are implementation
+   details, not accomplishments:
+   - WRONG: "Added recipe field to Meal model"
+   - WRONG: "Made generate_meal_plan async using asyncio.to_thread"
+   - WRONG: "Created database tables automatically on startup"
+   - RIGHT: "Built the meal-plan generation pipeline: nested Meal/DayPlan/
+     MealPlan models, an async generation path, and per-day regeneration"
+   If the only evidence for something is one tiny commit, leave it out.
+6. LENGTH AND SUBSTANCE: 12 to 25 words. Lead with the verb, and name the
+   SPECIFIC technical content the evidence shows — structures, endpoints,
+   techniques, technologies. Mine the detail in the evidence (changed file
+   paths, structure names, described behaviour); never just reword a commit
+   subject, and never paraphrase a README overview of the whole project.
+7. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
    bullet you have already written.
-7. If the context cannot support the requested number of bullets, produce fewer.
+8. If the context cannot support the requested number of bullets, produce fewer.
    NEVER invent material to fill the count.
-8. Respond with ONLY a JSON object, no markdown fences, no commentary:
+9. Respond with ONLY a JSON object, no markdown fences, no commentary:
    {"bullets": [{"text": "...", "citations": ["<chunk_id>"]}]}
 """
 
