@@ -18,7 +18,7 @@ FETCH_N = 20   # candidates fetched per retriever and kept through the merge
 
 
 def hybrid_search(query_text: str, corpus: str = "default", k: int = 5,
-                  use_rerank: bool = False) -> list[dict]:
+                  use_rerank: bool = False, where: dict | None = None) -> list[dict]:
     """
     TODO(you): chain the pipeline. No new tools - you wrote all four
     functions this calls.
@@ -31,8 +31,10 @@ def hybrid_search(query_text: str, corpus: str = "default", k: int = 5,
        Otherwise: keep the first k of the fused list.
     4. Return the final list.
     """
-    vector = search(query_text,corpus,FETCH_N)
-    bm = search_bm25(query_text,corpus,FETCH_N)
+    # both retrievers get the same filter — Chroma applies it in the engine,
+    # BM25 in Python (see keyword._matches)
+    vector = search(query_text,corpus,FETCH_N,where=where)
+    bm = search_bm25(query_text,corpus,FETCH_N,where=where)
     fused  = rrf_merge(vector,bm,FETCH_N)
     if use_rerank:
         result = rerank(query_text,fused,k)

@@ -39,7 +39,15 @@ def _get_index(corpus: str):
     return _indexes[corpus]
 
 
-def search_bm25(query_text: str, corpus: str = "default", k: int = 5) -> list[dict]:
+def _matches(chunk: dict, where: dict | None) -> bool:
+    """Python-side equivalent of Chroma's `where` filter (BM25 has no engine filter)."""
+    if not where:
+        return True
+    return all(chunk.get(key) == value for key, value in where.items())
+
+
+def search_bm25(query_text: str, corpus: str = "default", k: int = 5,
+                where: dict | None = None) -> list[dict]:
     """
     TODO(you): top-k chunks by BM25 score, same result shape as
     retrieve.query.search() so the two lists are interchangeable.
@@ -61,8 +69,11 @@ def search_bm25(query_text: str, corpus: str = "default", k: int = 5) -> list[di
     query_tokens = _tokenize(query_text)
     index , chunks = _get_index(corpus)
     scores = index.get_scores(query_tokens)
-    top_k = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:k]
-    
+    # filter BEFORE taking k (same reason as Chroma's where=: taking k first and
+    # filtering after could return fewer than k — or zero — matching chunks)
+    ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+    top_k = [i for i in ranked if _matches(chunks[i], where)][:k]
+
     results = []
     for i in top_k:
         results.append({**chunks[i] , "score" : scores[i]})

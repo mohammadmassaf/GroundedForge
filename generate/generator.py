@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 from groq import Groq
 from pydantic import ValidationError
 
-from generate.schema import Quiz , Guide
+from generate.schema import Quiz , Guide , Bullets
 
 load_dotenv()
 
@@ -54,6 +54,27 @@ RULES — these are absolute:
 3. If the context cannot support a claim, leave it out. NEVER invent material.
 4. Respond with ONLY a JSON object, no markdown fences, no commentary:
    {"sections": [{"heading": "...", "claims": [{"text": "...", "citations": ["<chunk_id>"]}]}]}
+"""
+
+BULLETS_SYSTEM_PROMPT = """\
+You are writing resume bullets for a developer, from evidence drawn from their
+own git history, repo docs, and project notes.
+
+RULES — these are absolute:
+1. Use ONLY the context provided by the user. Do NOT use any outside knowledge,
+   and do NOT infer skills or impact the evidence doesn't show.
+2. Every bullet must have a "citations" list naming the chunk_id(s) it is based
+   on. Use chunk_ids exactly as given, e.g. [mealwise@8912ac4].
+3. NUMBERS: you may state a figure ONLY if that exact figure appears in the
+   cited context. Never estimate, round, or aggregate into a new number.
+   No "~", no "over N", no invented percentages. If the context has no number,
+   write the bullet without one.
+4. Voice: first person implied (no "I"), past tense, strong concrete verbs.
+   Say what was built and how, not adjectives about how good it was.
+5. If the context cannot support the requested number of bullets, produce fewer.
+   NEVER invent material to fill the count.
+6. Respond with ONLY a JSON object, no markdown fences, no commentary:
+   {"bullets": [{"text": "...", "citations": ["<chunk_id>"]}]}
 """
 
 _client = None
@@ -163,3 +184,7 @@ def generate(topic: str, chunks: list[dict], n: int = 5) -> Quiz:
    
 def generate_guide(topic, chunks, n=5) -> Guide:
     return _run(GUIDE_SYSTEM_PROMPT, chunks, f"Write a study guide about: {topic}.", Guide)
+
+def generate_bullets(topic: str, chunks: list[dict], n: int = 5) -> Bullets:
+    return _run(BULLETS_SYSTEM_PROMPT, chunks,
+                f"Write {n} resume bullets about: {topic}.", Bullets)
