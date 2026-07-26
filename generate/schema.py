@@ -38,6 +38,23 @@ class Quiz(BaseModel):
 
       return out
 
+class CVBullet(BaseModel):
+    """One resume bullet: a first-person claim about work you actually did."""
+    text: str = Field(min_length=10)
+    citations: list[str] = Field(min_length=1)   # at least one chunk_id
+
+
+class Bullets(BaseModel):
+    bullets: list[CVBullet] = Field(min_length=1)
+
+    def all_citations(self) -> list[str]:
+        out = []
+        for bullet in self.bullets:
+            for cid in bullet.citations:
+                out.append(cid)
+        return out
+
+
 class GuideClaim(BaseModel):
     text : str = Field(min_length=10)
     citations : list[str] = Field(min_length=1)

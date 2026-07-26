@@ -63,6 +63,30 @@ def cmd_make_guide(args):
     print(f"\nSaved to {out}")
 
 
+def cmd_make_bullets(args):
+    from pathlib import Path
+
+    from retrieve.hybrid import hybrid_search
+    from critic.loop import run_bullets_loop
+    from generate.renderer import render_bullets
+
+    where = {"source_type": args.source_type} if args.source_type else None
+    print(f"Retrieving chunks for: {args.topic}" + (f" [{args.source_type} only]" if where else ""))
+    chunks = hybrid_search(args.topic, corpus=args.corpus, k=args.k, use_rerank=True, where=where)
+    print(f"Generating {args.n} bullets from {len(chunks)} chunks (cite-or-strike)...")
+    kept, struck, gap = run_bullets_loop(args.topic, chunks, n=args.n)
+    if gap:
+        print(f"GAP: {gap}")
+    else:
+        print(f"Critic: {len(kept)} kept, {len(struck)} struck")
+    markdown = render_bullets(kept, chunks, args.topic, struck=struck, gap=gap)
+
+    out = Path(args.out) if args.out else Path(f"bullets_{args.corpus}.md")
+    out.write_text(markdown, encoding="utf-8")
+    print(f"\n{markdown}")
+    print(f"\nSaved to {out}")
+
+
 def cmd_eval(args):
     from eval.run_eval import load_eval_set, retrieval_eval, grounding_eval, report
 
@@ -108,6 +132,16 @@ def build_parser():
     p_quiz.add_argument("-k", type=int, default=8, help="Number of chunks to retrieve as context")
     p_quiz.add_argument("--out", default=None, help="Output markdown file (default: guide_<corpus>.md)")
     p_quiz.set_defaults(func=cmd_make_guide)
+
+    p_bullets = sub.add_parser("make-bullets", help="Generate cited CV bullets from your work corpus")
+    p_bullets.add_argument("topic", help="Project or skill area to write bullets about")
+    p_bullets.add_argument("--corpus", default="job")
+    p_bullets.add_argument("-n", type=int, default=5, help="Number of bullets")
+    p_bullets.add_argument("-k", type=int, default=8, help="Number of chunks to retrieve as context")
+    p_bullets.add_argument("--source-type", choices=["git", "docs", "vault", "files"], default=None,
+                           help="Restrict evidence to one source type")
+    p_bullets.add_argument("--out", default=None, help="Output markdown file (default: bullets_<corpus>.md)")
+    p_bullets.set_defaults(func=cmd_make_bullets)
 
     p_eval = sub.add_parser("eval", help="Run retrieval (recall@k) + grounding evals")
     p_eval.add_argument("--corpus", default="default")
