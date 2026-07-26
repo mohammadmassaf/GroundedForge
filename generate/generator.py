@@ -65,6 +65,9 @@ RULES — these are absolute:
    and do NOT infer skills or impact the evidence doesn't show.
 2. Every bullet must have a "citations" list naming the chunk_id(s) it is based
    on. Use chunk_ids exactly as given, e.g. [mealwise@8912ac4].
+   Cite EVERY chunk that supports the bullet, not just the main one. A bullet is
+   checked against ONLY the chunks it cites — so if one chunk shows the endpoint
+   and another shows the technology it uses, cite BOTH or the claim will fail.
 3. NUMBERS: you may state a figure ONLY if that exact figure appears in the
    cited context. Never estimate, round, or aggregate into a new number.
    No "~", no "over N", no invented percentages. If the context has no number,
