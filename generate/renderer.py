@@ -92,6 +92,41 @@ def render_bullets(bullets: list[CVBullet], chunks: list[dict], topic: str,
     return "\n".join(lines)
 
 
+def render_star(answer, pools: dict[str, list[dict]],
+                flagged: list[tuple[str, str]] | None = None) -> str:
+    by_id = {c["chunk_id"]: c for pool in pools.values() for c in pool}
+    flags = dict(flagged or [])
+
+    lines = [f"# STAR Answer — {answer.question}", ""]
+
+    order: list[str] = []
+    for _, section in answer.sections():
+        for cid in section.citations:
+            if cid not in order:
+                order.append(cid)
+    ref_no = {cid: i + 1 for i, cid in enumerate(order)}
+
+    for name, section in answer.sections():
+        refs = "".join(f"[{ref_no[cid]}]" for cid in section.citations if cid in ref_no)
+        lines.append(f"**{name}.** {section.text} {refs}")
+        if name in flags:
+            lines.append(f"> ⚠️ *Not verified:* {flags[name]}")
+        lines.append("")
+
+    if order:
+        lines.append("### Sources")
+        lines.append("")
+        for cid in order:
+            chunk = by_id[cid]
+            quote = chunk["text"][:QUOTE_LEN].replace("\n", " ").strip()
+            label = (f"`{cid}`" if chunk["source_file"] == cid
+                     else f"`{cid}` — **{chunk['source_file']}**")
+            lines.append(f"{ref_no[cid]}. {label} — “{quote}…”")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 def render_guide(sections: list[GuideSection], chunks: list[dict], topic: str,
                   struck: list[tuple[GuideClaim, str]] | None = None) -> str:
     by_id = {c["chunk_id"]: c for c in chunks}

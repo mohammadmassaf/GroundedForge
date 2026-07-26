@@ -20,7 +20,7 @@ verdicts (drop, regenerate, stop) is deterministic logic — another case of
 
 Every step logs to the Tracer, so a run is reconstructable from its trace.
 """
-from generate.generator import generate , generate_guide , generate_bullets
+from generate.generator import generate , generate_guide , generate_bullets , generate_star
 from generate.schema import QuizItem , GuideSection
 from critic.critic import check_claim
 from critic.quant import check_quantities
@@ -149,6 +149,54 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
     tracer.log("done", kept=len(kept), struck=len(struck))
     print(f"Trace: {tracer.path}")
     return kept, struck, None
+
+
+def run_star_loop(question: str, pools: dict[str, list[dict]]) -> tuple[object, list]:
+    """
+    Cite-or-strike for a STAR answer. Verifies each of the four sections
+    independently, with the same two-stage check as bullets.
+
+    Returns (answer, flagged): `flagged` is a list of (section_name, reason) for
+    sections that failed verification. Unlike bullets we DON'T drop a failed
+    section (a STAR answer with no Result is broken) — we keep it and flag it,
+    so the artifact shows what isn't trustworthy.
+    """
+    tracer = Tracer("star")
+    by_id = {c["chunk_id"]: c for pool in pools.values() for c in pool}
+
+    answer = generate_star(question, pools)
+    tracer.log("generated", question=question,
+               pool_sizes={k: len(v) for k, v in pools.items()})
+
+    flagged = []
+    for name, section in answer.sections():
+        cited_chunks = [by_id[cid] for cid in section.citations]
+
+        # scope check: did this section cite outside its own pool?
+        own_ids = {c["chunk_id"] for c in pools.get(name.lower(), [])}
+        stray = [cid for cid in section.citations if cid not in own_ids]
+        if stray:
+            flagged.append((name, f"cited outside its evidence pool: {stray}"))
+            tracer.log("scope_violation", section=name, stray=stray)
+            continue
+
+        # stage 1 — deterministic
+        ok, reason = check_quantities(section.text, cited_chunks)
+        tracer.log("quant_check", section=name, passed=ok, reason=reason)
+        if not ok:
+            flagged.append((name, f"[quant] {reason}"))
+            continue
+
+        # stage 2 — LLM Critic
+        verdict = check_claim("", section.text, cited_chunks)
+        tracer.log("critic_verdict", section=name,
+                   supported=verdict.supported, reason=verdict.reason)
+        if not verdict.supported:
+            flagged.append((name, verdict.reason))
+
+    tracer.log("done", flagged=len(flagged))
+    print(f"Trace: {tracer.path}")
+    return answer, flagged
 
 
 def run_guide_loop(topic, chunks) -> tuple[list, list]:

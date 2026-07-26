@@ -126,4 +126,11 @@ v2.5 (December, out of scope now):
 
 - JD-driven generation (v2.5, December)
 - OCR, browser UI, deployment, accounts (unchanged from v1)
+  - **UI decision (2026-07-26): stays out, deliberately.** Two reasons. (1) Job
+    mode's corpus is personal — own commits, own repo docs, own vault notes — so
+    it cannot be demoed publicly; a hosted UI could only showcase study mode with
+    a sample corpus. (2) The portfolio value here is the grounding machinery, not
+    web dev (already evidenced by MealWise). Instead, M5 invests in the README:
+    committed sample artifacts + a terminal capture. A thin Streamlit/Gradio demo
+    over study mode remains a cheap post-ship option if a clickable link is wanted.
 - Any change to retrieve/, the agent-loop structure, or the eval harness beyond the new eval set
