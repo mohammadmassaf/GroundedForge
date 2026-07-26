@@ -52,13 +52,23 @@ def render_bullets(bullets: list[CVBullet], chunks: list[dict], topic: str,
         lines.append("")
         return "\n".join(lines)
 
+    # bullets read as a CV: claim + compact citation tags, evidence below
+    used: list[str] = []
     for bullet in bullets:
-        lines.append(f"- {bullet.text}")
-        lines.append("")
+        tags = " ".join(f"`[{cid}]`" for cid in bullet.citations)
+        lines.append(f"- {bullet.text} {tags}")
         for cid in bullet.citations:
+            if cid not in used:
+                used.append(cid)
+    lines.append("")
+
+    if used:
+        lines.append("### Sources")
+        lines.append("")
+        for cid in used:
             chunk = by_id[cid]
             quote = chunk["text"][:QUOTE_LEN].replace("\n", " ").strip()
-            lines.append(f"> 📎 `{cid}` — {chunk['source_file']}: “{quote}…”")
+            lines.append(f"- `[{cid}]` **{chunk['source_file']}** — “{quote}…”")
         lines.append("")
 
     if struck:

@@ -40,9 +40,14 @@ def _get_index(corpus: str):
 
 
 def _matches(chunk: dict, where: dict | None) -> bool:
-    """Python-side equivalent of Chroma's `where` filter (BM25 has no engine filter)."""
+    """
+    Python-side equivalent of Chroma's `where` filter (BM25 has no engine filter).
+    Supports plain {key: value} conditions and Chroma's {"$and": [...]} wrapper.
+    """
     if not where:
         return True
+    if "$and" in where:
+        return all(_matches(chunk, cond) for cond in where["$and"])
     return all(chunk.get(key) == value for key, value in where.items())
 
 
