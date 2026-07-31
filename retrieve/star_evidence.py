@@ -48,7 +48,7 @@ Chroma wants {"source_type": "git"} for one value, or
 {"$or": [{"source_type": "vault"}, {"source_type": "docs"}]} for several.
 """
 from retrieve.hybrid import hybrid_search
-from retrieve.deframe import deframe
+
 
 # Where each section's evidence usually lives.
 SECTION_SOURCES = {
@@ -96,11 +96,11 @@ def gather_evidence(question: str, corpus: str = "job", k: int = 6) -> dict[str,
       3. Return the dict of four pools.
     """
     pools= {}
-    deframed = deframe(question , corpus)
+    
     
     for section , sources in SECTION_SOURCES.items():
         where = _where_for(sources)
-        query = deframed + " " +  SECTION_HINTS[section]
+        query = question + " " +  SECTION_HINTS[section]
         pool = hybrid_search(query,corpus, k = k , use_rerank=True , where = where)
         seen = {c["chunk_id"] for c in pool}
         if len(pool) < MIN_POOL:
