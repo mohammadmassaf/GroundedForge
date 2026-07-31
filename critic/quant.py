@@ -59,6 +59,21 @@ def normalize(token: str) -> str:
     return t
 
 
+def _is_identifier_fragment(text: str, start: int, end: int) -> bool:
+    """
+    True when a matched digit is hyphenated on BOTH sides — the shape of a
+    version string or model name, not a quantity:
+
+        cross-encoder/ms-marco-MiniLM-L-6-v2   the "6" is not a claim about 6
+        a 3-day plan                           the "3" IS a quantity
+
+    A standalone figure is hyphenated on at most one side, so requiring both
+    keeps "3-day" and diff stats like "(+56/-32)" in play while dropping the
+    identifier fragments. NUMBER_RE's \\w guards already handle "8912ac4".
+    """
+    return text[start - 1:start] == "-" and text[end:end + 1] == "-"
+
+
 def extract_numbers(text: str) -> list[str]:
     """
     Return every numeric token in `text`, normalized.
@@ -69,8 +84,12 @@ def extract_numbers(text: str) -> list[str]:
       3. Return the list (duplicates are fine; empty list if the text has no
          numbers — that's the common, healthy case).
     """
-    numbers = NUMBER_RE.findall(text)
-    return [normalize(n) for n in numbers]
+    numbers = []
+    for match in NUMBER_RE.finditer(text):
+        if _is_identifier_fragment(text, match.start(), match.end()):
+            continue
+        numbers.append(normalize(match.group()))
+    return numbers
 
 
 def check_quantities(claim_text: str, cited_chunks: list[dict]) -> tuple[bool, str]:
