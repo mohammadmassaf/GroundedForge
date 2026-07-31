@@ -25,6 +25,8 @@ corpora:
     - type: docs           # README / CLAUDE.md / docs/*.md, chunked by heading
       path: ../your-repo
       repo: your-repo
+      exclude: [CLAUDE.md] # optional: file names to skip. Agent-instruction
+                           # files describe how to work, not what was done.
 
     - type: vault          # only these explicitly-listed notes are read
       paths:

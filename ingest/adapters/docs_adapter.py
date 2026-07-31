@@ -2,7 +2,8 @@
 docs adapter: turn a repo's markdown docs into chunks. One heading section = one chunk.
 
 Source config (from corpus.yaml):
-    {type: docs, path: <repo path>, repo: <short name for citations>}
+    {type: docs, path: <repo path>, repo: <short name for citations>,
+     exclude: [<file name>, ...]}   # optional
 
 Reads README.md, CLAUDE.md, and docs/*.md under `path` (see _find_doc_files),
 then defers the heading-section splitting to sections.split_sections (shared
@@ -18,17 +19,23 @@ from ingest.adapters.base import register, make_chunk
 from ingest.adapters.sections import split_sections
 
 
-def _find_doc_files(repo_path: str) -> list[Path]:
-    """Return the markdown files to ingest: README.md, CLAUDE.md, docs/*.md."""
+def _find_doc_files(repo_path: str, exclude: set[str] | None = None) -> list[Path]:
+    """Return the markdown files to ingest: README.md, CLAUDE.md, docs/*.md.
+
+    `exclude` holds file NAMES to skip, from the source's optional `exclude:`
+    list in corpus.yaml — some docs describe how to work on a project rather
+    than what was done, which is noise in an evidence corpus.
+    """
+    exclude = exclude or set()
     root = Path(repo_path)
     files: list[Path] = []
     for name in ("README.md", "CLAUDE.md"):
         p = root / name
-        if p.exists():
+        if p.exists() and p.name not in exclude:
             files.append(p)
     docs_dir = root / "docs"
     if docs_dir.is_dir():
-        files.extend(sorted(docs_dir.glob("*.md")))
+        files.extend(sorted(p for p in docs_dir.glob("*.md") if p.name not in exclude))
     return files
 
 
@@ -36,7 +43,7 @@ def _find_doc_files(repo_path: str) -> list[Path]:
 def load_docs(source: dict) -> list[dict]:
     repo_path = source["path"]
     repo = source["repo"]
-    files = _find_doc_files(repo_path)
+    files = _find_doc_files(repo_path, set(source.get("exclude", [])))
 
     chunks = []
     for file in files:

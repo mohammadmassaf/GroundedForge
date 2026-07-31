@@ -20,7 +20,14 @@ _indexes: dict = {}   # corpus name -> (BM25Okapi, list of chunk dicts)
 
 
 def _tokenize(text: str) -> list[str]:
-    return text.lower().split()
+    base =  text.lower().split()
+    tokenized = []
+    for elmt in base:
+        token = elmt.strip('.,;:!?"\'()[]')
+        if token:
+            tokenized.append(token)
+    return tokenized
+
 
 
 def _get_index(corpus: str):
