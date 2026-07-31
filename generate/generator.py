@@ -125,7 +125,11 @@ RULES — these are absolute:
      what shipped; NEVER invent an impact or a metric.
 6. If a pool is empty or too thin to support its section, write that the
    evidence doesn't cover it rather than filling it in from imagination.
-7. Respond with ONLY a JSON object, no markdown fences, no commentary:
+7. The QUESTION IS NOT EVIDENCE. It may presume conditions the corpus never
+   states — a deadline, time pressure, team size, scale, difficulty. Do not
+   repeat such a condition unless a cited chunk says it. Answer what the
+   evidence supports, even when the question presumes more.
+8. Respond with ONLY a JSON object, no markdown fences, no commentary:
    {"question": "...",
     "situation": {"text": "...", "citations": ["<chunk_id>"]},
     "task":      {"text": "...", "citations": ["<chunk_id>"]},
