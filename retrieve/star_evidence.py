@@ -7,7 +7,7 @@ in different sources:
     Situation / Task  -> the "why": constraints, goals   -> vault + docs
     Action            -> what you actually did           -> git
     Result            -> outcomes, eval numbers, ship    -> vault + docs
-
+ 
 So instead of one retrieval, we run one retrieval PER SECTION, each biased
 toward the source type where that kind of evidence lives.
 
@@ -48,6 +48,7 @@ Chroma wants {"source_type": "git"} for one value, or
 {"$or": [{"source_type": "vault"}, {"source_type": "docs"}]} for several.
 """
 from retrieve.hybrid import hybrid_search
+from retrieve.deframe import deframe
 
 # Where each section's evidence usually lives.
 SECTION_SOURCES = {
@@ -55,6 +56,19 @@ SECTION_SOURCES = {
     "task":      ["vault", "docs"],
     "action":    ["git"],
     "result":    ["vault", "docs"],
+}
+SECTION_HINTS = {
+    "situation": "the problem",
+    "task":      "the constraint",
+    "action":    "what I did",
+    "result":    "the outcome",
+}
+WIDENED_SOURCES = {
+    "situation": ["vault", "docs" , "git"],
+        "task":      ["vault", "docs" , "git"],
+        "action":    ["git" , "docs"],
+        "result":    ["vault", "docs" , "git"],
+
 }
 
 # A pool this small (or this weak) means the filter probably hid the evidence.
@@ -71,7 +85,7 @@ def _where_for(sources: list[str]) -> dict:
 def gather_evidence(question: str, corpus: str = "job", k: int = 6) -> dict[str, list[dict]]:
     """
     Retrieve one evidence pool per STAR section. See module docstring for the
-    two decisions you need to make.
+    two decisions you need to make. 
 
     TODO(you) — V2-M4:
       1. For each of the four sections in SECTION_SOURCES:
@@ -81,4 +95,24 @@ def gather_evidence(question: str, corpus: str = "job", k: int = 6) -> dict[str,
       2. Apply your fallback rule when the pool comes back thin (DECISION 2).
       3. Return the dict of four pools.
     """
-    raise NotImplementedError("star_evidence.gather_evidence — your turn (V2-M4)")
+    pools= {}
+    deframed = deframe(question , corpus)
+    
+    for section , sources in SECTION_SOURCES.items():
+        where = _where_for(sources)
+        query = deframed + " " +  SECTION_HINTS[section]
+        pool = hybrid_search(query,corpus, k = k , use_rerank=True , where = where)
+        seen = {c["chunk_id"] for c in pool}
+        if len(pool) < MIN_POOL:
+            where = _where_for(WIDENED_SOURCES[section])
+            result = hybrid_search(query,corpus, k = k  , use_rerank=True , where = where)
+            for chunk in result:
+                if len(pool) >= k: 
+                    break
+                if chunk["chunk_id"] not in seen:
+                    seen.add(chunk["chunk_id"]) 
+                    pool.append(chunk)
+                
+        pools[section] = pool
+    return pools
+
