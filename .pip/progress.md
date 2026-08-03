@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-26 (V2-M3 — deterministic pre-checks checkpointed 7/10)._
+_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-31 (V2-M4 — cross-source evidence synthesis checkpointed 8/10)._
 
 ## Concept tree
 
@@ -44,7 +44,7 @@ _Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-26
 - [x] **Deterministic pre-checks before LLM judgment** — `checkpointed` (7/10) · prereqs: claim-verification, structured-llm-output · code: `critic/quant.py:66` (check_quantities) + `critic/loop.py:78` (two-stage loop) · gap: silent-failure asymmetry — judged permissive vs strict guards equally bad by frequency; the deciding factor is observability (a weakened guard reports success while not checking)
 
 ### V2-M4: make-star synthesis
-- [ ] **Cross-source evidence synthesis** — `new` · prereqs: metadata-filtered-retrieval, multi-agent-loop · code: TBD
+- [x] **Cross-source evidence synthesis** — `checkpointed` (8/10) · prereqs: metadata-filtered-retrieval, multi-agent-loop · code: `retrieve/star_evidence.py:85` (gather_evidence) + `critic/loop.py:176` (own_ids scope check) · gap: per-section retrieval is what *creates* the citation-scope boundary — named the starvation argument but not that a single pool makes `own_ids` vacuous
 
 ### V2-M5: Job eval + ship
 - [ ] **Adversarial eval traps** — `new` · prereqs: grounding-eval · code: TBD · will target v1 gap on grounding-eval (calibrating the evaluator)
