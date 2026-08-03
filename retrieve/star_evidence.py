@@ -58,7 +58,7 @@ SECTION_SOURCES = {
     "result":    ["vault", "docs"],
 }
 SECTION_HINTS = {
-    "situation": "the problem",
+    "situation": "the goal",
     "task":      "the constraint",
     "action":    "what I did",
     "result":    "the outcome",
