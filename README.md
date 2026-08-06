@@ -40,7 +40,17 @@ venv\Scripts\pip install -r requirements.txt     # Windows (use venv/bin/pip on 
 copy .env.example .env                            # add your free Groq API key (console.groq.com)
 ```
 
-Drop your course PDFs (or .txt/.md) into `data/`, then:
+**Try it without supplying anything.** The repo ships a small public-domain
+corpus (`demo_corpus/` — the IP, TCP and UDP RFCs) so a fresh clone is runnable:
+
+```bash
+python main.py ingest --corpus demo              # 526 chunks with source metadata
+python main.py build-index --corpus demo         # embed chunks -> ChromaDB
+python main.py make-quiz "TCP connection establishment" --corpus demo -n 5
+```
+
+**On your own material.** Drop PDFs (or .txt/.md) into `data/`, add a corpus
+entry to `corpus.yaml` (copy `corpus.example.yaml`), then:
 
 ```bash
 python main.py ingest --corpus mycourse          # PDFs -> chunks with source metadata
@@ -50,15 +60,23 @@ python main.py make-quiz "your topic" --corpus mycourse -n 5
 
 ## Real output
 
-From an actual run against three networking-course PDFs (`make-quiz "transmission and propagation delay" --corpus networks`):
+From an actual run against the shipped demo corpus
+(`make-quiz "TCP connection establishment and the three-way handshake" --corpus demo`):
 
-> ### Q1. What is the formula for propagation delay?
+> ### Q1. What is the procedure used to establish a connection in TCP?
 >
-> **Answer:** Propagation Delay = Distance / Propagation speed
+> **Answer:** The three-way handshake
 >
-> 📖 `I2208-2024-2025-Part-3_p53_c0` — I2208-2024-2025-Part-3.pdf, p.53: "…𝑃𝑟𝑜𝑝𝑎𝑔𝑎𝑡𝑖𝑜𝑛 𝐷𝑒𝑙𝑎𝑦 = 𝐷𝑖𝑠𝑡𝑎𝑛𝑐𝑒 / 𝑃𝑟𝑜𝑝𝑎𝑔𝑎𝑡𝑖𝑜𝑛 𝑠𝑝𝑒𝑒𝑑…"
+> 📖 `rfc793_p36_c3` — rfc793.txt, p.36: "…The \"three-way handshake\" is the procedure used to establish a connection. This procedure normally is initiated by one TCP and responded to…"
 
-Full sample artifact: [quiz_networks.md](quiz_networks.md). When the Critic strikes a claim, it appears struck-through in a separate section with the reason. See the sample trace in [samples/](samples/) for the verdicts behind a full eval run.
+Full sample artifact: [quiz_demo.md](quiz_demo.md) — reproducible from a clean
+clone with the three commands above. When the Critic strikes a claim, it appears
+struck-through in a separate section with the reason. See the sample trace in
+[samples/](samples/) for the verdicts behind a full eval run.
+
+The measured numbers below come from a 20-question eval set over three
+networking-course PDFs, which stay out of the repo for copyright reasons — the
+demo corpus is what's reproducible, the course corpus is what's measured.
 
 ## Evaluation
 
