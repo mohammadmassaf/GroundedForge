@@ -15,6 +15,14 @@ corpora:
     - type: files
       path: data
 
+  # Committed demo corpus (IETF RFCs, freely redistributable) so the repo is
+  # runnable straight after cloning:
+  #   python main.py ingest --corpus demo && python main.py build-index --corpus demo
+  #   python main.py make-quiz "TCP connection establishment" --corpus demo
+  demo:
+    - type: files
+      path: demo_corpus
+
   # v2 job mode — git history + repo docs + hand-picked notes.
   # Fill these in with your own repo and note paths in corpus.yaml.
   job:

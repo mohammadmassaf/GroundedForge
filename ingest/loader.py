@@ -31,5 +31,14 @@ def _load_pdf(path: Path) -> list[tuple[int, str]]:
 
 
 def _load_text(path: Path) -> list[tuple[int, str]]:
+    """
+    Plain text is one page — unless the file carries form-feed (\\f) page
+    breaks, as paginated formats like IETF RFCs do. Honouring them keeps
+    citations at page granularity instead of collapsing a 90-page document
+    to "p.1". Files without form feeds are unaffected.
+    """
     text = path.read_text(encoding="utf-8")
-    return [(1, text)]
+    if "\f" not in text:
+        return [(1, text)]
+    pages = text.split("\f")
+    return [(i, p) for i, p in enumerate(pages, start=1) if p.strip()]
