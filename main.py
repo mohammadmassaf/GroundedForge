@@ -118,13 +118,20 @@ def cmd_make_star(args):
 
 
 def cmd_eval(args):
-    from eval.run_eval import load_eval_set, retrieval_eval, grounding_eval, report
+    from eval.run_eval import (load_eval_set, load_traps, retrieval_eval,
+                               grounding_eval, trap_eval, report)
 
-    items = load_eval_set()
-    print(f"Eval set: {len(items)} questions")
-    retrieval = retrieval_eval(items, corpus=args.corpus,mode=args.retrieval)
-    grounding = grounding_eval(items[:args.limit] if args.limit else items, corpus=args.corpus)
-    print(report(retrieval, grounding))
+    items = load_eval_set(args.corpus)
+    traps = load_traps(args.corpus)
+    # job mode generates bullets; quiz items over a commit history are meaningless
+    generator = "bullets" if args.corpus == "job" else "quiz"
+    print(f"Eval set: {len(items)} questions, {len(traps)} traps ({generator})")
+
+    retrieval = retrieval_eval(items, corpus=args.corpus, mode=args.retrieval)
+    grounding = grounding_eval(items[:args.limit] if args.limit else items,
+                               corpus=args.corpus, generator=generator)
+    trap_results = trap_eval(traps, corpus=args.corpus) if traps and not args.no_traps else None
+    print(report(retrieval, grounding, trap_results))
 
 
 def build_parser():
@@ -187,6 +194,8 @@ def build_parser():
     p_eval.add_argument("--limit", type=int, default=None,
                         help="Grounding eval on first N questions only (LLM cost control)")
     p_eval.add_argument("--retrieval" , choices=["vector", "hybrid", "rerank"] , default="vector")
+    p_eval.add_argument("--no-traps", action="store_true",
+                        help="Skip the adversarial traps (they cost one LLM call each)")
     p_eval.set_defaults(func=cmd_eval)
 
     return parser

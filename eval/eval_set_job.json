@@ -1,0 +1,283 @@
+{
+  "_comment": "Job-mode eval set (v2). 15 grounding items with known-right chunks, plus 5 adversarial traps measuring whether the Critic strikes claims that are deliberately wrong. Generated from chunks/job.json so source_file strings match exactly; edit by hand from here.",
+  "items": [
+    {
+      "id": "j1",
+      "question": "How is authentication implemented in MealWise?",
+      "expected": [
+        {
+          "source_file": "mealwise@aa2b173",
+          "pages": [
+            1
+          ]
+        },
+        {
+          "source_file": "mealwise README § API reference",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j2",
+      "question": "How does MealWise get nutrition data for ingredients?",
+      "expected": [
+        {
+          "source_file": "mealwise@ae2cf81",
+          "pages": [
+            1
+          ]
+        },
+        {
+          "source_file": "mealwise README § MealWise",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j3",
+      "question": "What happens when the meal plan API hits a rate limit?",
+      "expected": [
+        {
+          "source_file": "mealwise@c107bc2",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j4",
+      "question": "How are the database tables created in MealWise?",
+      "expected": [
+        {
+          "source_file": "mealwise@8912ac4",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j5",
+      "question": "How was meal plan generation made non-blocking?",
+      "expected": [
+        {
+          "source_file": "mealwise@af43c30",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j6",
+      "question": "Where is MealWise deployed?",
+      "expected": [
+        {
+          "source_file": "mealwise@047579e",
+          "pages": [
+            1
+          ]
+        },
+        {
+          "source_file": "mealwise README § Deployment",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j7",
+      "question": "Which endpoint regenerates a single day of a meal plan?",
+      "expected": [
+        {
+          "source_file": "mealwise@d1a9001",
+          "pages": [
+            1
+          ]
+        },
+        {
+          "source_file": "mealwise README § API reference",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j8",
+      "question": "What database and ORM does MealWise use?",
+      "expected": [
+        {
+          "source_file": "mealwise README § Tech stack",
+          "pages": [
+            1
+          ]
+        },
+        {
+          "source_file": "mealwise README § MealWise",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j9",
+      "question": "How does the meal plan prompt take past meals into account?",
+      "expected": [
+        {
+          "source_file": "mealwise@73635ea",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j10",
+      "question": "What grounding score does Grounded Forge report?",
+      "expected": [
+        {
+          "source_file": "grounded-forge README § Evaluation",
+          "pages": [
+            1
+          ]
+        },
+        {
+          "source_file": "grounded-forge README § Grounded Forge",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j11",
+      "question": "How does hybrid retrieval combine BM25 and vector search?",
+      "expected": [
+        {
+          "source_file": "grounded-forge README § Hybrid retrieval (M7)",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j12",
+      "question": "Why is Grounded Forge different from asking ChatGPT?",
+      "expected": [
+        {
+          "source_file": "grounded-forge README § Why this isn't just ChatGPT",
+          "pages": [
+            1
+          ]
+        },
+        {
+          "source_file": "grounded-forge § The point (why this isn't just ChatGPT / NotebookLM)",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j13",
+      "question": "What did LangChain abstract away in the retrieval layer?",
+      "expected": [
+        {
+          "source_file": "grounded-forge langchain-notes § What the framework abstracted (did for us)",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j14",
+      "question": "When is a framework not worth reaching for in this project?",
+      "expected": [
+        {
+          "source_file": "grounded-forge langchain-notes § When to use a framework here, and when not to",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j15",
+      "question": "What is the deliverable for Grounded Forge?",
+      "expected": [
+        {
+          "source_file": "grounded-forge § Deliverable",
+          "pages": [
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "traps": [
+    {
+      "id": "t1",
+      "claim": "Improved grounding to ~93% on the eval set",
+      "citations": [
+        "grounded-forge-README-5"
+      ],
+      "stage": "quant",
+      "why": "the rounding edge case. Evidence says 92.7%; strict exact match must strike ~93% rather than round to it (policy decided 2026-07-19)."
+    },
+    {
+      "id": "t2",
+      "claim": "Cut meal plan generation latency by 40% by making it async",
+      "citations": [
+        "mealwise@af43c30"
+      ],
+      "stage": "quant",
+      "why": "pure inflation: the cited commit carries no latency figure at all."
+    },
+    {
+      "id": "t3",
+      "claim": "Deployed MealWise on Kubernetes with horizontal autoscaling",
+      "citations": [
+        "mealwise@047579e"
+      ],
+      "stage": "critic",
+      "why": "unused skill. No number, so quant cannot see it -- the evidence says Render and Vercel. Only the semantic Critic can catch this."
+    },
+    {
+      "id": "t4",
+      "claim": "Indexed 188 chunks across the job corpus",
+      "citations": [
+        "mealwise@aa2b173"
+      ],
+      "stage": "quant",
+      "why": "188 is a real figure elsewhere in the corpus but not in the CITED chunk. Pins that the haystack is the citations, not the whole corpus."
+    },
+    {
+      "id": "t5",
+      "claim": "Retrieval reached 100% recall@3 on the eval set",
+      "citations": [
+        "grounded-forge-README-5"
+      ],
+      "stage": "critic",
+      "why": "misattribution. Both 100% and 3 appear in the cited chunk, so quant PASSES -- 100% belongs to recall@10, and recall@3 was 90%. Marks the boundary where deterministic checking stops."
+    },
+    {
+      "id": "t6",
+      "claim": "I improved retrieval quality with hybrid search under a tight deadline",
+      "citations": [
+        "vault-grounded-forge-v1-milestones-9"
+      ],
+      "stage": "critic",
+      "why": "premise leak, observed for real on 2026-08-01: the Critic passed 'under a deadline' in a STAR Situation because the rest of the sentence checked out. The cited chunk describes M7 and estimates ~6 h of effort; it says nothing about deadline pressure. Hard case on purpose -- most of the claim IS supported, and only one qualifier is invented."
+    }
+  ]
+}
