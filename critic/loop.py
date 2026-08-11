@@ -100,7 +100,7 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
     by_id = {c["chunk_id"]: c for c in chunks}
 
     # --- honest gap reporting: is there any real evidence to work from? ---
-    best = max((c.get("score", 0) for c in chunks), default=0)
+    best = max((c.get("vector_score", 0) for c in chunks), default=0)
     if not chunks or best < MIN_EVIDENCE_SCORE:
         gap = (f"Insufficient evidence in corpus for '{topic}' "
                f"(best match {best:.3f} < {MIN_EVIDENCE_SCORE}).")

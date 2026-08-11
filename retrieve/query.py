@@ -50,6 +50,8 @@ def search(query_text: str, corpus: str = "default", k: int = 5,
             "page" : doc.metadata["page"],
             "source_type" : doc.metadata.get("source_type"),
             "text": doc.page_content,
-            "score" : 1-dist
+            "score" : 1-dist,
+            "vector_score": 1 - dist
+
         })
     return final

@@ -201,3 +201,105 @@ def test_unsupported_section_is_flagged_by_the_critic(monkeypatch):
     name , reason = flagged[0]
     assert reason == "the evidence does not mention this"
     assert answer.action.text in seen
+
+# --- run_bullets_loop: honest gap reporting ---------------------------------
+#
+# This branch shipped broken and unnoticed for weeks: MIN_EVIDENCE_SCORE is
+# calibrated for cosine (0..1) but the loop was reading `score`, which by then
+# holds a cross-encoder logit (unbounded, usually negative). Every job-mode
+# topic looked like "insufficient evidence". Nothing caught it because the gap
+# path had no test and every manual run happened to have strong evidence.
+#
+# It now reads `vector_score`, which stays cosine all the way through fusion
+# and rerank. These tests pin both directions of that threshold.
+
+from critic.loop import run_bullets_loop, MIN_EVIDENCE_SCORE
+from generate.schema import Bullets, CVBullet
+
+
+def _scored(cid, vector_score):
+    """A retrieved chunk carrying the cosine score the gap check reads."""
+    return {"chunk_id": cid, "source_file": "f.md", "page": 1,
+            "source_type": "docs", "text": f"evidence text for {cid}",
+            "score": -7.0,                    # a plausible reranked logit
+            "vector_score": vector_score}
+
+
+def _generator_spy(bullets=None):
+    """Records calls. An empty `calls` proves the gap short-circuited before
+    the generator -- which is the point: no filler, and no LLM spend."""
+    calls = []
+
+    def fake(topic, chunks, n=5, avoid=None):
+        calls.append(topic)
+        return bullets or Bullets(bullets=[
+            CVBullet(text="Implemented the thing", citations=[chunks[0]["chunk_id"]])
+        ])
+
+    return fake, calls
+
+
+def _patch_bullets(monkeypatch, generate, check_claim):
+    monkeypatch.setattr("critic.loop.Tracer", _NullTracer)
+    monkeypatch.setattr("critic.loop.generate_bullets", generate)
+    monkeypatch.setattr("critic.loop.check_claim", check_claim)
+    monkeypatch.setattr("critic.loop.MAX_ROUNDS", 1)
+
+
+def test_weak_evidence_returns_a_gap(monkeypatch):
+    """Every chunk below the threshold -> no bullets, no strikes, a gap
+    message naming the topic. This is the "insufficient evidence in corpus"
+    promise, and it must fire on the COSINE score, not the reranked logit."""
+    fake_gen, called = _generator_spy()
+    fake_critic, _ = _critic_recorder(supported=True)
+    _patch_bullets(monkeypatch, fake_gen, fake_critic)
+    weak = [_scored("c1", MIN_EVIDENCE_SCORE - 0.1)]
+
+    kept, struck, gap = run_bullets_loop("a topic nothing covers", weak, n=3)
+
+    assert kept == [] and struck == []
+    assert gap and "a topic nothing covers" in gap
+    assert called == []          # the generator was never asked
+
+
+def test_gap_is_decided_before_any_generation(monkeypatch):
+    """The regression guard for the bug itself: a reranked logit of -7.0 sits
+    on every chunk, but vector_score is healthy, so this must NOT gap. Read
+    the wrong key and this test fails."""
+    fake_gen, called = _generator_spy()
+    fake_critic, _ = _critic_recorder(supported=True)
+    _patch_bullets(monkeypatch, fake_gen, fake_critic)
+    healthy = [_scored("c1", 0.62)]
+
+    kept, struck, gap = run_bullets_loop("a covered topic", healthy, n=1)
+
+    assert gap is None
+    assert called == ["a covered topic"]
+    assert len(kept) == 1
+
+
+def test_no_chunks_at_all_is_a_gap(monkeypatch):
+    """Empty retrieval must gap rather than crash on max() of nothing."""
+    fake_gen, called = _generator_spy()
+    fake_critic, _ = _critic_recorder(supported=True)
+    _patch_bullets(monkeypatch, fake_gen, fake_critic)
+
+    kept, struck, gap = run_bullets_loop("anything", [], n=3)
+
+    assert gap and kept == [] and struck == []
+    assert called == []
+
+
+def test_chunk_without_a_vector_score_counts_as_no_evidence(monkeypatch):
+    """A BM25-only chunk never got a cosine score. Reading it with a default
+    of 0 is the honest reading -- the dense retriever didn't find it, so it
+    contributes no dense confidence."""
+    fake_gen, called = _generator_spy()
+    fake_critic, _ = _critic_recorder(supported=True)
+    _patch_bullets(monkeypatch, fake_gen, fake_critic)
+    bm25_only = [{"chunk_id": "c1", "source_file": "f.md", "page": 1,
+                  "source_type": "docs", "text": "evidence", "score": 8.4}]
+
+    kept, struck, gap = run_bullets_loop("a topic", bm25_only, n=3)
+
+    assert gap and called == []
