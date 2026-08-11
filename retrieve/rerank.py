@@ -54,7 +54,7 @@ def rerank(query_text: str, candidates: list[dict], k: int = 5) -> list[dict]:
     top = sorted(range(len(scores)), key = lambda i : scores[i], reverse = True)[:k]
     results  = []
     for i in top:
-        results.append({**candidates[i] , "score" : scores[i]})
+        results.append({**candidates[i] , "score" : float(scores[i])})
 
     return results
         

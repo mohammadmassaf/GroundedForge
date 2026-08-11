@@ -27,4 +27,4 @@ class Tracer:
     def log(self, event: str, **fields) -> None:
         record = {"ts": datetime.now().isoformat(timespec="seconds"), "event": event, **fields}
         with self.path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.write(json.dumps(record, ensure_ascii=False , default = str) + "\n")
