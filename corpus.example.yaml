@@ -37,6 +37,7 @@ corpora:
                            # files describe how to work, not what was done.
 
     - type: vault          # only these explicitly-listed notes are read
+      repo: myproject      # optional: scopes notes to a project, like git/docs
       paths:
         - ../path/to/note-one.md
         - ../path/to/note-two.md

@@ -1,9 +1,10 @@
 {
-  "_comment": "Job-mode eval set (v2). 15 grounding items with known-right chunks, plus 5 adversarial traps measuring whether the Critic strikes claims that are deliberately wrong. Generated from chunks/job.json so source_file strings match exactly; edit by hand from here.",
+  "_comment": "Job-mode eval set (v2). 15 grounding items with known-right chunks, plus 6 adversarial traps measuring whether the Critic strikes claims that are deliberately wrong. Generated from chunks/job.json so source_file strings match exactly; edit by hand from here. Each item declares the repo its evidence must come from: retrieval is scoped to it, so another project cannot supply evidence.",
   "items": [
     {
       "id": "j1",
       "question": "How is authentication implemented in MealWise?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@aa2b173",
@@ -22,6 +23,7 @@
     {
       "id": "j2",
       "question": "How does MealWise get nutrition data for ingredients?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@ae2cf81",
@@ -40,6 +42,7 @@
     {
       "id": "j3",
       "question": "What happens when the meal plan API hits a rate limit?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@c107bc2",
@@ -52,6 +55,7 @@
     {
       "id": "j4",
       "question": "How are the database tables created in MealWise?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@8912ac4",
@@ -64,6 +68,7 @@
     {
       "id": "j5",
       "question": "How was meal plan generation made non-blocking?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@af43c30",
@@ -76,6 +81,7 @@
     {
       "id": "j6",
       "question": "Where is MealWise deployed?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@047579e",
@@ -94,6 +100,7 @@
     {
       "id": "j7",
       "question": "Which endpoint regenerates a single day of a meal plan?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@d1a9001",
@@ -112,6 +119,7 @@
     {
       "id": "j8",
       "question": "What database and ORM does MealWise use?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise README § Tech stack",
@@ -130,6 +138,7 @@
     {
       "id": "j9",
       "question": "How does the meal plan prompt take past meals into account?",
+      "repo": "mealwise",
       "expected": [
         {
           "source_file": "mealwise@73635ea",
@@ -142,6 +151,7 @@
     {
       "id": "j10",
       "question": "What grounding score does Grounded Forge report?",
+      "repo": "grounded-forge",
       "expected": [
         {
           "source_file": "grounded-forge README § Evaluation",
@@ -160,6 +170,7 @@
     {
       "id": "j11",
       "question": "How does hybrid retrieval combine BM25 and vector search?",
+      "repo": "grounded-forge",
       "expected": [
         {
           "source_file": "grounded-forge README § Hybrid retrieval (M7)",
@@ -172,6 +183,7 @@
     {
       "id": "j12",
       "question": "Why is Grounded Forge different from asking ChatGPT?",
+      "repo": "grounded-forge",
       "expected": [
         {
           "source_file": "grounded-forge README § Why this isn't just ChatGPT",
@@ -190,6 +202,7 @@
     {
       "id": "j13",
       "question": "What did LangChain abstract away in the retrieval layer?",
+      "repo": "grounded-forge",
       "expected": [
         {
           "source_file": "grounded-forge langchain-notes § What the framework abstracted (did for us)",
@@ -202,6 +215,7 @@
     {
       "id": "j14",
       "question": "When is a framework not worth reaching for in this project?",
+      "repo": "grounded-forge",
       "expected": [
         {
           "source_file": "grounded-forge langchain-notes § When to use a framework here, and when not to",
@@ -214,6 +228,7 @@
     {
       "id": "j15",
       "question": "What is the deliverable for Grounded Forge?",
+      "repo": "grounded-forge",
       "expected": [
         {
           "source_file": "grounded-forge § Deliverable",

@@ -49,6 +49,22 @@ def load_traps(corpus: str = "default") -> list[dict]:
     return data.get("traps", [])
 
 
+def _scope(item: dict) -> dict | None:
+    """
+    The retrieval filter for one eval item.
+
+    Job-mode items declare the repo their evidence must come from. Without this
+    the corpus's two projects compete for every question, and a relevance
+    scorer is free to prefer the wrong one: for "How is authentication
+    implemented in MealWise?" the cross-encoder ranked a Grounded Forge commit
+    first, because it contained "implemented" and the literal string
+    "mealwise@8912ac4" (quoted as an example) but no mention of auth.
+
+    v1 study items carry no repo -> None -> unscoped, exactly as before.
+    """
+    return {"repo": item["repo"]} if item.get("repo") else None
+
+
 def _hit(results: list[dict], expected: list[dict]) -> bool:
     """
     TODO(you): does any retrieved result match any expected location?
@@ -82,12 +98,13 @@ def retrieval_eval(items: list[dict], corpus: str , mode = "vector") -> dict:
     hits = {k:0 for k in KS}
     misses = []
     for item in items:
+        where = _scope(item)
         if mode == "vector":
-            result = search(item["question"], corpus , k = max(KS))
+            result = search(item["question"], corpus , k = max(KS) , where=where)
         elif mode == "hybrid":
-            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=False)
+            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=False , where=where)
         else:
-            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=True)
+            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=True , where=where)
         if not _hit(result, item["expected"]):
             misses.append(item["question"])
         for k in KS:
@@ -128,7 +145,8 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2,
             if generator == "bullets":
                 # job mode: quiz items over a commit history are meaningless.
                 # Same cite-or-strike policy, different output type.
-                chunks = hybrid_search(item["question"], corpus, k=8, use_rerank=True)
+                chunks = hybrid_search(item["question"], corpus, k=8, use_rerank=True,
+                                       where=_scope(item))
                 kept, struck, gap = run_bullets_loop(item["question"], chunks, n=n)
             else:
                 chunks = search(item["question"], corpus , k = 8)

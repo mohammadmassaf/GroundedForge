@@ -75,14 +75,23 @@ WIDENED_SOURCES = {
 MIN_POOL = 2
 
 
-def _where_for(sources: list[str]) -> dict:
-    """Build the Chroma filter for one or several source types."""
-    if len(sources) == 1:
-        return {"source_type": sources[0]}
-    return {"$or": [{"source_type": s} for s in sources]}
+def _where_for(sources: list[str], repo: str | None = None) -> dict:
+    """
+    Build the Chroma filter for one or several source types, optionally scoped
+    to one repo.
+
+    Chroma takes a single condition bare but needs an explicit $and to combine
+    two, so the repo clause can't just be another key in the same dict.
+    """
+    clause = ({"source_type": sources[0]} if len(sources) == 1
+              else {"$or": [{"source_type": s} for s in sources]})
+    if repo:
+        return {"$and": [clause, {"repo": repo}]}
+    return clause
 
 
-def gather_evidence(question: str, corpus: str = "job", k: int = 6) -> dict[str, list[dict]]:
+def gather_evidence(question: str, corpus: str = "job", k: int = 6,
+                    repo: str | None = None) -> dict[str, list[dict]]:
     """
     Retrieve one evidence pool per STAR section. See module docstring for the
     two decisions you need to make. 
@@ -99,12 +108,15 @@ def gather_evidence(question: str, corpus: str = "job", k: int = 6) -> dict[str,
     
     
     for section , sources in SECTION_SOURCES.items():
-        where = _where_for(sources)
+        where = _where_for(sources, repo)
         query = question + " " +  SECTION_HINTS[section]
         pool = hybrid_search(query,corpus, k = k , use_rerank=True , where = where)
         seen = {c["chunk_id"] for c in pool}
         if len(pool) < MIN_POOL:
-            where = _where_for(WIDENED_SOURCES[section])
+            # widening relaxes the SOURCE TYPE only -- repo stays pinned. A thin
+            # pool means the evidence lived in an unexpected source, never that
+            # another project's history is fair game.
+            where = _where_for(WIDENED_SOURCES[section], repo)
             result = hybrid_search(query,corpus, k = k  , use_rerank=True , where = where)
             for chunk in result:
                 if len(pool) >= k: 

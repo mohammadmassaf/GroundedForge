@@ -66,6 +66,31 @@ def test_where_for_several_sources():
     }
 
 
+def test_where_for_scopes_a_single_source_to_a_repo():
+    """Two conditions need an explicit $and -- Chroma will not read a second
+    key in the same dict as a conjunction."""
+    assert _where_for(["git"], repo="mealwise") == {
+        "$and": [{"source_type": "git"}, {"repo": "mealwise"}]
+    }
+
+
+def test_where_for_nests_the_or_inside_the_and():
+    """(vault OR docs) AND repo -- not (vault) OR (docs AND repo), which would
+    let any vault note from any project through."""
+    assert _where_for(["vault", "docs"], repo="mealwise") == {
+        "$and": [
+            {"$or": [{"source_type": "vault"}, {"source_type": "docs"}]},
+            {"repo": "mealwise"},
+        ]
+    }
+
+
+def test_where_for_without_a_repo_is_unchanged():
+    """v1 study corpora have no repo metadata at all; passing None must leave
+    the filter exactly as it was before scoping existed."""
+    assert _where_for(["git"], repo=None) == {"source_type": "git"}
+
+
 # --- gather_evidence: the per-section decisions -----------------------------
 
 def test_returns_a_pool_for_every_section(monkeypatch):
@@ -189,9 +214,61 @@ def test_pool_may_end_short_when_evidence_is_thin(monkeypatch):
     fake , calls = _recorder(results_for)
 
     monkeypatch.setattr("retrieve.star_evidence.hybrid_search", fake)
-        
+
     pools =gather_evidence("any question", corpus="job", k=3)
     assert set(pools) == set(SECTION_SOURCES)
     for pool in pools.values():
         assert pool == []
+
+
+# --- repo scoping -----------------------------------------------------------
+#
+# The job corpus holds two projects, and one of them discusses the other in its
+# commit messages. Relevance scoring alone will not keep them apart: asked "how
+# is authentication implemented in MealWise?", the cross-encoder ranked a
+# Grounded Forge commit first -- it held "implemented" and a quoted mealwise
+# sha, and no mention of auth. Scope is a filter, not a hint.
+
+def test_every_section_is_scoped_to_the_repo(monkeypatch):
+    """A repo passed to gather_evidence must reach every section's filter, not
+    just the first -- Action is the section most likely to pull a neighbouring
+    project's commits."""
+    fake, calls = _recorder(lambda where: [_chunk("a"), _chunk("b"), _chunk("c")])
+    monkeypatch.setattr("retrieve.star_evidence.hybrid_search", fake)
+
+    gather_evidence("any question", corpus="job", k=3, repo="mealwise")
+
+    assert len(calls) == len(SECTION_SOURCES)
+    for call in calls:
+        assert {"repo": "mealwise"} in call["where"]["$and"]
+
+
+def test_widening_relaxes_source_type_but_never_the_repo(monkeypatch):
+    """The regression this whole change exists to prevent. A thin pool widens
+    the SOURCE TYPE, because evidence may live somewhere unexpected -- it must
+    never widen the PROJECT, because another project's history is not weak
+    evidence for this one, it is wrong evidence."""
+    fake, calls = _recorder(lambda where: [_chunk(f"c{i}") for i in range(MIN_POOL - 1)])
+    monkeypatch.setattr("retrieve.star_evidence.hybrid_search", fake)
+
+    gather_evidence("any question", corpus="job", k=3, repo="mealwise")
+
+    sections = list(SECTION_SOURCES)
+    assert len(calls) == 2 * len(sections)          # every section fell back
+    for i, name in enumerate(sections):
+        widened = calls[2 * i + 1]["where"]
+        assert widened == _where_for(WIDENED_SOURCES[name], repo="mealwise")
+        assert {"repo": "mealwise"} in widened["$and"]
+
+
+def test_no_repo_leaves_every_filter_unscoped(monkeypatch):
+    """Omitting repo must reproduce the pre-scoping filters exactly, or the v1
+    study corpus (which has no repo metadata) would retrieve nothing at all."""
+    fake, calls = _recorder(lambda where: [_chunk("a"), _chunk("b"), _chunk("c")])
+    monkeypatch.setattr("retrieve.star_evidence.hybrid_search", fake)
+
+    gather_evidence("any question", corpus="job", k=3)
+
+    assert [c["where"] for c in calls] == [_where_for(s) for s in SECTION_SOURCES.values()]
+    assert all("$and" not in c["where"] for c in calls)
 
