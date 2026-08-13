@@ -6,7 +6,11 @@ new step: strip the YAML frontmatter block at the top of each note before
 chunking, so that metadata block never becomes a chunk.
 
 Source config (from corpus.yaml):
-    {type: vault, paths: [<note path>, <note path>, ...]}
+    {type: vault, paths: [<note path>, ...], repo: <short name, optional>}
+
+`repo` matches the field the git and docs adapters set, so notes ABOUT a
+project are scoped to it at retrieval time. Optional here (unlike the
+siblings, where it is required) because a note need not belong to any repo.
 
 Note: this adapter reads ONLY the paths explicitly listed — it never crawls
 the vault. Flow: read -> strip_frontmatter (returns (meta, body), lifting
@@ -63,12 +67,15 @@ def strip_frontmatter(text: str) -> tuple[dict, str]:
 @register("vault")
 def load_vault(source: dict) -> list[dict]:
     paths = source["paths"]
+    repo = source.get("repo")
 
     chunks = []
     for note_path in paths:
         p = Path(note_path)
         meta, body = strip_frontmatter(p.read_text(encoding="utf-8"))
         extra = {k: meta[k] for k in ("type", "status") if meta.get(k)}
+        if repo:
+            extra["repo"] = repo
         for i, sec in enumerate(split_sections(body)):
             chunks.append(make_chunk(
                 text=sec["text"],

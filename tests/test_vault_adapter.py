@@ -10,7 +10,7 @@ It returns (meta, body): the parsed YAML as a dict, and everything after the
 closing fence. load_vault lifts `type` and `status` out of meta into chunk
 metadata, so the dict is not decoration -- it drives what you can filter on.
 """
-from ingest.adapters.vault_adapter import strip_frontmatter
+from ingest.adapters.vault_adapter import strip_frontmatter, load_vault
 
 
 NOTE = """---
@@ -79,3 +79,51 @@ def test_empty_frontmatter_block_yields_empty_meta():
 
     assert meta == {}
     assert body.startswith("# Heading")
+
+
+# --- load_vault: repo scoping ----------------------------------------------
+#
+# git and docs entries already carry `repo`; vault notes did not, so they
+# belonged to no project. That is the worst of both worlds: a repo-filtered
+# retrieval drops them, and an unfiltered one lets a Grounded Forge planning
+# note answer a question about MealWise.
+
+def _note(tmp_path, name="grounded-forge.md"):
+    p = tmp_path / name
+    p.write_text("---\ntype: project\n---\n# Deliverable\nship the thing\n"
+                 "## Scope\nstudy mode only\n", encoding="utf-8")
+    return p
+
+
+def test_repo_reaches_every_chunk_from_the_note(tmp_path):
+    """One `repo:` on the source config, not per note path -- and it has to
+    land on every section, since retrieval filters chunk by chunk."""
+    p = _note(tmp_path)
+
+    chunks = load_vault({"paths": [str(p)], "repo": "grounded-forge"})
+
+    assert len(chunks) > 1
+    assert all(c["repo"] == "grounded-forge" for c in chunks)
+
+
+def test_repo_is_absent_when_the_config_omits_it(tmp_path):
+    """Optional, unlike the git/docs adapters where it is required. A note need
+    not belong to a project, and store.py drops None-valued metadata anyway --
+    so the key must simply not be there rather than be present and empty."""
+    p = _note(tmp_path)
+
+    chunks = load_vault({"paths": [str(p)]})
+
+    assert all("repo" not in c for c in chunks)
+
+
+def test_adding_a_repo_does_not_change_chunk_ids(tmp_path):
+    """Citations are chunk_ids, and eval traps cite vault chunks by id. If
+    scoping shifted ids, re-ingesting would silently invalidate every stored
+    citation -- so ids must depend on the note and its section order alone."""
+    p = _note(tmp_path)
+
+    without = [c["chunk_id"] for c in load_vault({"paths": [str(p)]})]
+    with_repo = [c["chunk_id"] for c in load_vault({"paths": [str(p)], "repo": "gf"})]
+
+    assert without == with_repo

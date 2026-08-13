@@ -102,8 +102,9 @@ def cmd_make_star(args):
     from critic.loop import run_star_loop
     from generate.renderer import render_star
 
-    print(f"Gathering per-section evidence for: {args.question}")
-    pools = gather_evidence(args.question, corpus=args.corpus, k=args.k)
+    print(f"Gathering per-section evidence for: {args.question}"
+          + (f" [repo: {args.repo}]" if args.repo else ""))
+    pools = gather_evidence(args.question, corpus=args.corpus, k=args.k, repo=args.repo)
     for name, pool in pools.items():
         print(f"  {name:10} {len(pool)} chunks")
     print("Generating STAR answer (cite-or-strike)...")
@@ -186,6 +187,8 @@ def build_parser():
     p_star.add_argument("question", help="The interview question")
     p_star.add_argument("--corpus", default="job")
     p_star.add_argument("-k", type=int, default=6, help="Chunks retrieved per STAR section")
+    p_star.add_argument("--repo", default=None,
+                        help="Restrict evidence to one repo (e.g. mealwise)")
     p_star.add_argument("--out", default=None, help="Output markdown file (default: star_<corpus>.md)")
     p_star.set_defaults(func=cmd_make_star)
 
