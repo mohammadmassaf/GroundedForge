@@ -119,13 +119,21 @@ adversarial half, `--limit N` to cap the LLM-costed grounding half).
 
 ## Study mode vs job mode, side by side
 
+Job-mode retrieval below is measured **after** repo scoping (Finding 3) and the vault
+re-ingest; the pre-scoping figures live in that finding.
+
 | Metric | study (networks, 20 q) | job (repo, 15 q) |
 |---|---|---|
-| recall@3 | 90% | 60% vector · **73.3%** rerank |
-| recall@5 | 95% | 73.3% vector · 80% rerank |
-| recall@10 | **100%** | 93.3% (all modes) |
+| recall@3 | 90% | 60% vector · 60% hybrid · **73.3%** rerank |
+| recall@5 | 95% | 66.7% vector · 73.3% hybrid · **80%** rerank |
+| recall@8 *(k the Generator reads)* | not measured in v1 | 86.7% vector · **93.3%** hybrid · 86.7% rerank |
+| recall@10 | **100%** | 93.3% vector · 93.3% hybrid · **100%** rerank |
 | grounding | **92.7%** (41 claims, 19/20 q) | **87.1%** (31 claims, 15/15 q) |
 | inflation-catch | not measured in v1 | **100%** (6/6 traps) |
+
+The 87.1% grounding figure predates repo scoping and the k=8 finding — it is the best
+*measured* job-mode number, not the current system's. Re-measuring is blocked on the Groq
+daily token limit, not on anything unknown.
 
 Same engine, same Critic, different corpus shape. Job mode is harder on both axes, and the
 two axes fail for unrelated reasons — which is the entire argument for measuring them
