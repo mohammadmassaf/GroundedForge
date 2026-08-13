@@ -30,12 +30,22 @@ from retrieve.hybrid import hybrid_search
 EVAL_SET = Path("eval/eval_set.json")
 EVAL_SET_JOB = Path("eval/eval_set_job.json")
 
-# 8 is not decoration: it is the k grounding_eval actually retrieves with, so it
-# is the only recall figure that predicts what the Generator can cite. j1 showed
-# why both are needed -- its evidence sat at rank 9, giving a perfect recall@10
-# for a question the Generator never saw the evidence for.
+# The pool size the Generator reads, and the default for --gen-k. Not decoration:
+# it is the only recall figure that predicts what the Generator can actually
+# cite. j1 showed why -- its evidence sat at rank 9, so recall@10 read 100% for a
+# question the Generator never saw the evidence for.
 GEN_K = 8
-KS = (3, 5, GEN_K, 10)
+
+# 3 and 5 are the ranking-quality probes, 10 is the wide net. gen_k joins them so
+# the recall table ALWAYS contains the k in use, whatever it is set to.
+BASE_KS = (3, 5, 10)
+
+
+def _ks(gen_k: int = GEN_K) -> tuple[int, ...]:
+    return tuple(sorted(set(BASE_KS) | {gen_k}))
+
+
+KS = _ks()
 
 
 def _eval_path(corpus: str) -> Path:
@@ -88,7 +98,8 @@ def _hit(results: list[dict], expected: list[dict]) -> bool:
     return False
 
 
-def retrieval_eval(items: list[dict], corpus: str , mode = "vector") -> dict:
+def retrieval_eval(items: list[dict], corpus: str , mode = "vector",
+                   gen_k: int = GEN_K) -> dict:
     """
     TODO(you): compute recall@k for each k in KS.
 
@@ -100,17 +111,22 @@ def retrieval_eval(items: list[dict], corpus: str , mode = "vector") -> dict:
     Return {"recall@3": 0.8, "recall@5": ..., "recall@10": ...} plus a
     list of the questions that missed at the largest k (for the report).
     """
-    hits = {k:0 for k in KS}
+    ks = _ks(gen_k)
+    hits = {k:0 for k in ks}
     misses = []
     for item in items:
-        result = _retrieve(item["question"], corpus, max(KS), mode, _scope(item))
+        result = _retrieve(item["question"], corpus, max(ks), mode, _scope(item))
         if not _hit(result, item["expected"]):
             misses.append(item["question"])
-        for k in KS:
+        for k in ks:
             if _hit(result[:k],item["expected"]):
                 hits[k] +=1
-    out = {f"recall@{k}": hits[k] / len(items) for k in KS}
+    out = {f"recall@{k}": hits[k] / len(items) for k in ks}
     out["misses"] = misses
+    # the report reads these back rather than the module constant, so a swept
+    # --gen-k still prints a table containing the k that fed generation
+    out["ks"] = ks
+    out["gen_k"] = gen_k
     return out
 
 
@@ -128,7 +144,8 @@ def _retrieve(question: str, corpus: str, k: int, mode: str,
 
 
 def grounding_eval(items: list[dict], corpus: str, n: int = 2,
-                   generator: str = "quiz", mode: str = "rerank") -> dict:
+                   generator: str = "quiz", mode: str = "rerank",
+                   gen_k: int = GEN_K) -> dict:
     """
     TODO(you): compute the grounding score over the eval set.
 
@@ -151,7 +168,7 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2,
     grounding = {}
     for item in items:
         try:
-            chunks = _retrieve(item["question"], corpus, GEN_K, mode, _scope(item))
+            chunks = _retrieve(item["question"], corpus, gen_k, mode, _scope(item))
             if generator == "bullets":
                 # job mode: quiz items over a commit history are meaningless.
                 # Same cite-or-strike policy, different output type.
@@ -195,6 +212,9 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2,
     grounding["gapped"] = gapped
     grounding["gap_examples"] = gap_examples
     grounding["stopped_early"] = stopped_early
+    # both recorded so a run is reproducible from its own report
+    grounding["mode"] = mode
+    grounding["gen_k"] = gen_k
 
     return grounding
 
@@ -280,9 +300,13 @@ def trap_eval(traps: list[dict], corpus: str = "job") -> dict:
 
 def report(retrieval: dict, grounding: dict, traps: dict | None = None) -> str:
     lines = ["", "=" * 52, "GROUNDED FORGE - EVAL REPORT", "=" * 52]
-    for k in KS:
+    gen_k = retrieval.get("gen_k", grounding.get("gen_k", GEN_K))
+    for k in retrieval.get("ks", KS):
         pct = retrieval[f"recall@{k}"] * 100
-        lines.append(f"  recall@{k:<2} : {pct:5.1f}%")
+        # the row the Generator actually reads is the one that bounds grounding;
+        # the others describe ranking quality only
+        tag = "  <- feeds generation" if k == gen_k else ""
+        lines.append(f"  recall@{k:<2} : {pct:5.1f}%{tag}")
     if retrieval.get("misses"):
         lines.append("  retrieval misses:")
         for q in retrieval["misses"]:
@@ -296,6 +320,8 @@ def report(retrieval: dict, grounding: dict, traps: dict | None = None) -> str:
     scope = f"{grounding['total_claims']} claims"
     if grounding.get("total_questions"):
         scope += f" from {grounding.get('evaluated', '?')}/{grounding['total_questions']} questions"
+    if grounding.get("mode"):
+        scope += f", {grounding['mode']} k={grounding.get('gen_k', GEN_K)}"
     lines.append(f"  grounding : {pct:5.1f}%  ({scope})")
     if grounding.get("stopped_early"):
         lines.append("  !! STOPPED EARLY (rate limit) - remaining questions were never evaluated")
