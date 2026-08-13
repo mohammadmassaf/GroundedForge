@@ -90,16 +90,37 @@ RULES — these are absolute:
    techniques, technologies. Mine the detail in the evidence (changed file
    paths, structure names, described behaviour); never just reword a commit
    subject, and never paraphrase a README overview of the whole project.
-7. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
+7. STAY AT THE EVIDENCE'S LEVEL. Use the evidence's OWN nouns and verbs for the
+   technical content. Rule 5 lets you COMBINE facts from several cited chunks
+   into one capability; it does not let you RENAME, generalise, or upgrade them.
+   An independent Critic checks each bullet against ONLY its cited chunks and
+   asks "is this stated here?", never "is this true?". A fair inference the
+   evidence does not state WILL be struck and the bullet lost.
+   The two examples below are ILLUSTRATIONS OF THE RULE, not evidence. They
+   describe a fictional project. Never cite them, and never reuse their wording
+   — if your bullet resembles one of them, you are answering from this prompt
+   instead of from the context, and it will be struck.
+   - evidence: "env var WIDGET_TOKEN is required"
+     WRONG: "Implemented token-based widget authentication"  (a config var is
+     not a feature; nothing here says what the token is used for)
+     RIGHT: nothing — this evidence supports no capability bullet on its own.
+   - evidence: "the service reconciles ledger totals against the clearing file"
+     WRONG: "Built a financial data validation layer"   (renames both the verb
+     and the object into something more impressive)
+     RIGHT: "Reconciled ledger totals against the clearing file"
+   Reusing the evidence's wording is NOT the "rewording a commit subject" that
+   rule 6 forbids: rule 6 is about SUBSTANCE (say what changed and where), this
+   rule is about VOCABULARY (say it in the evidence's terms).
+8. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
    bullet you have already written.
-8. MERGE overlapping bullets. If two bullets would cite the same evidence, they
+9. MERGE overlapping bullets. If two bullets would cite the same evidence, they
    describe the SAME capability — write one bullet, not two.
    - WRONG (same evidence, split in two): "Implemented authentication with JWT"
      + "Built user management with registration and login endpoints"
    - RIGHT: "Built JWT authentication with user registration and login endpoints"
-8. If the context cannot support the requested number of bullets, produce fewer.
-   NEVER invent material to fill the count.
-9. Respond with ONLY a JSON object, no markdown fences, no commentary:
+10. If the context cannot support the requested number of bullets, produce fewer.
+    NEVER invent material to fill the count.
+11. Respond with ONLY a JSON object, no markdown fences, no commentary:
    {"bullets": [{"text": "...", "citations": ["<chunk_id>"]}]}
 """
 

@@ -106,3 +106,177 @@ retrieval" would have shipped as an assumed improvement while silently costing r
   report) — one flaky item costs one question, not the run.
 - Rate limits (`RateLimitError`) stop the run early but keep partial tallies — the report's
   denominators stay honest about coverage.
+
+---
+
+# Eval notes — v2 (job mode, repo corpus)
+
+Corpus: two of my own repos (`mealwise`, `grounded-forge`) ingested as commit messages,
+README sections, and project notes — not prose documents. Eval set: 15 questions with
+known-right locations plus 6 adversarial traps — `eval/eval_set_job.json`.
+Run: `python main.py eval --corpus job --retrieval rerank` (`--no-traps` to skip the
+adversarial half, `--limit N` to cap the LLM-costed grounding half).
+
+## Study mode vs job mode, side by side
+
+| Metric | study (networks, 20 q) | job (repo, 15 q) |
+|---|---|---|
+| recall@3 | 90% | 60% vector · **73.3%** rerank |
+| recall@5 | 95% | 73.3% vector · 80% rerank |
+| recall@10 | **100%** | 93.3% (all modes) |
+| grounding | **92.7%** (41 claims, 19/20 q) | **87.1%** (31 claims, 15/15 q) |
+| inflation-catch | not measured in v1 | **100%** (6/6 traps) |
+
+Same engine, same Critic, different corpus shape. Job mode is harder on both axes, and the
+two axes fail for unrelated reasons — which is the entire argument for measuring them
+separately.
+
+## Traps: the measurement that makes the other two trustworthy
+
+recall@k and grounding % both grade the system on good inputs, so neither can detect a
+broken Critic. A Critic that answers "supported" to everything scores **100% grounding** —
+the best possible number from the worst possible judge. The traps close that hole: 6
+authored claims with known defects, each tagged with the stage that should catch it.
+
+All 6 were struck, each by its authored stage — 3 by `quant`, 3 by `critic`, no stage
+mismatches:
+
+- `quant` caught the rounding inflation (`~93%` where evidence says `92.7%`), a fabricated
+  `40%` latency figure, and a right-number-wrong-chunk citation (`188`).
+- `critic` caught an unused-skill claim (Kubernetes, absent from the corpus), a
+  misattribution whose every *number* is real (`100% recall@3`, which quant must pass by
+  design), and a premise leaked from the question itself.
+
+The stage split is the useful part, not just the rate. A t5-style trap caught by `quant`
+would mean the haystack isn't what we think it is, so the report prints stage mismatches
+separately rather than folding them into the headline.
+
+## Finding 1: job-mode strikes are abstraction, not fabrication
+
+First full job run scored **70.4%**, well under study mode's 92.7%. Reading the strike
+reasons, it was not eight different problems — **9 of 10 strikes said "does not explicitly
+state."** Every one was the same move: the bullet sat one level of abstraction above its
+evidence.
+
+```
+evidence : "feat: add auth with JWT"  +  ".env holds SECRET_key for JWT"
+struck   : "Implemented JWT authentication"
+```
+
+Nothing there is false. The Critic's standard is presence in the cited evidence, not truth,
+so a fair inference is still a strike. What survived were near-verbatim lifts:
+
+```
+evidence : "stop retrying on 429, show a rate limit message to the user"
+kept     : "Stopped retrying on 429 errors and displayed rate limit messages"
+```
+
+**Why this is structural, not a bug.** Course PDFs are explanatory prose that already states
+things at claim level, so a grounded quiz answer never has to abstract. Commit subjects are
+*labels* — `feat: add auth with JWT` is seven words covering a week of work. A CV bullet that
+stays at that level isn't a CV bullet. So the artifact type and the verifier want opposite
+things: bullets are supposed to generalise, and a grounding checker punishes generalisation.
+70.4% was the harness correctly reporting that tension, not a regression.
+
+Worth noting the prompt was arguing with itself: rule 6 said *"never just reword a commit
+subject"*, which is exactly what every surviving bullet did. The Critic wins that argument
+because it runs second.
+
+## Finding 2: fixing it at the Generator, and the injection that fix caused
+
+The wrong lever is loosening the Critic — relax it enough to accept
+"SECRET_key → implemented JWT authentication" and it very likely also accepts the Kubernetes
+trap. Strictness is what the traps are measuring; trading it for a prettier grounding score
+trades the guarantee for the number.
+
+The right lever is the Generator. Added rule 7 ("stay at the evidence's level" — combine
+facts across cited chunks, never rename or upgrade them), with a carve-out disambiguating it
+from rule 6: **rule 6 governs substance, rule 7 governs vocabulary.**
+
+Measured, same corpus, prompt as the only variable:
+
+| | before | after |
+|---|---|---|
+| headline | 70.4% (27 claims, 11/15 q, rate-limited) | **87.1%** (31 claims, 15/15 q) |
+| first 5 items, like-for-like | 53.8% (7/13) | **80.0%** (8/10) |
+| questions with zero strikes | — | 12 of 15 |
+
+The headline pair isn't a clean comparison — the first run stopped early at 11 questions —
+so the first-5 like-for-like row is the defensible one. Both runs retrieved with
+hybrid+rerank.
+
+**The instructive failure:** I wrote a worked example into rule 7 whose "RIGHT" answer was a
+finished, plausible MealWise bullet. The generator emitted it character-for-character:
+
+```
+prompt : RIGHT: "Added JWT auth in a dedicated auth router, keyed by a SECRET_key"
+output :        "Added JWT auth in a dedicated auth router, keyed by a SECRET_key"
+```
+
+Rule 1 says *use ONLY the context provided by the user* — but the system prompt is context
+too. On the one question whose evidence hadn't been retrieved (see Finding 3), the closest
+thing to an answer anywhere in the model's context was the example, so it copied it. A
+few-shot example in a grounded generator is an injection vector.
+
+Rule now in force: **examples must use a fictional domain and must not introduce any entity
+absent from the evidence line shown beside them**, and one example's correct answer is
+*write nothing* — thin evidence should produce fewer bullets, not a well-hedged one. The
+earlier version taught the opposite by demonstrating a rescue.
+
+## Finding 3: the re-ranker discards the right evidence (j1)
+
+j1 — *"How is authentication implemented in MealWise?"* — is both the sole recall@10 miss in
+rerank mode and the source of 2 of the 4 remaining strikes. Excluding it, the run is 27 kept
+/ 2 struck = **93.1%**.
+
+It is a *retrieval* fault, and specifically a re-ranking fault. Rank of the two expected
+chunks (`mealwise@aa2b173`, `mealwise README § API reference`):
+
+| mode | ranks of expected evidence |
+|---|---|
+| vector | **3 and 4** |
+| hybrid (RRF) | 5 and 7 |
+| hybrid + rerank | **absent from top-10** |
+
+The cross-encoder's rank 1 was `grounded-forge@7f87ab2` at −0.146, while every genuine
+MealWise chunk scored below −3.0. That chunk is a Grounded Forge commit about the quant
+pre-check. It contains the word "implemented" and the literal string `mealwise@8912ac4`
+(quoted as a sha-pollution example) — two of the query's three content words — and **zero
+mention of authentication**. It outranked the actual auth commit.
+
+It is also neatly self-referential: the commit that stopped shas polluting the *quant*
+haystack is now polluting the *retrieval* haystack.
+
+**Root cause.** The job corpus mixes two repos, and one of them talks about the other in its
+commit messages. Nothing in the pipeline treats "about MealWise" as a constraint — it is a
+soft topical hint that a relevance scorer is free to overrule. This is the same argument as
+the per-section STAR pools one level up: an evidence pool should be an authorization
+boundary, not a bag of context. A bullet about MealWise must not be evidenced by a Grounded
+Forge commit, however well it scores.
+
+**Correction to an earlier hypothesis.** I first attributed j1 to a vocabulary gap (`auth` in
+the commit vs `authentication` in the question) and queued prefix expansion as the fix.
+Measurement says otherwise: vector search ranks both expected chunks at 3 and 4. The evidence
+is findable. Prefix expansion would not have fixed j1.
+
+**Mode tradeoff, honestly.** rerank is the better mode overall (73.3% vs 60.0% recall@3) and
+it fixes the "deliverable" miss that vector and hybrid both fail. It is also the only mode
+that loses j1. Averages hide that; the per-question miss list is what surfaced it.
+
+## Harness caveat found while investigating
+
+`grounding_eval` hardcodes hybrid+rerank at k=8, while `retrieval_eval` honours
+`--retrieval`. A single report can therefore describe **two different retrievers** — the
+recall rows from the flagged mode, the grounding row always from rerank. The numbers above
+are consistent only because the reported run used `--retrieval rerank`. Threading the mode
+through `grounding_eval` is open.
+
+## Open items
+
+- Project-scoped retrieval for job mode (metadata filter by source repo) — the fix Finding 3
+  points at.
+- Thread `--retrieval` through `grounding_eval` so both halves of the report describe one
+  system.
+- j6 *"Where is MealWise deployed?"* failed generation in the first run (empty bullet list
+  twice → `GenerationError`) while the gap check passed. Two distinct no-answer paths exist —
+  pre-generation gap and post-generation empty — and only one is reported as a gap.
