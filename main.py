@@ -120,18 +120,22 @@ def cmd_make_star(args):
 
 def cmd_eval(args):
     from eval.run_eval import (load_eval_set, load_traps, retrieval_eval,
-                               grounding_eval, trap_eval, report)
+                               grounding_eval, trap_eval, report, GEN_K)
 
+    gen_k = args.gen_k if args.gen_k is not None else GEN_K
     items = load_eval_set(args.corpus)
     traps = load_traps(args.corpus)
     # job mode generates bullets; quiz items over a commit history are meaningless
     generator = "bullets" if args.corpus == "job" else "quiz"
     print(f"Eval set: {len(items)} questions, {len(traps)} traps ({generator})")
 
-    retrieval = retrieval_eval(items, corpus=args.corpus, mode=args.retrieval)
-    grounding = grounding_eval(items[:args.limit] if args.limit else items,
+    retrieval = retrieval_eval(items, corpus=args.corpus, mode=args.retrieval,
+                               gen_k=gen_k)
+    # `is not None`, not truthiness: --limit 0 means "no LLM half at all", and
+    # `if args.limit` read 0 as "unset" and ran the whole set instead.
+    grounding = grounding_eval(items[:args.limit] if args.limit is not None else items,
                                corpus=args.corpus, generator=generator,
-                               mode=args.retrieval)
+                               mode=args.retrieval, gen_k=gen_k)
     trap_results = trap_eval(traps, corpus=args.corpus) if traps and not args.no_traps else None
     print(report(retrieval, grounding, trap_results))
 
@@ -200,6 +204,12 @@ def build_parser():
     p_eval.add_argument("--retrieval" , choices=["vector", "hybrid", "rerank"] , default="vector")
     p_eval.add_argument("--no-traps", action="store_true",
                         help="Skip the adversarial traps (they cost one LLM call each)")
+    # default resolved in cmd_eval, not here: importing GEN_K would pull
+    # eval.run_eval (and langchain + torch behind it) into every CLI command.
+    p_eval.add_argument("--gen-k", type=int, default=None,
+                        help="Chunks the Generator reads per question (default 8). "
+                             "recall@<gen-k> is always added to the report, since that "
+                             "row is the ceiling on grounding.")
     p_eval.set_defaults(func=cmd_eval)
 
     return parser
