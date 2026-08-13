@@ -10,3 +10,12 @@ venv/
 chunks/
 traces/
 corpus.yaml
+
+# STAR answers are generated from the vault notes, so they quote personal
+# planning material verbatim (milestone estimates, checkpoint lists) and name
+# the notes in their citations. The repo is public. bullets_*.md are committed
+# instead: those draw only on mealwise, which is public too.
+# To ship a STAR sample, regenerate it scoped to a public repo
+# (`make-star "..." --repo grounded-forge`), check it cites no vault chunk,
+# then force-add that one file.
+star_*.md
