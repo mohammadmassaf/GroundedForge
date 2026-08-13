@@ -130,7 +130,8 @@ def cmd_eval(args):
 
     retrieval = retrieval_eval(items, corpus=args.corpus, mode=args.retrieval)
     grounding = grounding_eval(items[:args.limit] if args.limit else items,
-                               corpus=args.corpus, generator=generator)
+                               corpus=args.corpus, generator=generator,
+                               mode=args.retrieval)
     trap_results = trap_eval(traps, corpus=args.corpus) if traps and not args.no_traps else None
     print(report(retrieval, grounding, trap_results))
 
