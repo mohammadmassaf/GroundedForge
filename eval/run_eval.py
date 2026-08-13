@@ -30,7 +30,12 @@ from retrieve.hybrid import hybrid_search
 EVAL_SET = Path("eval/eval_set.json")
 EVAL_SET_JOB = Path("eval/eval_set_job.json")
 
-KS = (3, 5, 10)
+# 8 is not decoration: it is the k grounding_eval actually retrieves with, so it
+# is the only recall figure that predicts what the Generator can cite. j1 showed
+# why both are needed -- its evidence sat at rank 9, giving a perfect recall@10
+# for a question the Generator never saw the evidence for.
+GEN_K = 8
+KS = (3, 5, GEN_K, 10)
 
 
 def _eval_path(corpus: str) -> Path:
@@ -98,13 +103,7 @@ def retrieval_eval(items: list[dict], corpus: str , mode = "vector") -> dict:
     hits = {k:0 for k in KS}
     misses = []
     for item in items:
-        where = _scope(item)
-        if mode == "vector":
-            result = search(item["question"], corpus , k = max(KS) , where=where)
-        elif mode == "hybrid":
-            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=False , where=where)
-        else:
-            result = hybrid_search(item["question"] , corpus ,  k = max(KS) , use_rerank=True , where=where)
+        result = _retrieve(item["question"], corpus, max(KS), mode, _scope(item))
         if not _hit(result, item["expected"]):
             misses.append(item["question"])
         for k in KS:
@@ -118,8 +117,18 @@ def retrieval_eval(items: list[dict], corpus: str , mode = "vector") -> dict:
 
 
 
+def _retrieve(question: str, corpus: str, k: int, mode: str,
+              where: dict | None) -> list[dict]:
+    """One retrieval, in whichever mode the run was asked for. Shared by both
+    evals so the report's two halves can never grade different retrievers."""
+    if mode == "vector":
+        return search(question, corpus, k=k, where=where)
+    return hybrid_search(question, corpus, k=k, use_rerank=(mode == "rerank"),
+                         where=where)
+
+
 def grounding_eval(items: list[dict], corpus: str, n: int = 2,
-                   generator: str = "quiz") -> dict:
+                   generator: str = "quiz", mode: str = "rerank") -> dict:
     """
     TODO(you): compute the grounding score over the eval set.
 
@@ -142,14 +151,12 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2,
     grounding = {}
     for item in items:
         try:
+            chunks = _retrieve(item["question"], corpus, GEN_K, mode, _scope(item))
             if generator == "bullets":
                 # job mode: quiz items over a commit history are meaningless.
                 # Same cite-or-strike policy, different output type.
-                chunks = hybrid_search(item["question"], corpus, k=8, use_rerank=True,
-                                       where=_scope(item))
                 kept, struck, gap = run_bullets_loop(item["question"], chunks, n=n)
             else:
-                chunks = search(item["question"], corpus , k = 8)
                 kept , struck  = run_loop(item["question"] , chunks , n=n )
                 gap = None
         except  GenerationError as e:

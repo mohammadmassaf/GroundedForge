@@ -263,20 +263,53 @@ is findable. Prefix expansion would not have fixed j1.
 it fixes the "deliverable" miss that vector and hybrid both fail. It is also the only mode
 that loses j1. Averages hide that; the per-question miss list is what surfaced it.
 
-## Harness caveat found while investigating
+## Finding 4: the eval measured a k the system does not use
 
-`grounding_eval` hardcodes hybrid+rerank at k=8, while `retrieval_eval` honours
-`--retrieval`. A single report can therefore describe **two different retrievers** — the
-recall rows from the flagged mode, the grounding row always from rerank. The numbers above
-are consistent only because the reported run used `--retrieval rerank`. Threading the mode
-through `grounding_eval` is open.
+Scoping fixed the cross-project contamination — recall@10 reached **100%**, no misses in
+any question. j1 still failed. Scoped, its expected evidence ranks:
+
+| mode (scoped to `repo: mealwise`) | rank of j1's evidence |
+|---|---|
+| vector | 3 and 4 |
+| hybrid (RRF) | 3 and 9 |
+| hybrid + rerank | 9 only |
+
+The Generator retrieves **k=8**. The evidence sat at rank 9. So `recall@10 = 100%` was true
+and useless at the same time: the harness reported success at a k the system never reads.
+Two conclusions that look identical in a report and are not — *the evidence is findable* vs
+*the Generator can cite it*.
+
+`KS` now includes 8, the k `grounding_eval` actually retrieves with, and that row inverts
+the ranking:
+
+| mode | @3 | @5 | **@8 (feeds generation)** | @10 |
+|---|---|---|---|---|
+| vector | 60.0% | 66.7% | 86.7% | 93.3% |
+| hybrid | 60.0% | 73.3% | **93.3%** | 93.3% |
+| hybrid + rerank | **73.3%** | 80.0% | 86.7% | **100%** |
+
+The cross-encoder wins the two numbers a README would quote and loses the one that decides
+what the Generator can cite. Same pattern as the v1 M7 result — re-ranking sharpens the very
+top of the list — except here the artifact reads eight chunks deep, so a sharper top-3 is
+worth less than a fuller top-8.
+
+**Consequence:** job mode should generate with `--retrieval hybrid`, not `rerank`. Untested
+against grounding % so far (Groq TPD exhausted); the mode is now threaded through
+`grounding_eval`, so it is a one-flag experiment.
+
+## Harness caveat, now fixed
+
+`grounding_eval` hardcoded hybrid+rerank at k=8 while `retrieval_eval` honoured
+`--retrieval`, so a single report could describe **two different retrievers** — the recall
+rows from the flagged mode, the grounding row always from rerank. Both halves now route
+through one `_retrieve()` helper, so the flag governs the whole run.
 
 ## Open items
 
-- Project-scoped retrieval for job mode (metadata filter by source repo) — the fix Finding 3
-  points at.
-- Thread `--retrieval` through `grounding_eval` so both halves of the report describe one
-  system.
+- ~~Project-scoped retrieval for job mode~~ — done; recall@10 100%, no misses in any mode.
+- ~~Thread `--retrieval` through `grounding_eval`~~ — done; one `_retrieve()` for both halves.
+- Measure grounding % under `--retrieval hybrid` vs `rerank`. recall@8 says hybrid should
+  win; that prediction is untested against the Critic.
 - j6 *"Where is MealWise deployed?"* failed generation in the first run (empty bullet list
   twice → `GenerationError`) while the gap check passed. Two distinct no-answer paths exist —
   pre-generation gap and post-generation empty — and only one is reported as a gap.
