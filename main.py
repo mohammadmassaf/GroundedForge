@@ -136,7 +136,16 @@ def cmd_eval(args):
     grounding = grounding_eval(items[:args.limit] if args.limit is not None else items,
                                corpus=args.corpus, generator=generator,
                                mode=args.retrieval, gen_k=gen_k)
-    trap_results = trap_eval(traps, corpus=args.corpus) if traps and not args.no_traps else None
+    trap_results = None
+    if traps and not args.no_traps:
+        try:
+            trap_results = trap_eval(traps, corpus=args.corpus)
+        except Exception as e:
+            # Deliberately broad. The report IS the product of the run, and the
+            # grounding half above may have cost thousands of tokens by now;
+            # losing all of it to a failure in the adversarial half is the worse
+            # outcome by far. Report what we have and say what broke.
+            print(f"  trap eval failed ({type(e).__name__}: {e}) - reporting without traps")
     print(report(retrieval, grounding, trap_results))
 
 

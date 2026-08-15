@@ -262,6 +262,8 @@ def trap_eval(traps: list[dict], corpus: str = "job") -> dict:
     stage_mismatch = []
     by_stage= {"quant": 0, "critic": 0}
     escaped = []
+    evaluated = 0
+    stopped_early = False
     for trap in traps:
         caught_by = None
         cited = [by_id[cid] for cid in trap["citations"]]
@@ -269,9 +271,19 @@ def trap_eval(traps: list[dict], corpus: str = "job") -> dict:
         if not ok:
             caught_by = "quant"
         else:
-            verdict = check_claim("" , trap["claim"] , cited)
+            try:
+                verdict = check_claim("" , trap["claim"] , cited)
+            except RateLimitError as e:
+                # Same policy as grounding_eval. This ran unguarded once and the
+                # 429 escaped all the way out of main(), so a run that had
+                # already spent 8 questions' worth of tokens printed NO report
+                # at all. Partial numbers beat losing the whole run.
+                print(f"  trap rate limit hit - stopping early: {e}")
+                stopped_early = True
+                break
             if not verdict.supported:
                 caught_by = "critic"
+        evaluated += 1
         if caught_by :
             caught +=1  
             by_stage[caught_by] +=1 
@@ -279,12 +291,14 @@ def trap_eval(traps: list[dict], corpus: str = "job") -> dict:
                 stage_mismatch.append((trap["id"] , trap["stage"] , caught_by))
         else:
             escaped.append((trap["id"] , trap["claim"]))
-    catch_rate = caught / total 
-
+    # the rate is over what was actually CHECKED, not over what was authored --
+    # a trap never reached is neither caught nor escaped
     return {
-    "catch_rate": caught / total if total else 0.0,
+    "catch_rate": caught / evaluated if evaluated else 0.0,
     "caught": caught,
+    "evaluated": evaluated,
     "total": total,
+    "stopped_early": stopped_early,
     "by_stage": by_stage,
     "escaped": escaped,
     "stage_mismatch": stage_mismatch,
@@ -336,7 +350,13 @@ def report(retrieval: dict, grounding: dict, traps: dict | None = None) -> str:
     if traps:
         lines.append("-" * 52)
         pct = traps["catch_rate"] * 100
-        lines.append(f"  inflation-catch : {pct:5.1f}%  ({traps['caught']}/{traps['total']} traps struck)")
+        checked = traps.get("evaluated", traps["total"])
+        scope = f"{traps['caught']}/{checked} traps struck"
+        if checked != traps["total"]:
+            scope += f", {traps['total'] - checked} never checked"
+        lines.append(f"  inflation-catch : {pct:5.1f}%  ({scope})")
+        if traps.get("stopped_early"):
+            lines.append("  !! traps STOPPED EARLY (rate limit)")
         for stage, count in sorted(traps.get("by_stage", {}).items()):
             lines.append(f"      caught by {stage:<7}: {count}")
         for tid, claim in traps.get("escaped", []):
