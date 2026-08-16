@@ -35,6 +35,12 @@ RULES:
 
 MAX_RETRIES = 1
 
+# A verdict is {"supported": bool, "reason": "..."} -- ~100 tokens. Reserving the
+# model's 8192-token default on every one of these (2 per claim, dozens per eval
+# run) is what pushed requests past the 12k/minute ceiling. See the note on
+# generator.MAX_OUTPUT_TOKENS.
+MAX_OUTPUT_TOKENS = 400
+
 
 def _build_critic_prompt(question: str, answer: str, cited_chunks: list[dict]) -> str:
    """
@@ -106,21 +112,25 @@ def check_claim(question: str, answer: str, cited_chunks: list[dict]) -> Verdict
            + a correction message (same pattern as generate())
     3. after the loop: raise SystemExit(f"Critic failed: {last_error}")
     """
-   messages = [
+   base = [
       {"role": "system", "content": CRITIC_SYSTEM_PROMPT},
       {"role": "user",   "content": _build_critic_prompt(question,answer,cited_chunks)},
 ]
+   messages = base
    for i in range(MAX_RETRIES + 1):
         resp = _get_client().chat.completions.create(
-            model = MODEL , messages = messages , temperature = 0.0
+            model = MODEL , messages = messages , temperature = 0.0,
+            max_completion_tokens = MAX_OUTPUT_TOKENS,
         )
         raw  = resp.choices[0].message.content
         try:
             return _parse_verdict(raw)
         except ValueError as e:
-            last_error = e 
-            messages.append({"role": "assistant", "content": raw})
-            messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
+            last_error = e
+            messages = base + [
+                {"role": "assistant", "content": raw},
+                {"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."},
+            ]
    raise GenerationError(f"Critic failed: {last_error}")
    
    

@@ -27,6 +27,15 @@ load_dotenv()
 
 MODEL = "llama-3.3-70b-versatile"
 MAX_RETRIES = 2
+
+# Cap the reply. Groq counts a request as input + the output budget you RESERVE,
+# and with this unset the model's full 8192-token default is reserved every call
+# -- so a 6.5k-token prompt was billed as 14.7k and rejected against the 12k
+# per-minute ceiling. Real outputs here are far smaller: a STAR answer runs ~900
+# tokens, five bullets ~500, five quiz items ~700. 2000 leaves room without
+# reserving budget nothing will use. Too LOW is the dangerous direction: a
+# truncated reply is invalid JSON, which burns a retry.
+MAX_OUTPUT_TOKENS = 2000
 class GenerationError(Exception):
     pass
 
@@ -241,21 +250,30 @@ def _parse_and_validate(raw: str, valid_ids: set[str] , model = Quiz) -> Quiz:
 
 def _run(system_prompt, chunks, task, model):
     valid_ids = set(c["chunk_id"] for c in chunks)
-    messages = [
+    base = [
     {"role": "system", "content": system_prompt},
     {"role": "user",   "content": _build_prompt(chunks, task)},
 ]
+    messages = base
     for i in range(MAX_RETRIES + 1):
         resp = _get_client().chat.completions.create(
-            model = MODEL , messages = messages , temperature = 0.3
+            model = MODEL , messages = messages , temperature = 0.3,
+            max_completion_tokens = MAX_OUTPUT_TOKENS,
         )
         raw  = resp.choices[0].message.content
         try:
             return _parse_and_validate(raw,valid_ids , model = model)
         except ValueError as e:
-            last_error = e 
-            messages.append({"role": "assistant", "content": raw})
-            messages.append({"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."})
+            last_error = e
+            # Rebuild from `base` rather than appending: the old loop kept every
+            # failed attempt, so attempt 3 re-sent two full model outputs it no
+            # longer needed. Combined with the unset output cap that pushed a
+            # single request past the 12k per-minute ceiling, where no amount of
+            # waiting helps. One failure is what the model needs to correct.
+            messages = base + [
+                {"role": "assistant", "content": raw},
+                {"role": "user", "content": f"Your response was invalid: {e}. Reply again with corrected JSON only."},
+            ]
     raise GenerationError(f"Generator failed after "
                                         f"{MAX_RETRIES} retries: {last_error}")
 
@@ -292,23 +310,30 @@ def generate_star(question: str, pools: dict[str, list[dict]]) -> STARAnswer:
     all_chunks = [c for pool in pools.values() for c in pool]
     valid_ids = set(c["chunk_id"] for c in all_chunks)
 
-    messages = [
+    base = [
         {"role": "system", "content": STAR_SYSTEM_PROMPT},
         {"role": "user", "content":
             f"{context}\n\nAnswer this interview question: {question}\n"
             f"Remember: JSON only, each section cites only its own pool."},
     ]
+    messages = base
     for _ in range(MAX_RETRIES + 1):
         resp = _get_client().chat.completions.create(
-            model=MODEL, messages=messages, temperature=0.3)
+            model=MODEL, messages=messages, temperature=0.3,
+            max_completion_tokens=MAX_OUTPUT_TOKENS)
         raw = resp.choices[0].message.content
         try:
             return _parse_and_validate(raw, valid_ids, model=STARAnswer)
         except ValueError as e:
             last_error = e
-            messages.append({"role": "assistant", "content": raw})
-            messages.append({"role": "user", "content":
-                f"Your response was invalid: {e}. Reply again with corrected JSON only."})
+            # same as _run: keep only the latest failure, not the whole chain.
+            # STAR carries four pools, so its base prompt is the largest in the
+            # project and accumulating attempts on top of it is worst here.
+            messages = base + [
+                {"role": "assistant", "content": raw},
+                {"role": "user", "content":
+                    f"Your response was invalid: {e}. Reply again with corrected JSON only."},
+            ]
     raise GenerationError(f"STAR generation failed after {MAX_RETRIES} retries: {last_error}")
 
 
