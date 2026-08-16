@@ -131,9 +131,17 @@ def cmd_eval(args):
 
     retrieval = retrieval_eval(items, corpus=args.corpus, mode=args.retrieval,
                                gen_k=gen_k)
+    # A full 15-question run costs ~90-96k tokens and the free tier caps at 100k
+    # per rolling day, so the set has to be evaluable in windows. --offset picks
+    # where the window starts; without it every run re-measures the same front
+    # slice and the tail is never evaluated at all.
     # `is not None`, not truthiness: --limit 0 means "no LLM half at all", and
     # `if args.limit` read 0 as "unset" and ran the whole set instead.
-    grounding = grounding_eval(items[:args.limit] if args.limit is not None else items,
+    start = args.offset
+    window = items[start:start + args.limit] if args.limit is not None else items[start:]
+    if window:
+        print(f"Grounding on questions {start + 1}-{start + len(window)} of {len(items)}")
+    grounding = grounding_eval(window,
                                corpus=args.corpus, generator=generator,
                                mode=args.retrieval, gen_k=gen_k)
     trap_results = None
@@ -209,7 +217,11 @@ def build_parser():
     p_eval = sub.add_parser("eval", help="Run retrieval (recall@k) + grounding evals")
     p_eval.add_argument("--corpus", default="default")
     p_eval.add_argument("--limit", type=int, default=None,
-                        help="Grounding eval on first N questions only (LLM cost control)")
+                        help="Grounding eval on N questions only (LLM cost control)")
+    p_eval.add_argument("--offset", type=int, default=0,
+                        help="Skip the first N questions. With --limit, evaluates a window, "
+                             "so a set too big for one day's tokens can be run in halves and "
+                             "the claim counts added together.")
     p_eval.add_argument("--retrieval" , choices=["vector", "hybrid", "rerank"] , default="vector")
     p_eval.add_argument("--no-traps", action="store_true",
                         help="Skip the adversarial traps (they cost one LLM call each)")

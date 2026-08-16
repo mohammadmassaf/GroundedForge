@@ -312,12 +312,69 @@ against grounding % so far (Groq TPD exhausted); the mode is now threaded throug
 rows from the flagged mode, the grounding row always from rerank. Both halves now route
 through one `_retrieve()` helper, so the flag governs the whole run.
 
+## The eval does not fit in a day, and that is an eval problem only
+
+Measured cost, job corpus:
+
+| | tokens | per 100k free-tier day |
+|---|---|---|
+| one eval question (k=10, n=2) | ~6,400 | — |
+| **full 15-question run** | **~96,000** | 1 run, using 96% of the cap |
+| `make-bullets` (n=5, k=8) | ~8,700 | ~12 artifacts |
+| `make-star` (k=6 × 4 pools) | ~6,800 | ~15 artifacts |
+
+Both artifact figures are upper bounds: `MAX_ROUNDS = 2` and round two only runs when the
+Critic struck something, so a clean generation costs roughly half.
+
+**Real usage never hits the cap.** Preparing for interviews you might generate five bullet
+sets and three STAR answers, which is a third of a day. The eval is the pathological
+workload, being ~15 real invocations fired back to back plus 6 traps. Groq's TPD is also a
+rolling 24-hour window rather than a midnight reset, so a run started hours after the last
+one still begins part-spent.
+
+That distinction matters because it rules out the tempting fixes. Shrinking the 1,116-token
+generator system prompt (~33k per run, a third of the budget), halving `n`, or swapping in a
+cheaper model would each **degrade the product to fit the measurement** — and rule 7's worked
+examples are most of that prompt, i.e. exactly the thing that moved grounding 53.8% → 80%.
+The system is fine; only the measurement is expensive, so the measurement is what bends.
+
+Hence `--offset`: the set is evaluated in windows across days and the halves are added.
+Grounding is `(kept_a + kept_b) / (claims_a + claims_b)`, which is why the report now prints
+`kept / struck` raw. **Averaging the two percentages is wrong** whenever the halves produced
+different claim counts, which they always do. The halves are only one measurement if nothing
+changed between them, so record the commit sha with each.
+
+### Upgrade path: checkpoint results to disk (option G)
+
+`--offset` is manual windowing. The better version is to append each question's result to a
+JSONL as it completes and have the report aggregate whatever is on disk:
+
+- a run **resumes** rather than restarting, so the rolling token window stops dictating what
+  gets measured
+- a crash or a 429 costs **one question**, not the run (the same instinct as the existing
+  `RateLimitError` handling, one level up)
+- questions already evaluated under the current config are skipped automatically, so there is
+  no manual offset arithmetic to get wrong
+
+The cost is cache invalidation: the checkpoint key has to cover corpus, retrieval mode,
+`gen_k`, `n`, and the generator prompt, or a stale entry silently contributes a claim measured
+under a different system. That is the whole difficulty, and it is why this is a post-M5 task
+rather than a quick win — `--offset` needs no invalidation because the human is holding the
+config fixed.
+
 ## Open items
 
 - ~~Project-scoped retrieval for job mode~~ — done; recall@10 100%, no misses in any mode.
 - ~~Thread `--retrieval` through `grounding_eval`~~ — done; one `_retrieve()` for both halves.
 - Measure grounding % under `--retrieval hybrid` vs `rerank`. recall@8 says hybrid should
-  win; that prediction is untested against the Critic.
+  win; that prediction is untested against the Critic. Two windowed runs per config, so a
+  full A/B is four days on the free tier.
+- Questions 9-15 have never been evaluated once: every run so far took the front slice, which
+  is what `--offset` exists to fix.
+- Checkpointed results (option G above), once M5 has shipped.
+- `j5` intermittently fails generation with `Extra data: line 3 column 1` - the model emits
+  valid JSON then keeps writing. Distinct from the empty-list failure; costs a question per
+  run when it hits.
 - j6 *"Where is MealWise deployed?"* failed generation in the first run (empty bullet list
   twice → `GenerationError`) while the gap check passed. Two distinct no-answer paths exist —
   pre-generation gap and post-generation empty — and only one is reported as a gap.
