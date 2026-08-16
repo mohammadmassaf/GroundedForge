@@ -65,12 +65,13 @@ def run_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list]:
        need = n - len(kept)
        if need == 0: break
        quiz = generate(topic,chunks,n = need)
-       tracer.log("generated" , round = round_num , count = len(quiz.items))
+       tracer.log("generated" , round = round_num , count = len(quiz.items),
+                  pool=[c["chunk_id"] for c in chunks])
        for item in quiz.items:
            cited_chunks = [by_id[cid] for cid in item.citations]
            verdict = check_claim(item.question, item.answer,cited_chunks)
            tracer.log("critic_verdict", round=round_num,
-                         question=item.question,
+                         question=item.question, citations=item.citations,
                          supported=verdict.supported, reason=verdict.reason)
            if verdict.supported: kept.append(item)
            else: struck.append((item, verdict.reason))
@@ -118,7 +119,13 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
         # re-emits its best bullet
         result = generate_bullets(topic, chunks, n=need,
                                   avoid=[b.text for b in kept])
-        tracer.log("generated", round=round_num, count=len(result.bullets))
+        # The pool is logged alongside the verdicts because a strike has two very
+        # different causes that read identically in the reason string: the
+        # support was NOWHERE in the pool (a retrieval miss), or it was in the
+        # pool under a chunk the claim didn't cite (a mis-citation). Without the
+        # pool you cannot tell them apart, and they need opposite fixes.
+        tracer.log("generated", round=round_num, count=len(result.bullets),
+                   pool=[c["chunk_id"] for c in chunks])
 
         for bullet in result.bullets:
             key = " ".join(bullet.text.lower().split())
@@ -132,7 +139,7 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
             # stage 1 — deterministic, no LLM
             ok, reason = check_quantities(bullet.text, cited_chunks)
             tracer.log("quant_check", round=round_num, bullet=bullet.text,
-                       passed=ok, reason=reason)
+                       citations=bullet.citations, passed=ok, reason=reason)
             if not ok:
                 struck.append((bullet, f"[quant] {reason}"))
                 continue
@@ -140,6 +147,7 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
             # stage 2 — LLM Critic, only for survivors
             verdict = check_claim("", bullet.text, cited_chunks)
             tracer.log("critic_verdict", round=round_num, bullet=bullet.text,
+                       citations=bullet.citations,
                        supported=verdict.supported, reason=verdict.reason)
             if verdict.supported:
                 kept.append(bullet)
@@ -166,7 +174,8 @@ def run_star_loop(question: str, pools: dict[str, list[dict]]) -> tuple[object, 
 
     answer = generate_star(question, pools)
     tracer.log("generated", question=question,
-               pool_sizes={k: len(v) for k, v in pools.items()})
+               pool_sizes={k: len(v) for k, v in pools.items()},
+               pools={k: [c["chunk_id"] for c in v] for k, v in pools.items()})
 
     flagged = []
     for name, section in answer.sections():
@@ -182,14 +191,15 @@ def run_star_loop(question: str, pools: dict[str, list[dict]]) -> tuple[object, 
 
         # stage 1 — deterministic
         ok, reason = check_quantities(section.text, cited_chunks)
-        tracer.log("quant_check", section=name, passed=ok, reason=reason)
+        tracer.log("quant_check", section=name, citations=section.citations,
+                   passed=ok, reason=reason)
         if not ok:
             flagged.append((name, f"[quant] {reason}"))
             continue
 
         # stage 2 — LLM Critic
         verdict = check_claim("", section.text, cited_chunks)
-        tracer.log("critic_verdict", section=name,
+        tracer.log("critic_verdict", section=name, citations=section.citations,
                    supported=verdict.supported, reason=verdict.reason)
         if not verdict.supported:
             flagged.append((name, verdict.reason))
@@ -211,7 +221,8 @@ def run_guide_loop(topic, chunks) -> tuple[list, list]:
        for claim in section.claims:
            cited_chunks = [by_id[cid] for cid in claim.citations]
            verdict = check_claim("" , claim.text , cited_chunks)
-           tracer.log("critic_verdict", heading=section.heading, claim=claim.text, 
+           tracer.log("critic_verdict", heading=section.heading, claim=claim.text,
+                      citations=claim.citations,
                       supported=verdict.supported, reason=verdict.reason)
            if verdict.supported: survivors.append(claim)
            else : struck.append((claim , verdict.reason))

@@ -303,3 +303,62 @@ def test_chunk_without_a_vector_score_counts_as_no_evidence(monkeypatch):
     kept, struck, gap = run_bullets_loop("a topic", bm25_only, n=3)
 
     assert gap and called == []
+
+
+# --- trace observability ----------------------------------------------------
+#
+# A strike reason like "the evidence does not mention X" has two very different
+# causes that read identically: the support was NOWHERE in the pool (retrieval
+# miss), or it sat in the pool under a chunk the claim didn't cite
+# (mis-citation). They need opposite fixes. Diagnosing a real strike meant
+# grepping the corpus by hand and getting it wrong first, so the trace now
+# records both the pool and each claim's citations.
+
+class _RecordingTracer:
+    """Captures trace records instead of writing them to traces/."""
+    path = "(test)"
+    records = []
+
+    def __init__(self, *args, **kwargs):
+        _RecordingTracer.records = []
+
+    def log(self, event, **fields):
+        _RecordingTracer.records.append((event, fields))
+
+
+def _events(name):
+    return [f for e, f in _RecordingTracer.records if e == name]
+
+
+def test_trace_records_the_pool_it_generated_from(monkeypatch):
+    """Without the pool you cannot tell a retrieval miss from a mis-citation,
+    because the Critic's reason string looks the same either way."""
+    fake_gen, _ = _generator_spy()
+    fake_critic, _ = _critic_recorder(supported=True)
+    monkeypatch.setattr("critic.loop.Tracer", _RecordingTracer)
+    monkeypatch.setattr("critic.loop.generate_bullets", fake_gen)
+    monkeypatch.setattr("critic.loop.check_claim", fake_critic)
+    monkeypatch.setattr("critic.loop.MAX_ROUNDS", 1)
+
+    run_bullets_loop("a topic", [_scored("c1", 0.62), _scored("c2", 0.61)], n=1)
+
+    assert _events("generated")[0]["pool"] == ["c1", "c2"]
+
+
+def test_trace_records_what_each_claim_cited(monkeypatch):
+    """The other half: which chunk the claim pointed at. The Critic judges a
+    claim against ONLY these, so a verdict is unreadable without them."""
+    fake_gen, _ = _generator_spy()
+    fake_critic, _ = _critic_recorder(supported=False, reason="not in the evidence")
+    monkeypatch.setattr("critic.loop.Tracer", _RecordingTracer)
+    monkeypatch.setattr("critic.loop.generate_bullets", fake_gen)
+    monkeypatch.setattr("critic.loop.check_claim", fake_critic)
+    monkeypatch.setattr("critic.loop.MAX_ROUNDS", 1)
+
+    run_bullets_loop("a topic", [_scored("c1", 0.62), _scored("c2", 0.61)], n=1)
+
+    verdict = _events("critic_verdict")[0]
+    assert verdict["citations"] == ["c1"]
+    assert verdict["supported"] is False
+    # pool minus citations = where the support could have been instead
+    assert set(_events("generated")[0]["pool"]) - set(verdict["citations"]) == {"c2"}
