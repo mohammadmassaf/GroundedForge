@@ -205,6 +205,12 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2,
 
     grounding["grounded"] = grounded
     grounding["total_claims"] = total_claims
+    # kept/struck are reported raw so two windowed runs can be COMBINED
+    # correctly: grounding is (kept_a + kept_b) / (claims_a + claims_b).
+    # Averaging the two percentages is wrong whenever the halves produced
+    # different numbers of claims, which they always do.
+    grounding["kept"] = total_kept
+    grounding["struck"] = total_struck
     grounding["struck_examples"] = struck_examples
     grounding["failed"] = failed
     grounding["evaluated"] = evaluated
@@ -331,7 +337,10 @@ def report(retrieval: dict, grounding: dict, traps: dict | None = None) -> str:
     # lowered by a claim that was generated and then struck, so every question
     # that produced nothing -- gapped, failed, or never reached -- is invisible
     # in the ratio and has to be reported beside it.
-    scope = f"{grounding['total_claims']} claims"
+    if "kept" in grounding:
+        scope = f"{grounding['kept']} kept / {grounding['struck']} struck"
+    else:
+        scope = f"{grounding['total_claims']} claims"
     if grounding.get("total_questions"):
         scope += f" from {grounding.get('evaluated', '?')}/{grounding['total_questions']} questions"
     if grounding.get("mode"):
