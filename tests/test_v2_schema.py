@@ -9,6 +9,13 @@ forced through rather than a bad artifact reaching the reader.
 The one that matters most is `citations` being non-empty. A claim with no
 citation is precisely what this whole project exists to prevent, and the schema
 is the cheapest place to make it impossible.
+
+One deliberate exception: `Bullets` no longer requires at least one bullet.
+"Zero bullets" is a legitimate answer (the prompt tells the model to produce
+fewer rather than invent), so rejecting it in the shape layer made an obedient
+model indistinguishable from a broken one. That check moved to
+_parse_and_validate, which can raise EmptyGeneration and let the caller report
+a gap instead of a failure.
 """
 import pytest
 from pydantic import ValidationError
@@ -49,11 +56,40 @@ def test_bullet_text_has_a_floor():
         CVBullet(text="auth", citations=["c1"])
 
 
-def test_empty_bullet_list_rejected():
-    """Zero bullets means the generation failed; it must not validate as a
-    successful empty artifact."""
-    with pytest.raises(ValidationError):
-        Bullets(bullets=[])
+def test_empty_bullet_list_now_validates():
+    """Zero bullets USED to be a ValidationError, which conflated two different
+    events: the model produced garbage, and the model correctly produced
+    nothing. Rule 10 of the bullets prompt explicitly sanctions the second
+    ("produce fewer, NEVER invent material to fill the count") -- and the schema
+    was punishing the model for obeying it.
+
+    The guarantee did not disappear, it MOVED: shape validation now accepts an
+    empty list so the caller can tell "declined" from "malformed", and
+    _parse_and_validate raises EmptyGeneration for the caller to turn into a
+    gap. Layer 1 checks shape, layer 2 checks meaning -- exactly the split this
+    module's docstring already describes.
+
+    Reverting the floor breaks this test, which is the point."""
+    assert Bullets(bullets=[]).bullets == []
+
+
+def test_bullets_defaults_to_empty_when_the_key_is_missing():
+    """A model with nothing to say sometimes omits the key entirely rather than
+    sending an empty list. Without default_factory the field stays REQUIRED, so
+    that reply is a hard validation failure -- the exact case the default
+    exists for, and one an `{"bullets": []}` test would never catch."""
+    assert Bullets().bullets == []
+
+
+def test_is_empty_reports_both_directions():
+    """Pinned in both directions because the natural way to write this method
+    inverts: `if not self.bullets: return False` reads fine and is backwards.
+    Inverted, EmptyGeneration would fire on every SUCCESSFUL generation and let
+    the empty ones through -- surfacing as "every question gaps", after a run's
+    worth of tokens."""
+    assert Bullets(bullets=[]).is_empty() is True
+    assert Bullets(bullets=[CVBullet(text="Implemented the thing",
+                                     citations=["c1"])]).is_empty() is False
 
 
 def test_bullets_all_citations_flattens():
