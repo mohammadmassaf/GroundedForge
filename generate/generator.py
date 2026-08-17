@@ -25,7 +25,14 @@ from generate.schema import Quiz , Guide , Bullets , STARAnswer
 
 load_dotenv()
 
-MODEL = "llama-3.3-70b-versatile"
+# llama-3.3-70b-versatile was retired by Groq (404 model_not_found, 2026-08-17)
+# and no Llama chat model remains in the catalogue. gpt-oss-20b keeps its
+# reasoning in a separate `reasoning` field, so `content` is still clean JSON and
+# the parser needs no changes -- qwen3.6-27b emits <think> inline and would.
+# Every LLM-dependent number in this repo predates the swap and is historical:
+# grounding % and the trap catch rate both move with the model. recall@k does
+# not -- embeddings, BM25 and the cross-encoder are all local.
+MODEL = "openai/gpt-oss-20b"
 MAX_RETRIES = 2
 
 # Cap the reply. Groq counts a request as input + the output budget you RESERVE,
