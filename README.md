@@ -5,6 +5,8 @@
 **A cite-or-strike quiz generator: every answer cites your own course material, an independent Critic agent strikes any claim the sources don't support, and the no-hallucination guarantee is measured, not asserted.**
 
 > **92.7% grounding** (38/41 claims independently verified against source) · **100% recall@10** on a fixed 20-question eval set
+>
+> *Grounding measured on `llama-3.3-70b-versatile`, which Groq retired on 2026-08-17; the pipeline now runs `openai/gpt-oss-20b` and that figure is being re-measured. recall@k is unaffected — retrieval is entirely local.*
 
 Point it at a folder of course PDFs, ask for a quiz on any topic, and get a markdown artifact where every question and answer links to the exact page it came from, with unsupported claims struck out, visibly, never silently emitted.
 
@@ -28,7 +30,8 @@ PDFs → chunks  →  embed (local)      →  Generator drafts    →  Critic ve
 
 - **Multi-agent loop is hand-rolled:** no LangChain/LlamaIndex. Generator (temp 0.3) → Critic (temp 0.0, strict) → Refiner (deterministic policy: keep verified, strike failed, regenerate shortfall, hard round cap).
 - **Every run writes a JSONL trace:** every generation and every verdict with its reason. "Why was this claim struck?" is answerable from the trace alone.
-- **Free tier end to end:** Groq (llama-3.3-70b), local sentence-transformers embeddings, local ChromaDB. No paid services.
+- **Free tier end to end:** Groq (`openai/gpt-oss-20b`), local sentence-transformers embeddings, local ChromaDB. No paid services.
+- **The local half survives a vendor pulling a model.** When Groq retired the LLM this was built on, every recall@k figure reproduced exactly — embeddings, BM25, the cross-encoder and the vector store all run here. Only the grounding score, which measures a specific model, had to be re-measured.
 
 ## Setup
 
@@ -105,7 +108,7 @@ The honest finding: on a paraphrase-style eval set the pipeline **matched** the 
 
 ## Tech stack
 
-Python · Groq (llama-3.3-70b-versatile) · sentence-transformers (all-MiniLM-L6-v2 embeddings + ms-marco-MiniLM-L-6-v2 cross-encoder, both local) · ChromaDB (local, cosine) · rank_bm25 · Pydantic v2 (schema-validated LLM output with retry-on-invalid) · pypdf
+Python · Groq (`openai/gpt-oss-20b`) · sentence-transformers (all-MiniLM-L6-v2 embeddings + ms-marco-MiniLM-L-6-v2 cross-encoder, both local) · ChromaDB (local, cosine) · rank_bm25 · Pydantic v2 (schema-validated LLM output with retry-on-invalid) · pypdf
 
 ## Project structure
 
