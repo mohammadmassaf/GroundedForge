@@ -39,6 +39,10 @@ MAX_OUTPUT_TOKENS = 2000
 class GenerationError(Exception):
     pass
 
+class EmptyGeneration(Exception):
+    """ this error signals that there is a gap in the bullet , not that the run failed """
+    pass
+
 SYSTEM_PROMPT = """\
 You are a quiz generator for a student studying from their own course material.
 
@@ -87,12 +91,15 @@ RULES — these are absolute:
    describe steps toward the same feature (the model change, the endpoint, the
    service split). Combine them into ONE bullet and cite all of them.
    NEVER write a bullet for a single small change. These are implementation
-   details, not accomplishments:
-   - WRONG: "Added recipe field to Meal model"
-   - WRONG: "Made generate_meal_plan async using asyncio.to_thread"
+   details, not accomplishments. The examples below describe a FICTIONAL
+   project and are illustrations of the rule only — never cite them, never
+   reuse their wording, and never treat their subject matter as forbidden in
+   your own context:
+   - WRONG: "Added a priority field to the Ticket model"
+   - WRONG: "Made send_digest async using a worker thread"
    - WRONG: "Created database tables automatically on startup"
-   - RIGHT: "Built the meal-plan generation pipeline: nested Meal/DayPlan/
-     MealPlan models, an async generation path, and per-day regeneration"
+   - RIGHT: "Built the ticket-triage pipeline: nested Ticket/Queue/Board
+     models, an async dispatch path, and per-queue reassignment"
    If the only evidence for something is one tiny commit, leave it out.
 6. LENGTH AND SUBSTANCE: 12 to 25 words. Lead with the verb, and name the
    SPECIFIC technical content the evidence shows — structures, endpoints,
@@ -241,7 +248,9 @@ def _parse_and_validate(raw: str, valid_ids: set[str] , model = Quiz) -> Quiz:
        obj = model.model_validate(data)
    except ValidationError as e:
          raise ValueError(f"Schema error: {e}") 
-
+   if hasattr(obj, "is_empty"):
+       if obj.is_empty():
+        raise EmptyGeneration(f"this {type(obj).__name__} validates fine but contains zero items")
    bad = set(obj.all_citations()) - valid_ids
    if bad:
         raise ValueError(f"Unknown chunk_id(s) cited: {bad} — "

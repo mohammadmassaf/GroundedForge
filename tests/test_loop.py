@@ -362,3 +362,100 @@ def test_trace_records_what_each_claim_cited(monkeypatch):
     assert verdict["supported"] is False
     # pool minus citations = where the support could have been instead
     assert set(_events("generated")[0]["pool"]) - set(verdict["citations"]) == {"c2"}
+
+
+# --- the generator declining: EmptyGeneration -> gap, or an early finish ------
+#
+# `Bullets` no longer floors its list at one item, because "produce fewer rather
+# than invent" is what rule 10 of the prompt ASKS for -- and a schema that
+# rejected an empty list punished the model for obeying. _parse_and_validate now
+# raises EmptyGeneration instead, and this loop decides what it means.
+#
+# It means two different things, and `kept` is the only thing that separates
+# them. Both are normal completions; neither is a failure.
+
+from generate.generator import EmptyGeneration
+
+
+def _declining_generator(decline_on=1, bullets=None):
+    """
+    A generator fake that raises EmptyGeneration on the Nth call and succeeds on
+    every other one. `calls` records each topic it was asked for.
+
+    Round number is not passed to generate_bullets, so a counter in the closure
+    is the only way to say "succeed first, decline on the top-up" -- which is
+    the case that separates a gap from an early finish.
+    """
+    calls = []
+
+    def fake(topic, chunks, n=5, avoid=None):
+        calls.append(topic)
+        if len(calls) == decline_on:
+            raise EmptyGeneration("this Bullets validates fine but contains zero items")
+        return bullets or Bullets(bullets=[
+            CVBullet(text="Implemented the thing", citations=[chunks[0]["chunk_id"]])
+        ])
+
+    return fake, calls
+
+
+def test_declining_on_the_first_round_is_a_gap(monkeypatch):
+    """Strong evidence, but the generator judged none of it bullet-worthy. That
+    is a gap: nothing to say about this topic at all.
+
+    Distinct from the evidence gap above it, which means retrieval was too weak
+    to try. Same return slot, opposite cause -- so the message must not reuse
+    the "insufficient evidence" wording or the artifact misreports which
+    happened."""
+    fake_gen, called = _declining_generator(decline_on=1)
+    fake_critic, seen = _critic_recorder(supported=True)
+    _patch_bullets(monkeypatch, fake_gen, fake_critic)
+
+    kept, struck, gap = run_bullets_loop("a topic with nothing bullet-worthy",
+                                         [_scored("c1", 0.62)], n=3)
+
+    assert kept == [] and struck == []
+    assert gap and "a topic with nothing bullet-worthy" in gap
+    assert "Insufficient evidence" not in gap    # that is the OTHER gap
+    assert called == ["a topic with nothing bullet-worthy"]   # asked once, not retried
+    assert seen == []                            # never reached the Critic
+
+
+def test_declining_on_a_top_up_round_keeps_what_survived(monkeypatch):
+    """The decision this whole branch exists for. Round 2 asks for the shortfall
+    after strikes; declining there means "nothing MORE to add", not "nothing at
+    all". Returning a gap would throw away verified bullets and report an empty
+    artifact for a topic that was partly covered.
+
+    Reverse the branch -- return a gap whenever EmptyGeneration is raised -- and
+    this test fails while the first one still passes. That asymmetry is the
+    whole point of testing both."""
+    fake_gen, called = _declining_generator(decline_on=2)
+    fake_critic, _ = _critic_recorder(supported=True)
+    _patch_bullets(monkeypatch, fake_gen, fake_critic)
+    monkeypatch.setattr("critic.loop.MAX_ROUNDS", 2)   # _patch_bullets pins it to 1
+
+    kept, struck, gap = run_bullets_loop("a partly covered topic",
+                                         [_scored("c1", 0.62)], n=3)
+
+    assert gap is None                 # an early finish, not a gap
+    assert len(kept) == 1              # round 1's bullet survives
+    assert len(called) == 2            # round 1 succeeded, round 2 declined
+
+
+def test_a_decline_after_strikes_still_reports_what_was_struck(monkeypatch):
+    """`kept` empty does not prove nothing was produced: round 1 can generate
+    bullets the Critic strikes, leaving kept=[] and struck non-empty. The gap
+    branch fires, and it must carry `struck` out with it -- the evidence gap
+    above returns [] because it fires BEFORE any generation, but this one fires
+    after, and dropping the strikes would erase the record of what was tried."""
+    fake_gen, _ = _declining_generator(decline_on=2)
+    fake_critic, _ = _critic_recorder(supported=False, reason="not in the evidence")
+    _patch_bullets(monkeypatch, fake_gen, fake_critic)
+    monkeypatch.setattr("critic.loop.MAX_ROUNDS", 2)
+
+    kept, struck, gap = run_bullets_loop("a topic", [_scored("c1", 0.62)], n=3)
+
+    assert kept == []
+    assert len(struck) == 1            # round 1's bullet, struck
+    assert gap                         # kept is empty, so the gap branch fired

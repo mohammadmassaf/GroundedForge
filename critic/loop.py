@@ -20,7 +20,7 @@ verdicts (drop, regenerate, stop) is deterministic logic — another case of
 
 Every step logs to the Tracer, so a run is reconstructable from its trace.
 """
-from generate.generator import generate , generate_guide , generate_bullets , generate_star
+from generate.generator import generate , generate_guide , generate_bullets , generate_star ,  EmptyGeneration
 from generate.schema import QuizItem , GuideSection
 from critic.critic import check_claim
 from critic.quant import check_quantities
@@ -117,8 +117,18 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
             break
         # tell the Generator what it already produced, or a top-up round just
         # re-emits its best bullet
-        result = generate_bullets(topic, chunks, n=need,
+        try :
+            result = generate_bullets(topic, chunks, n=need,
                                   avoid=[b.text for b in kept])
+        except EmptyGeneration  :
+            if kept:
+                tracer.log("no_material" , round = round_num , kept = len(kept) , requested = need)
+                break
+            else:
+                gap = f"no material for '{topic}'"
+                tracer.log("no_material" , round = round_num , kept = len(kept) , requested = need)
+                print(f"Trace: {tracer.path}")
+                return [] , struck , gap
         # The pool is logged alongside the verdicts because a strike has two very
         # different causes that read identically in the reason string: the
         # support was NOWHERE in the pool (a retrieval miss), or it was in the

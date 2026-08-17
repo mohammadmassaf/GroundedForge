@@ -21,6 +21,7 @@ Validation happens in two layers:
 from pydantic import BaseModel, Field
 
 
+
 class QuizItem(BaseModel):
     question: str = Field(min_length=10)
     answer: str = Field(min_length=1)
@@ -45,14 +46,15 @@ class CVBullet(BaseModel):
 
 
 class Bullets(BaseModel):
-    bullets: list[CVBullet] = Field(min_length=1)
-
+    bullets: list[CVBullet] = Field(default_factory = list)
     def all_citations(self) -> list[str]:
         out = []
         for bullet in self.bullets:
             for cid in bullet.citations:
                 out.append(cid)
         return out
+    def is_empty(self)-> bool:
+        return not self.bullets
 
 
 class StarSection(BaseModel):
