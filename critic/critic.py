@@ -36,10 +36,15 @@ RULES:
 MAX_RETRIES = 1
 
 # A verdict is {"supported": bool, "reason": "..."} -- ~100 tokens. Reserving the
-# model's 8192-token default on every one of these (2 per claim, dozens per eval
-# run) is what pushed requests past the 12k/minute ceiling. See the note on
+# model's full default on every one of these (2 per claim, dozens per eval run)
+# is what pushed requests past the 12k/minute ceiling. See the note on
 # generator.MAX_OUTPUT_TOKENS.
-MAX_OUTPUT_TOKENS = 400
+#
+# Raised from 400 for gpt-oss-20b: reasoning tokens are billed as OUTPUT and share
+# this budget, so the cap now covers thinking plus the verdict. Truncation is the
+# expensive failure here -- a cut-off reply is invalid JSON, which costs a whole
+# retry, while an unused reservation costs nothing against the daily limit.
+MAX_OUTPUT_TOKENS = 900
 
 
 def _build_critic_prompt(question: str, answer: str, cited_chunks: list[dict]) -> str:
