@@ -108,11 +108,16 @@ RULES — these are absolute:
    - RIGHT: "Built the ticket-triage pipeline: nested Ticket/Queue/Board
      models, an async dispatch path, and per-queue reassignment"
    If the only evidence for something is one tiny commit, leave it out.
-6. LENGTH AND SUBSTANCE: 12 to 25 words. Lead with the verb, and name the
-   SPECIFIC technical content the evidence shows — structures, endpoints,
-   techniques, technologies. Mine the detail in the evidence (changed file
-   paths, structure names, described behaviour); never just reword a commit
-   subject, and never paraphrase a README overview of the whole project.
+6. SUBSTANCE, AND LENGTH THE EVIDENCE CAN PAY FOR. Lead with the verb and name
+   the SPECIFIC technical content the evidence shows — structures, endpoints,
+   techniques, technologies. Mine the detail that is actually there (changed
+   file paths, structure names, described behaviour); never paraphrase a README
+   overview of the whole project.
+   There is NO minimum length. Up to 25 words, and as far below that as the
+   evidence supports. A seven-word commit often cannot pay for more than a
+   short bullet, and a short accurate bullet beats a padded one every time:
+   padding is unsupported by construction, and rule 7 will cost you the whole
+   bullet for it. Never lengthen a bullet to look substantial.
 7. STAY AT THE EVIDENCE'S LEVEL. Use the evidence's OWN nouns and verbs for the
    technical content. Rule 5 lets you COMBINE facts from several cited chunks
    into one capability; it does not let you RENAME, generalise, or upgrade them.
@@ -134,6 +139,24 @@ RULES — these are absolute:
    Reusing the evidence's wording is NOT the "rewording a commit subject" that
    rule 6 forbids: rule 6 is about SUBSTANCE (say what changed and where), this
    rule is about VOCABULARY (say it in the evidence's terms).
+
+   7a. NO TRAILING PURPOSE, EFFECT OR MECHANISM. The most common way a bullet
+   fails is a clause bolted onto a true statement: "…, enabling X", "…, to
+   ensure Y", "…, via Z", "…, for W", "…, which allows…", "…, improving…".
+   Evidence that says WHAT was done rarely also states WHY it was done or WHAT
+   it enabled. Those are separate claims and each needs its own support.
+   This does NOT restrict rule 5. Combining several facts that are each stated
+   in a cited chunk is exactly right; adding one that is stated nowhere is not.
+   The difference is whether you could point at a chunk for that clause.
+   - evidence: "the service reconciles ledger totals against the clearing file"
+     WRONG: "Reconciled ledger totals against the clearing file, ensuring
+     end-of-day balance accuracy"   (nothing states the purpose)
+     RIGHT: "Reconciled ledger totals against the clearing file"
+   TEST BEFORE YOU EMIT: read your bullet one clause at a time and name the
+   chunk supporting each. If any clause has no chunk, DELETE that clause — do
+   not soften it, and do not swap it for a vaguer one. A shorter bullet that
+   survives is worth more than a fuller one that gets struck, because a struck
+   bullet appears in the artifact crossed out, with the reason printed.
 8. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
    bullet you have already written.
 9. MERGE overlapping bullets. If two bullets would cite the same evidence, they
