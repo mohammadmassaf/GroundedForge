@@ -132,9 +132,10 @@ re-ingest; the pre-scoping figures live in that finding.
 | inflation-catch | not measured in v1 | **100%** (6/6 traps) |
 
 **Both grounding figures above were produced by `llama-3.3-70b-versatile`, which Groq retired
-on 2026-08-17.** They are historical. The first measurement on `gpt-oss-20b` is 50.0% over 8
-questions, and Finding 5 explains why the drop is a prompt defect rather than a worse model.
-recall@k is unaffected in every mode — retrieval is entirely local and reproduced exactly.
+on 2026-08-17.** They are historical. On `gpt-oss-20b` the same 8 job questions score
+**93.8%** (15 kept / 1 struck) after the rule 7a fix — up from 50.0% before it, with the
+prompt as the only variable. Finding 5 has the full story. recall@k is unaffected in every
+mode: retrieval is entirely local and reproduced exactly through the model swap.
 
 The 87.1% grounding figure predates repo scoping and the k=8 finding — it is the best
 *measured* job-mode number, not the current system's. Re-measuring is blocked on the Groq
@@ -371,9 +372,78 @@ a model swap rather than by wording. **A prompt is tuned to a model, and that tu
 portable.** The eval is the only reason this was visible at all; without it the swap would
 have shipped as "same system, new model" while grounding fell by 34 points.
 
-Fix in progress: drop rule 6's word floor so a bullet may be as long as the evidence supports
-and no longer, AND name the padding shapes explicitly in rule 7 ("enabling X", "via Y", "to
-ensure Z") so the failure mode is forbidden by description rather than only by principle.
+Fix: drop rule 6's word floor so a bullet may be as long as the evidence supports and no
+longer, AND name the padding shapes explicitly in rule 7a ("enabling X", "via Y", "to ensure
+Z") so the failure mode is forbidden by description rather than only by principle. Rule 7a
+ends with a procedure rather than a principle: read the bullet one clause at a time, name the
+chunk supporting each, and DELETE any clause without one — delete rather than soften, because
+a vaguer unsupported clause is still unsupported.
+
+### Result: 50.0% → 93.8%, and the diagnosis was half wrong
+
+Same 8 questions, same model, same flags, prompt as the only variable — the cleanest A/B in
+the project:
+
+| | claims | kept / struck | grounding | mean words |
+|---|---|---|---|---|
+| gpt-oss-20b, old prompt | 22 | 11 / 11 | **50.0%** | 13.6 |
+| gpt-oss-20b, new prompt | 16 | **15 / 1** | **93.8%** | **12.1** |
+
+The claim count falling is a consequence, not a confound: fewer strikes means fewer top-up
+rounds, so the loop reached `n` instead of regenerating.
+
+**But length is not what fixed it.** 13.6 → 12.1 words is a small move, nowhere near
+llama-3.3-70b's 8.1. If length were the mechanism, 12.1-word bullets should still be failing
+at close to the old rate. They aren't — strikes fell by a factor of eleven while length
+barely moved.
+
+So **rule 7a did the work, not rule 6's floor.** The bullets are still long; they simply stop
+carrying an unsupported trailing clause. Same length, different content.
+
+Which corrects the reading above: word count was a **symptom mistaken for a cause**. The old
+model's 8.1-word bullets were not safe *because* they were short — they were safe because a
+short bullet has no room for a purpose clause. Length correlated with the real variable and
+was easy to measure, which is exactly how a proxy gets mistaken for a mechanism.
+
+Worth keeping as a method note: the word-count table was what made the padding hypothesis
+visible in the first place, and it was still the wrong causal story. The A/B is what settled
+it. A correlation strong enough to generate the right fix can still be the wrong explanation.
+
+The one remaining strike has the same shape, smaller: *"Implemented SQLAlchemy ORM **for data
+modeling**"* — the trailing purpose clause again, once in sixteen rather than eleven in
+twenty-two.
+
+**Current job-mode number: 93.8%** (15 kept / 1 struck, 16 claims) over 8/8 questions,
+`gpt-oss-20b`, `rerank --gen-k 10`, commit `30be493`. Higher than the 84.0% the retired model
+ever reached on the same questions — but that comparison crosses a model change *and* three
+prompt changes, so only the 50.0% → 93.8% pair is clean.
+
+## Finding 6: two rate limits, one exception class
+
+Every eval run since the model swap died partway, for three different reasons that all looked
+like "the run stopped".
+
+**TPM is not TPD.** Groq raises the same `RateLimitError` for a per-minute throttle and a
+per-day exhaustion, and the harness treated both as "stop the run". gpt-oss-20b allows
+**8000 TPM** (down from llama-3.3-70b's 12000) while one generate call is now ~4800, so
+back-to-back calls hit it constantly. A message reading *"try again in 7.4625s"* was throwing
+away five unevaluated questions. They are now split on the message text: TPM sleeps the stated
+wait and retries, TPD propagates so `grounding_eval` can stop early with honest partial
+tallies. Retrying both would be worse than stopping on both — it would spin for hours against
+a daily cap and report nothing.
+
+**Then the network became the bottleneck.** At ~4800 tokens per call against 8000/minute the
+pipeline sustains roughly 1.5 calls a minute, so an 8-question window is a ~30 minute run
+making ~50 calls — long enough that ordinary flakiness matters. One dropped TCP connect
+(`APITimeoutError`) ended a run two questions in. Now retried with a 2/5/15s backoff, on a
+budget separate from the throttle budget: they are unrelated failures, and a call that has
+waited out four throttles should still get its full network allowance.
+
+All three call sites route through one `_complete()` helper, so the policy is defined once.
+
+The general shape, worth remembering: **"the run stopped" is not a diagnosis.** Three
+different causes produced the same symptom, and two of them were recoverable in seconds. The
+fix in each case was to stop treating a category of error as a single thing.
 
 ## Harness caveat, now fixed
 
