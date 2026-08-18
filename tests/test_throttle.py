@@ -137,3 +137,65 @@ def test_repeated_throttles_eventually_give_up(monkeypatch):
         generator._complete([{"role": "user", "content": "x"}], 0.3, 100)
 
     assert calls["n"] == generator.TPM_MAX_ATTEMPTS
+
+
+# --- transient network faults ------------------------------------------------
+#
+# A throttled window is a ~30 minute run making ~50 calls, so it is exposed to
+# ordinary network flakiness for a long time. One dropped TCP connect
+# (APITimeoutError) ended a run two questions in and lost the other six.
+#
+# Throttles and network faults get SEPARATE attempt budgets on purpose: they are
+# unrelated failures, and a call that has already waited out four throttles
+# should still get its full network allowance rather than a nearly-spent one.
+
+def _net_error():
+    class _Err(generator.APITimeoutError):
+        def __init__(self):
+            Exception.__init__(self, "timed out")
+
+    return _Err()
+
+
+def test_a_dropped_connection_is_retried(monkeypatch):
+    """The SDK already retries twice internally; this catches what survives
+    that, rather than letting it end the run."""
+    client, calls = _client_raising(_net_error())
+    slept = []
+    monkeypatch.setattr(generator, "_get_client", lambda: client)
+    monkeypatch.setattr(generator.time, "sleep", slept.append)
+
+    resp = generator._complete([{"role": "user", "content": "x"}], 0.3, 100)
+
+    assert isinstance(resp, _FakeResponse)
+    assert calls["n"] == 2
+    assert slept == [generator.NET_BACKOFF[0]]
+
+
+def test_network_backoff_lengthens_then_gives_up(monkeypatch):
+    """A sustained outage should not retry forever. The backoff tuple's length
+    IS the retry budget, so the two cannot drift apart."""
+    client, calls = _client_raising(*[_net_error()] * 20)
+    slept = []
+    monkeypatch.setattr(generator, "_get_client", lambda: client)
+    monkeypatch.setattr(generator.time, "sleep", slept.append)
+
+    with pytest.raises(generator.APITimeoutError):
+        generator._complete([{"role": "user", "content": "x"}], 0.3, 100)
+
+    assert slept == list(generator.NET_BACKOFF)
+    assert calls["n"] == len(generator.NET_BACKOFF) + 1
+
+
+def test_throttles_do_not_consume_the_network_budget(monkeypatch):
+    """The reason the two counters are separate. A call that survives several
+    throttles and THEN hits a dropped connection must still retry it."""
+    errors = [_rate_limit(TPM), _rate_limit(TPM), _net_error()]
+    client, calls = _client_raising(*errors)
+    monkeypatch.setattr(generator, "_get_client", lambda: client)
+    monkeypatch.setattr(generator.time, "sleep", lambda s: None)
+
+    resp = generator._complete([{"role": "user", "content": "x"}], 0.3, 100)
+
+    assert isinstance(resp, _FakeResponse)
+    assert calls["n"] == 4          # two throttles, one net fault, then success
