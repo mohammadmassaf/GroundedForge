@@ -131,6 +131,11 @@ re-ingest; the pre-scoping figures live in that finding.
 | grounding | **92.7%** (41 claims, 19/20 q) | **87.1%** (31 claims, 15/15 q) |
 | inflation-catch | not measured in v1 | **100%** (6/6 traps) |
 
+**Both grounding figures above were produced by `llama-3.3-70b-versatile`, which Groq retired
+on 2026-08-17.** They are historical. The first measurement on `gpt-oss-20b` is 50.0% over 8
+questions, and Finding 5 explains why the drop is a prompt defect rather than a worse model.
+recall@k is unaffected in every mode — retrieval is entirely local and reproduced exactly.
+
 The 87.1% grounding figure predates repo scoping and the k=8 finding — it is the best
 *measured* job-mode number, not the current system's. Re-measuring is blocked on the Groq
 daily token limit, not on anything unknown.
@@ -304,6 +309,66 @@ worth less than a fuller top-8.
 **Consequence:** job mode should generate with `--retrieval hybrid`, not `rerank`. Untested
 against grounding % so far (Groq TPD exhausted); the mode is now threaded through
 `grounding_eval`, so it is a one-flag experiment.
+
+## Finding 5: a prompt tuned to one model does not transfer
+
+Groq retired `llama-3.3-70b-versatile` on 2026-08-17 (404 `model_not_found`, mid-run) and no
+Llama chat model remains in the catalogue. Switched to `openai/gpt-oss-20b`, which keeps its
+reasoning in a separate field so `content` stays clean JSON and the parser needed no changes.
+
+Validated the swap on the **traps first** — 6/6 struck, 3 quant / 3 critic, no stage
+mismatches, identical to the retired model. That cost ~5k tokens against ~48k for a grounding
+run, and it is the only measurement that can catch a rubber-stamp Critic. Cheap adversarial
+check first, expensive measurement second, is worth keeping as a habit.
+
+Then grounding, same 8 questions, same `rerank --gen-k 10`: **50.0%** (11 kept / 11 struck),
+against 84.0% on the retired model. Both agents changed at once, so the number alone cannot
+say whether the Generator got worse or the Critic got stricter. The traces can.
+
+**It was neither.** Every one of the 11 strikes has the same shape — the Critic concedes the
+main claim and rejects an appended clause:
+
+```
+"confirms cross-checking against USDA FDC   BUT does not explicitly state that USDA_KEY is used..."
+"confirms tables are auto-created on startup BUT does not specify PostgreSQL..."
+"shows generate_meal_plan was made async     BUT does not explicitly state that..."
+```
+
+Not mis-citation either: 10 of 11 strikes cite 2–3 chunks, and no reason says the support sat
+elsewhere in the pool. The bullets are "X, enabling Y" where only X is in the evidence.
+
+Then the word counts explained why:
+
+| | mean words/bullet | grounding |
+|---|---|---|
+| llama-3.3-70b | **8.1** | 84.0% |
+| gpt-oss-20b | **13.4** | 50.0% |
+
+**Rule 6 asks for 12–25 words. The old model was violating that floor, and the 84% depended
+on it.** Eight-word bullets say one thing, and one thing is easy to ground. The old traces
+show the same gradient internally: struck bullets averaged 10.2 words, kept ones 7.6. Today
+every bullet sits in the compliant band (kept 13.2, struck 13.5), so length no longer
+discriminates — nothing is short any more.
+
+### The real defect: rules 6 and 7 contradict each other
+
+- **Rule 6** — 12–25 words, "name the SPECIFIC technical content"
+- **Rule 7** — stay at the evidence's level, never add what it does not state
+
+A commit subject is seven words. There is often no 12–25 words of *grounded* content to be
+had, so obeying rule 6 forces padding, and padding is unsupported by construction. The two
+rules were never compatible; llama-3.3-70b hid it by under-complying with rule 6, and
+gpt-oss-20b exposed it by obeying.
+
+This is the third time a prompt written against observed behaviour has misfired (after rule
+7's example becoming an answer, and rule 5's becoming a prohibition) — but the first caused by
+a model swap rather than by wording. **A prompt is tuned to a model, and that tuning is not
+portable.** The eval is the only reason this was visible at all; without it the swap would
+have shipped as "same system, new model" while grounding fell by 34 points.
+
+Fix in progress: drop rule 6's word floor so a bullet may be as long as the evidence supports
+and no longer, AND name the padding shapes explicitly in rule 7 ("enabling X", "via Y", "to
+ensure Z") so the failure mode is forbidden by description rather than only by principle.
 
 ## Harness caveat, now fixed
 
