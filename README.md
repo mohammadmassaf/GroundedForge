@@ -131,7 +131,7 @@ and a struck section showing what the Critic rejected and why.
 | recall@3 | 90% | 73.3% |
 | recall@8 *(what the Generator reads)* | **100%** | 86.7% |
 | recall@10 | 100% | 100% |
-| grounding | 92.7%\* | **94.4%** (17 kept / 1 struck, 9/15 q) |
+| grounding | 92.7%\* | **96.7%** (29 kept / 1 struck, 15/15 q) |
 | inflation-catch | not measured | **100%** (6/6 traps) |
 
 \* *study grounding was measured on `llama-3.3-70b-versatile`, retired by Groq mid-project;

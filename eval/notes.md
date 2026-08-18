@@ -132,9 +132,9 @@ re-ingest; the pre-scoping figures live in that finding.
 | inflation-catch | not measured in v1 | **100%** (6/6 traps) |
 
 **Both grounding figures above were produced by `llama-3.3-70b-versatile`, which Groq retired
-on 2026-08-17.** They are historical. On `gpt-oss-20b` the same 8 job questions score
-**93.8%** (15 kept / 1 struck) after the rule 7a fix — up from 50.0% before it, with the
-prompt as the only variable. Finding 5 has the full story. recall@k is unaffected in every
+on 2026-08-17.** They are historical. Job mode on `gpt-oss-20b` scores **96.7%** (29 kept /
+1 struck, 30 claims) over all 15 questions. On the 8-question window that isolates the prompt
+change, rule 7a took grounding from 50.0% to 93.8% with nothing else varying. Finding 5 has the full story. recall@k is unaffected in every
 mode: retrieval is entirely local and reproduced exactly through the model swap.
 
 The 87.1% grounding figure predates repo scoping and the k=8 finding — it is the best
@@ -413,10 +413,24 @@ The one remaining strike has the same shape, smaller: *"Implemented SQLAlchemy O
 modeling**"* — the trailing purpose clause again, once in sixteen rather than eleven in
 twenty-two.
 
-**Current job-mode number: 93.8%** (15 kept / 1 struck, 16 claims) over 8/8 questions,
-`gpt-oss-20b`, `rerank --gen-k 10`, commit `30be493`. Higher than the 84.0% the retired model
-ever reached on the same questions — but that comparison crosses a model change *and* three
-prompt changes, so only the 50.0% → 93.8% pair is clean.
+**Final M5 number: 96.7%** (29 kept / 1 struck, 30 claims) over **15/15 questions**,
+`gpt-oss-20b`, `rerank --gen-k 10`, commit `59cf8e7`. Run in three windows on one commit with
+identical flags, so the counts add:
+
+| window | kept / struck | questions |
+|---|---|---|
+| q1–8 | 15 / 1 | 8 |
+| q9 | 2 / 0 | 1 |
+| q10–15 | 12 / 0 | 6 |
+| **total** | **29 / 1** | **15** |
+
+No failures, no gaps, no early stop — the first complete job-mode run the project has produced,
+and only possible after the throttle and network retries in Finding 6. The single strike is the
+trailing-purpose-clause shape ("Implemented SQLAlchemy ORM *for data modeling*"), one in thirty.
+
+Higher than the 84.0% the retired model reached on the first 8 questions, but that comparison
+crosses a model change *and* three prompt changes. Only the 50.0% → 93.8% pair on those same 8
+questions is clean.
 
 ## Finding 6: two rate limits, one exception class
 
