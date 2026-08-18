@@ -126,7 +126,7 @@ re-ingest; the pre-scoping figures live in that finding.
 |---|---|---|
 | recall@3 | 90% | 60% vector · 60% hybrid · **73.3%** rerank |
 | recall@5 | 95% | 66.7% vector · 73.3% hybrid · **80%** rerank |
-| recall@8 *(k the Generator reads)* | not measured in v1 | 86.7% vector · **93.3%** hybrid · 86.7% rerank |
+| recall@8 *(k the Generator reads)* | **100%** | 86.7% vector · **93.3%** hybrid · 86.7% rerank |
 | recall@10 | **100%** | 93.3% vector · 93.3% hybrid · **100%** rerank |
 | grounding | **92.7%** (41 claims, 19/20 q) | **87.1%** (31 claims, 15/15 q) |
 | inflation-catch | not measured in v1 | **100%** (6/6 traps) |
@@ -143,6 +143,11 @@ daily token limit, not on anything unknown.
 Same engine, same Critic, different corpus shape. Job mode is harder on both axes, and the
 two axes fail for unrelated reasons — which is the entire argument for measuring them
 separately.
+
+The **recall@8 row is the sharpest single comparison**: on the study corpus the Generator
+receives every piece of evidence it needs (100%), on the job corpus it does not (86.7% in the
+mode actually used). Any grounding gap between the two modes therefore starts with retrieval
+already behind, before the Generator writes a word.
 
 ## Traps: the measurement that makes the other two trustworthy
 
