@@ -16,9 +16,11 @@ correct itself. Max 2 retries, then raise.
 """
 import json
 import os
+import re
+import time
 
 from dotenv import load_dotenv
-from groq import Groq
+from groq import Groq, RateLimitError
 from pydantic import ValidationError
 
 from generate.schema import Quiz , Guide , Bullets , STARAnswer
@@ -45,6 +47,67 @@ MAX_RETRIES = 2
 MAX_OUTPUT_TOKENS = 2000
 class GenerationError(Exception):
     pass
+
+
+# Groq raises the SAME RateLimitError for two limits that mean opposite things:
+#   TPM (per minute) -- a throttle. gpt-oss-20b allows 8000, and one generate
+#                       call is ~4800, so back-to-back calls hit it constantly.
+#                       The wait is SECONDS.
+#   TPD (per day)    -- exhaustion. The wait is hours; the run should stop and
+#                       keep partial tallies.
+# Treating both as "stop the run" threw away five questions over a 7.5-second
+# pause. Treating both as "retry" would spin for hours against a daily cap.
+TPM_MAX_ATTEMPTS = 6
+TPM_MAX_SLEEP = 90          # seconds; a TPM wait longer than this is not a throttle
+TPM_FALLBACK_SLEEP = 20     # if the wait can't be parsed out of the message
+
+
+def _is_tpm(err: RateLimitError) -> bool:
+    """Per-minute throttle (retryable) vs per-day exhaustion (not)."""
+    return "tokens per minute" in str(err).lower()
+
+
+def _retry_after(err: RateLimitError) -> float:
+    """
+    How long Groq says to wait. Prefers the header, falls back to the message
+    ("Please try again in 7.4625s"), then to a fixed guess. The small buffer
+    matters: sleeping the exact figure tends to land right on the boundary and
+    fail again.
+    """
+    header = getattr(getattr(err, "response", None), "headers", {}) or {}
+    raw = header.get("retry-after")
+    if raw:
+        try:
+            return min(float(raw) + 1, TPM_MAX_SLEEP)
+        except ValueError:
+            pass
+    m = re.search(r"try again in ([\d.]+)s", str(err))
+    wait = float(m.group(1)) + 1 if m else TPM_FALLBACK_SLEEP
+    return min(wait, TPM_MAX_SLEEP)
+
+
+def _complete(messages: list[dict], temperature: float, max_tokens: int):
+    """
+    One chat completion, retrying through per-minute throttles.
+
+    Every LLM call in the project goes through here, so the throttle policy is
+    defined once rather than in each of the three call sites.
+    """
+    for attempt in range(1, TPM_MAX_ATTEMPTS + 1):
+        try:
+            return _get_client().chat.completions.create(
+                model=MODEL, messages=messages, temperature=temperature,
+                max_completion_tokens=max_tokens,
+            )
+        except RateLimitError as e:
+            # a daily cap is not something to wait out -- let it propagate so
+            # the eval harness can stop early and report honest partial tallies
+            if not _is_tpm(e) or attempt == TPM_MAX_ATTEMPTS:
+                raise
+            wait = _retry_after(e)
+            print(f"  TPM throttle, waiting {wait:.0f}s "
+                  f"(attempt {attempt}/{TPM_MAX_ATTEMPTS})")
+            time.sleep(wait)
 
 class EmptyGeneration(Exception):
     """ this error signals that there is a gap in the bullet , not that the run failed """
@@ -295,10 +358,7 @@ def _run(system_prompt, chunks, task, model):
 ]
     messages = base
     for i in range(MAX_RETRIES + 1):
-        resp = _get_client().chat.completions.create(
-            model = MODEL , messages = messages , temperature = 0.3,
-            max_completion_tokens = MAX_OUTPUT_TOKENS,
-        )
+        resp = _complete(messages, 0.3, MAX_OUTPUT_TOKENS)
         raw  = resp.choices[0].message.content
         try:
             return _parse_and_validate(raw,valid_ids , model = model)
@@ -357,9 +417,7 @@ def generate_star(question: str, pools: dict[str, list[dict]]) -> STARAnswer:
     ]
     messages = base
     for _ in range(MAX_RETRIES + 1):
-        resp = _get_client().chat.completions.create(
-            model=MODEL, messages=messages, temperature=0.3,
-            max_completion_tokens=MAX_OUTPUT_TOKENS)
+        resp = _complete(messages, 0.3, MAX_OUTPUT_TOKENS)
         raw = resp.choices[0].message.content
         try:
             return _parse_and_validate(raw, valid_ids, model=STARAnswer)

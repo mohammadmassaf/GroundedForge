@@ -15,7 +15,7 @@ import json
 from pydantic import ValidationError
 
 from critic.schema import Verdict
-from generate.generator import _get_client, MODEL, GenerationError
+from generate.generator import _complete, MODEL, GenerationError
 
 CRITIC_SYSTEM_PROMPT = """\
 You are a strict fact-checker. You will be given a CLAIM (a quiz question
@@ -123,10 +123,7 @@ def check_claim(question: str, answer: str, cited_chunks: list[dict]) -> Verdict
 ]
    messages = base
    for i in range(MAX_RETRIES + 1):
-        resp = _get_client().chat.completions.create(
-            model = MODEL , messages = messages , temperature = 0.0,
-            max_completion_tokens = MAX_OUTPUT_TOKENS,
-        )
+        resp = _complete(messages, 0.0, MAX_OUTPUT_TOKENS)
         raw  = resp.choices[0].message.content
         try:
             return _parse_verdict(raw)
