@@ -20,7 +20,8 @@ import re
 import time
 
 from dotenv import load_dotenv
-from groq import Groq, RateLimitError
+from groq import (Groq, RateLimitError, APITimeoutError, APIConnectionError,
+                  InternalServerError)
 from pydantic import ValidationError
 
 from generate.schema import Quiz , Guide , Bullets , STARAnswer
@@ -61,6 +62,13 @@ TPM_MAX_ATTEMPTS = 6
 TPM_MAX_SLEEP = 90          # seconds; a TPM wait longer than this is not a throttle
 TPM_FALLBACK_SLEEP = 20     # if the wait can't be parsed out of the message
 
+# Transient network faults, retried with a short backoff. A throttled eval window
+# is a ~30 minute run making ~50 calls, and a single dropped TCP connect used to
+# end it -- losing every question still unevaluated. The SDK already retries
+# twice internally; this catches what survives that.
+NET_ERRORS = (APITimeoutError, APIConnectionError, InternalServerError)
+NET_BACKOFF = (2, 5, 15)    # seconds between attempts; length caps the retries
+
 
 def _is_tpm(err: RateLimitError) -> bool:
     """Per-minute throttle (retryable) vs per-day exhaustion (not)."""
@@ -88,12 +96,16 @@ def _retry_after(err: RateLimitError) -> float:
 
 def _complete(messages: list[dict], temperature: float, max_tokens: int):
     """
-    One chat completion, retrying through per-minute throttles.
+    One chat completion, retrying through per-minute throttles and transient
+    network faults.
 
-    Every LLM call in the project goes through here, so the throttle policy is
-    defined once rather than in each of the three call sites.
+    Every LLM call in the project goes through here, so the policy is defined
+    once rather than in each of the three call sites. Throttles and network
+    faults get separate attempt budgets: they are unrelated failures, and a run
+    that survives five throttles should still have its full network allowance.
     """
-    for attempt in range(1, TPM_MAX_ATTEMPTS + 1):
+    throttles = net_faults = 0
+    while True:
         try:
             return _get_client().chat.completions.create(
                 model=MODEL, messages=messages, temperature=temperature,
@@ -102,11 +114,20 @@ def _complete(messages: list[dict], temperature: float, max_tokens: int):
         except RateLimitError as e:
             # a daily cap is not something to wait out -- let it propagate so
             # the eval harness can stop early and report honest partial tallies
-            if not _is_tpm(e) or attempt == TPM_MAX_ATTEMPTS:
+            throttles += 1
+            if not _is_tpm(e) or throttles >= TPM_MAX_ATTEMPTS:
                 raise
             wait = _retry_after(e)
             print(f"  TPM throttle, waiting {wait:.0f}s "
-                  f"(attempt {attempt}/{TPM_MAX_ATTEMPTS})")
+                  f"(attempt {throttles}/{TPM_MAX_ATTEMPTS})")
+            time.sleep(wait)
+        except NET_ERRORS as e:
+            if net_faults >= len(NET_BACKOFF):
+                raise
+            wait = NET_BACKOFF[net_faults]
+            net_faults += 1
+            print(f"  network fault ({type(e).__name__}), retrying in {wait}s "
+                  f"(attempt {net_faults}/{len(NET_BACKOFF)})")
             time.sleep(wait)
 
 class EmptyGeneration(Exception):
