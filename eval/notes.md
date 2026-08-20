@@ -13,6 +13,11 @@ Run: `python main.py eval --corpus networks` (add `--limit N` to cap the LLM-cos
 | recall@10 | **100%** | full set — every eval answer is findable |
 | grounding | **92.7%** | 41 claims over 19/20 questions (1 question failed generation and was excluded); 3 struck |
 
+> **Superseded 2026-08-20.** That 92.7% was measured on `llama-3.3-70b-versatile`, retired by
+> Groq. Re-measured on `gpt-oss-20b`: **70.0%** (35 kept / 15 struck, 50 claims, 20/20
+> questions). See "Finding 7" at the end of the v2 notes — the drop is the same defect rule 7a
+> fixed in job mode, which quiz mode never received.
+
 All three full-run strikes follow the patterns below: two are the formula-vs-worked-result
 strictness case, one is an evidence-coverage case. No fabricated claim passed the Critic.
 
@@ -532,3 +537,56 @@ config fixed.
 - j6 *"Where is MealWise deployed?"* failed generation in the first run (empty bullet list
   twice → `GenerationError`) while the gap check passed. Two distinct no-answer paths exist —
   pre-generation gap and post-generation empty — and only one is reported as a gap.
+
+
+## Finding 7: the defect was the model's, not the bullets prompt's
+
+Study mode is the **clean model-only comparison** the job-mode numbers could never be:
+`SYSTEM_PROMPT` (quiz) has not changed all project, while rules 6 and 7a live in
+`BULLETS_SYSTEM_PROMPT`, which quiz generation never touches. Same corpus, same 20 questions,
+same vector retrieval at k=8, same Critic. Only the model differs.
+
+| | llama-3.3-70b | gpt-oss-20b |
+|---|---|---|
+| grounding | **92.7%** | **70.0%** |
+| claims | 41 | 50 |
+| struck | 3 | 15 |
+| questions completed | 19/20 | **20/20** |
+| recall@3 / @8 / @10 | 90% / 100% / 100% | identical, to the decimal |
+
+**All 15 strikes concede part of the claim and reject an unsupported extension.** Not one is a
+fabrication, and not one is a retrieval miss — recall@8 is 100%, so every answer had its
+evidence in the prompt. Exactly the shape rule 7a was written for in job mode.
+
+So the padding behaviour is **a property of gpt-oss-20b, not of the bullets prompt**. Job mode
+found it first only because that is where the measuring was happening. Two supporting signals:
+it produced *more* claims (50 vs 41) and completed all 20 questions where the old model failed
+one. It is a more willing generator, and the willingness is what over-reaches.
+
+### Quiz mode fails one level earlier than bullets
+
+The bullets fix targeted a padded *clause*. Here, **10 of 15 struck questions begin with "Why"
+or "How"**, and the rest ask for roles or consequences:
+
+```
+"Why is Shielded Twisted Pair generally more expensive and harder to install?"
+"How does a bad medium cause each of the three main transmission impairments?"
+"How do redundant bits help the receiver determine if an error has occurred?"
+```
+
+The source states *that* STP costs more; it never says *why*. So the question itself is
+unanswerable from the evidence, and any answer invents a mechanism. Bullets has no question, so
+this failure mode could not appear there.
+
+Fix: two new rules in `SYSTEM_PROMPT`. Rule 4 governs **question selection** — find the sentence
+that IS the answer before writing the item, and prefer a "what" the evidence answers outright to
+a "why" it only gestures at. Rule 5 is the bullets rule ported: do not extend a supported answer,
+delete an unsupported clause rather than softening it.
+
+Cost: the quiz prompt grows 159 → 568 tokens, about +16k across a 20-question run.
+
+`GUIDE_SYSTEM_PROMPT` deliberately left alone — the guide generator has no eval set, so a change
+there would be unmeasured.
+
+**Baseline to beat: 70.0% (35 kept / 15 struck, 50 claims, 20/20 questions),** `gpt-oss-20b`,
+bare defaults, commit `af23583`.
