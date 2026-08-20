@@ -588,5 +588,33 @@ Cost: the quiz prompt grows 159 → 568 tokens, about +16k across a 20-question 
 `GUIDE_SYSTEM_PROMPT` deliberately left alone — the guide generator has no eval set, so a change
 there would be unmeasured.
 
-**Baseline to beat: 70.0% (35 kept / 15 struck, 50 claims, 20/20 questions),** `gpt-oss-20b`,
-bare defaults, commit `af23583`.
+**Baseline: 70.0%** (35 kept / 15 struck, 50 claims, 20/20 questions), `gpt-oss-20b`, bare
+defaults, commit `af23583`.
+
+### Result: 68.9% → 100.0%, and the mechanism is visible
+
+The re-run stopped at question 19 on the daily cap, so this compares the **same first 18
+questions** on both sides. Prompt is the only variable.
+
+| | before | after |
+|---|---|---|
+| grounding | 68.9% (31 kept / 14 struck) | **100.0%** (36 kept / 0 struck) |
+| claims | 45 | 36 |
+| questions beginning "Why"/"How" | **40%** | **14%** |
+
+Zero strikes across 36 claims. The question-shape row is the mechanism, not a side effect:
+rule 4 asked the generator to choose questions the evidence answers outright, and the
+proportion of explanation-seeking questions fell by nearly two thirds.
+
+Two things follow from that, both worth noticing:
+
+**Fewer claims is a consequence, not a cost.** 45 → 36 because no strikes means no top-up
+rounds — the loop reached `n` instead of regenerating. It nevertheless **kept more** claims
+than before (36 vs 31), so the artifact is strictly better: more usable quiz items, none struck.
+
+**This fix is stronger than job mode's.** Rule 7a deleted a padded clause from an otherwise
+sound bullet. Rule 4 changes what gets *asked*, one level earlier, so the unsupported answer is
+never generated at all. Preventing the question beats repairing the answer.
+
+Caveat on publishing: **18/20 questions.** A "100%" headline needs the full set behind it —
+one strike in the remaining two would make it ~97%. Finish q19–20 before the README quotes it.
