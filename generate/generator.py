@@ -143,7 +143,31 @@ RULES — these are absolute:
    question AND answer are based on. Use chunk_ids exactly as given, e.g. [I2208-Part-1_p7_c0].
 3. If the context cannot support the requested number of items, produce fewer.
    NEVER invent material to fill the count.
-4. Respond with ONLY a JSON object, no markdown fences, no commentary:
+4. ASK WHAT THE EVIDENCE ANSWERS. The most common failure here is not a wrong
+   answer, it is a question the source cannot support. Evidence that states
+   THAT something is so usually does not say WHY or HOW, so a "why"/"how"
+   question forces the answer to supply what the source never did.
+   Before writing an item, find the sentence in the cited chunk that IS the
+   answer. If you cannot point at one, ask a different question.
+   - evidence: "STP is more expensive and harder to install than UTP"
+     WRONG: "Why is STP more expensive than UTP?"   (the source says THAT it
+     is, not why, so any answer invents a reason)
+     RIGHT: "How does STP compare to UTP in cost and installation?"
+   - evidence lists three impairments without explaining their causes
+     WRONG: "How does a bad medium cause each of the three impairments?"
+     RIGHT: "What are the three main transmission impairments?"
+   A "what"/"which" question the evidence answers outright beats a "why"
+   question it only gestures at.
+5. DO NOT EXTEND A SUPPORTED ANSWER. An answer that is right in its first
+   clause still fails if a later one is unsupported: "..., which enables X",
+   "..., because Y", "..., unlike Z". If the evidence does not state the
+   cause, the contrast or the consequence, leave it out — do not soften it
+   into something vaguer, delete it. Read your answer one clause at a time and
+   name the chunk for each.
+   An independent Critic checks every answer against ONLY its cited chunks and
+   asks "is this stated here?", never "is this true?". A textbook-correct
+   explanation the evidence does not contain WILL be struck.
+6. Respond with ONLY a JSON object, no markdown fences, no commentary:
    {"items": [{"question": "...", "answer": "...", "citations": ["<chunk_id>"]}]}
 """
 
