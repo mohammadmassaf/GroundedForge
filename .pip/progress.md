@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: C:\Users\MsiPc\Desktop\projects\GroundedForge. Last updated: 2026-07-31 (V2-M4 — cross-source evidence synthesis checkpointed 8/10)._
+_Source: the GroundedForge repo root. Last updated: 2026-07-31 (V2-M4 — cross-source evidence synthesis checkpointed 8/10)._
 
 ## Concept tree
 
