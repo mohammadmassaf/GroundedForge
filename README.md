@@ -6,9 +6,9 @@
 
 Two modes on one engine. **Study mode** turns course PDFs into a cited quiz. **Job mode** turns your git history and project notes into cited CV bullets and STAR interview answers. Swapping the domain changed ingestion and the output schema; retrieval, the Critic, the orchestration loop and the eval harness are the same code.
 
-> **92.7% grounding** (38/41 claims independently verified against source) · **100% recall@10** on a fixed 20-question eval set
+> **100% grounding** (40/40 claims independently verified against their cited sources) · **100% recall@10** on a fixed 20-question eval set
 >
-> *Grounding measured on `llama-3.3-70b-versatile`, which Groq retired on 2026-08-17; the pipeline now runs `openai/gpt-oss-20b` and that figure is being re-measured. recall@k is unaffected — retrieval is entirely local.*
+> *Measured 2026-08-21 on `openai/gpt-oss-20b`. Every published number here names the model and date that produced it, because a grounding score measures a specific model — Groq retired the previous one mid-project and it cost 22 points until the prompt was fixed.*
 
 Point it at a folder of course PDFs, ask for a quiz on any topic, and get a markdown artifact where every question and answer links to the exact page it came from, with unsupported claims struck out, visibly, never silently emitted.
 
@@ -91,8 +91,17 @@ demo corpus is what's reproducible, the course corpus is what's measured.
 |---|---|---|
 | recall@3 | 90% | retrieval ranking |
 | recall@5 | 95% | retrieval ranking |
+| recall@8 | 100% | the k the Generator actually reads — the ceiling on grounding |
 | recall@10 | 100% | is the right chunk findable at all |
-| **grounding** | **92.7%** | % of generated claims the Critic verified against their cited sources |
+| **grounding** | **100%** | 40/40 claims the Critic verified against their cited sources |
+
+**Why 100% isn't a rubber stamp.** A Critic that approves everything would score exactly this,
+so the number is only worth as much as the judge behind it. Two independent checks on that
+judge: the same Critic, same prompt, struck **15 of 50 claims on this very corpus** two runs
+earlier, before the generator prompt was fixed — it demonstrably strikes when there is
+something to strike. And on the job corpus it catches **6/6 authored traps**, each by the stage
+that should catch it. The generator stopped producing unsupported claims; the Critic did not
+stop looking for them.
 
 Separating the two localizes every failure: a bad quiz item is either a retrieval miss or a generation failure, and those are different bugs with different fixes. Full analysis, struck-claim case studies, and the Critic strictness tradeoff: [eval/notes.md](eval/notes.md).
 
@@ -131,11 +140,10 @@ and a struck section showing what the Critic rejected and why.
 | recall@3 | 90% | 73.3% |
 | recall@8 *(what the Generator reads)* | **100%** | 86.7% |
 | recall@10 | 100% | 100% |
-| grounding | 92.7%\* | **96.7%** (29 kept / 1 struck, 15/15 q) |
+| grounding | **100%** (40 kept / 0 struck, 20/20 q) | **96.7%** (29 kept / 1 struck, 15/15 q) |
 | inflation-catch | not measured | **100%** (6/6 traps) |
 
-\* *study grounding was measured on `llama-3.3-70b-versatile`, retired by Groq mid-project;
-job grounding is current on `openai/gpt-oss-20b`. See below.*
+Both measured on `openai/gpt-oss-20b`, August 2026.
 
 **recall@8 is the row that matters** — it is the k the Generator actually reads, and it is the
 ceiling on grounding, because a claim cannot cite evidence that never reached the prompt. The
