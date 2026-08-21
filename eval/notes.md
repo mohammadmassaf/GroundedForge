@@ -13,10 +13,13 @@ Run: `python main.py eval --corpus networks` (add `--limit N` to cap the LLM-cos
 | recall@10 | **100%** | full set — every eval answer is findable |
 | grounding | **92.7%** | 41 claims over 19/20 questions (1 question failed generation and was excluded); 3 struck |
 
-> **Superseded 2026-08-20.** That 92.7% was measured on `llama-3.3-70b-versatile`, retired by
-> Groq. Re-measured on `gpt-oss-20b`: **70.0%** (35 kept / 15 struck, 50 claims, 20/20
-> questions). See "Finding 7" at the end of the v2 notes — the drop is the same defect rule 7a
-> fixed in job mode, which quiz mode never received.
+> **Superseded. Current study-mode number: 100.0%** (40 kept / 0 struck, 40 claims, 20/20
+> questions), `gpt-oss-20b`, measured 2026-08-21.
+>
+> The 92.7% above was measured on `llama-3.3-70b-versatile`, which Groq retired. On the new
+> model the same unchanged prompt scored **70.0%** — all 15 strikes being the padding defect
+> rule 7a had already fixed in job mode, which quiz mode never received. Adding quiz rules 4
+> and 5 took it to 100%. Full story in Finding 7 at the end of the v2 notes.
 
 All three full-run strikes follow the patterns below: two are the formula-vs-worked-result
 strictness case, one is an evidence-coverage case. No fabricated claim passed the Critic.
@@ -133,11 +136,12 @@ re-ingest; the pre-scoping figures live in that finding.
 | recall@5 | 95% | 66.7% vector · 73.3% hybrid · **80%** rerank |
 | recall@8 *(k the Generator reads)* | **100%** | 86.7% vector · **93.3%** hybrid · 86.7% rerank |
 | recall@10 | **100%** | 93.3% vector · 93.3% hybrid · **100%** rerank |
-| grounding | **92.7%** (41 claims, 19/20 q) | **87.1%** (31 claims, 15/15 q) |
+| grounding | **100%** (40 kept / 0 struck, 20/20 q) | **96.7%** (29 kept / 1 struck, 15/15 q) |
 | inflation-catch | not measured in v1 | **100%** (6/6 traps) |
 
-**Both grounding figures above were produced by `llama-3.3-70b-versatile`, which Groq retired
-on 2026-08-17.** They are historical. Job mode on `gpt-oss-20b` scores **96.7%** (29 kept /
+**Both grounding figures above are current, measured on `openai/gpt-oss-20b` in August 2026.**
+The earlier published pair (92.7% study / 87.1% job) was produced by `llama-3.3-70b-versatile`,
+which Groq retired on 2026-08-17, and is historical. Job mode on `gpt-oss-20b` scores **96.7%** (29 kept /
 1 struck, 30 claims) over all 15 questions. On the 8-question window that isolates the prompt
 change, rule 7a took grounding from 50.0% to 93.8% with nothing else varying. Finding 5 has the full story. recall@k is unaffected in every
 mode: retrieval is entirely local and reproduced exactly through the model swap.
@@ -616,5 +620,26 @@ than before (36 vs 31), so the artifact is strictly better: more usable quiz ite
 sound bullet. Rule 4 changes what gets *asked*, one level earlier, so the unsupported answer is
 never generated at all. Preventing the question beats repairing the answer.
 
-Caveat on publishing: **18/20 questions.** A "100%" headline needs the full set behind it —
-one strike in the remaining two would make it ~97%. Finish q19–20 before the README quotes it.
+### Full set: 100.0%, 40/40 claims
+
+q19–20 completed 2026-08-21: 4 kept / 0 struck. Combined with the first window:
+
+| window | kept / struck | questions |
+|---|---|---|
+| q1–18 | 36 / 0 | 18 |
+| q19–20 | 4 / 0 | 2 |
+| **total** | **40 / 0** | **20** |
+
+**100.0% grounding, 40 claims, 20/20 questions**, `gpt-oss-20b`, bare defaults, commit
+`095415a`. Not one claim struck across the full study set, against 70.0% on the same model
+before the rules and 92.7% on the retired model.
+
+**Why this is not a rubber stamp.** A Critic that approves everything scores exactly 100%, so
+the number is only worth the judge behind it. Two independent checks: the same Critic with the
+same prompt struck **15 of 50 claims on this same corpus** two runs earlier, so it strikes when
+there is something to strike; and on the job corpus it catches **6/6 authored traps** by the
+correct stage. The generator stopped producing unsupported claims; the Critic did not stop
+looking for them.
+
+Study mode still has **no traps of its own** — that asymmetry is real and worth closing if v3
+touches study mode again.
