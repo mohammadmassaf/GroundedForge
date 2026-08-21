@@ -96,12 +96,19 @@ demo corpus is what's reproducible, the course corpus is what's measured.
 | **grounding** | **100%** | 40/40 claims the Critic verified against their cited sources |
 
 **Why 100% isn't a rubber stamp.** A Critic that approves everything would score exactly this,
-so the number is only worth as much as the judge behind it. Two independent checks on that
-judge: the same Critic, same prompt, struck **15 of 50 claims on this very corpus** two runs
-earlier, before the generator prompt was fixed — it demonstrably strikes when there is
-something to strike. And on the job corpus it catches **6/6 authored traps**, each by the stage
-that should catch it. The generator stopped producing unsupported claims; the Critic did not
-stop looking for them.
+so the number is only worth as much as the judge behind it. Three independent checks:
+
+1. **Adversarial traps on this same corpus** — six authored claims with known defects, each
+   tagged with the stage that should catch it. All six struck, three by the deterministic
+   quantity check and three by the Critic, none by the wrong stage. Among them a claim whose
+   every figure is genuine (`3000 Hz`, `SNR 3162`, `34,860 bps`) but which attributes a
+   telephone-line calculation to fiber optic cable — quant passes it by design, so only a
+   Critic reading for meaning catches it.
+2. **It strikes when there is something to strike.** The same Critic, same prompt, struck
+   **15 of 50 claims on this corpus** two runs earlier, before the generator prompt was fixed.
+3. **6/6 on the job corpus** too, with correct stage attribution.
+
+The generator stopped producing unsupported claims; the Critic did not stop looking for them.
 
 Separating the two localizes every failure: a bad quiz item is either a retrieval miss or a generation failure, and those are different bugs with different fixes. Full analysis, struck-claim case studies, and the Critic strictness tradeoff: [eval/notes.md](eval/notes.md).
 
@@ -141,7 +148,7 @@ and a struck section showing what the Critic rejected and why.
 | recall@8 *(what the Generator reads)* | **100%** | 86.7% |
 | recall@10 | 100% | 100% |
 | grounding | **100%** (40 kept / 0 struck, 20/20 q) | **96.7%** (29 kept / 1 struck, 15/15 q) |
-| inflation-catch | not measured | **100%** (6/6 traps) |
+| inflation-catch | **100%** (6/6 traps) | **100%** (6/6 traps) |
 
 Both measured on `openai/gpt-oss-20b`, August 2026.
 

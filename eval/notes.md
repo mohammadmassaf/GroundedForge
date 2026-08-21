@@ -641,5 +641,28 @@ there is something to strike; and on the job corpus it catches **6/6 authored tr
 correct stage. The generator stopped producing unsupported claims; the Critic did not stop
 looking for them.
 
-Study mode still has **no traps of its own** — that asymmetry is real and worth closing if v3
-touches study mode again.
+### Study-mode traps (closing the asymmetry)
+
+Added 2026-08-21, six of them, mirroring the job set's coverage. **6/6 struck, 3 by quant and
+3 by the Critic, no stage mismatches.** No code change was needed: `load_traps` reads the
+`traps` key from whichever eval set the corpus uses, so writing them into `eval/eval_set.json`
+wired them up.
+
+| id | stage | defect |
+|---|---|---|
+| s1 | quant | rounding inflation — "~35,000 bps" where the slide computes 34,860 |
+| s2 | quant | fabricated figures — 4000 Hz / 300–4300 Hz where the slide says 3000 Hz / 300–3300 Hz |
+| s3 | quant | right number, wrong chunk — 2000 km is genuine on Part-1 p.16 but absent from the cited attenuation slide |
+| s4 | critic | absent concept — quantum error correction, which the corpus never mentions |
+| s5 | critic | misattribution with **every figure real** — 3000, 3162 and 34,860 all appear in the cited chunk, so quant must pass it by design; the slide describes a telephone line, not fiber |
+| s6 | critic | the trailing-cause shape rules 4–5 prevent — first clause verbatim from the slide, "because the resistance increases with distance" invented |
+
+s5 is the load-bearing one: it is the only way to tell a Critic that reads meaning from one
+that only checks arithmetic. s6 is a regression guard — it encodes the exact defect that took
+study grounding from 68.9% to 100%, so a future prompt change that reintroduces padding fails
+a trap instead of silently costing points.
+
+Every trap was verified against the real chunk text before being written, and the stage routing
+was checked deterministically (quant-only, no LLM) before spending anything on the Critic.
+Three job-mode eval items were authored from memory earlier in this project and had to be
+corrected; that is the reason for the order.
