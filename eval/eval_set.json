@@ -4,102 +4,302 @@
     {
       "id": "e1",
       "question": "What is the formula for propagation delay?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [53, 54]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            53,
+            54
+          ]
+        }
+      ]
     },
     {
       "id": "e2",
       "question": "What is the formula for transmission delay?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [53, 55, 56]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            53,
+            55,
+            56
+          ]
+        }
+      ]
     },
     {
       "id": "e3",
       "question": "What does delivery mean as a criterion for effective data communication?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-1.pdf", "pages": [8]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-1.pdf",
+          "pages": [
+            8
+          ]
+        }
+      ]
     },
     {
       "id": "e4",
       "question": "When does transmission time dominate over propagation time?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [55, 56]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            55,
+            56
+          ]
+        }
+      ]
     },
     {
       "id": "e5",
       "question": "What is the difference between data and communication?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-1.pdf", "pages": [7]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-1.pdf",
+          "pages": [
+            7
+          ]
+        }
+      ]
     },
     {
       "id": "e6",
       "question": "What characteristics of a network system must be evaluated to determine its overall performance?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-1.pdf", "pages": [16]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-1.pdf",
+          "pages": [
+            16
+          ]
+        }
+      ]
     },
     {
       "id": "e7",
       "question": "How are the main categories of transmission impairments caused by a bad  medium?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [30]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            30
+          ]
+        }
+      ]
     },
     {
       "id": "e8",
       "question": "what are the differences between single-mode fiber and multimode fiber?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [65]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            65
+          ]
+        }
+      ]
     },
     {
       "id": "e9",
       "question": "Why is the term bandwidth used differently in networking contexts compared to its use in signal analysis?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [51]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            51
+          ]
+        }
+      ]
     },
     {
       "id": "e10",
       "question": "What is the relationship between the number of bits per symbol level and the number of discrete signal levels available?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [21]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            21
+          ]
+        }
+      ]
     },
     {
       "id": "e11",
       "question": "How does the bandwidth-delay product provide a useful analogy for understanding link capacity?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [56]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            56
+          ]
+        }
+      ]
     },
     {
       "id": "e12",
       "question": "how does sheilded twisted pair differ from unsheilded pair ",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [62]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            62
+          ]
+        }
+      ]
     },
     {
       "id": "e13",
       "question": "Why does increasing the number of signal levels in a modulation scheme reduce the reliability of a transmission system?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [44]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            44
+          ]
+        }
+      ]
     },
     {
       "id": "e14",
       "question": "What is the purpose of adding redundant bits to data in error detection and correction?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [6]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-5.pdf",
+          "pages": [
+            6
+          ]
+        }
+      ]
     },
     {
       "id": "e15",
       "question": "How is attenuation in a transmission medium measured and what is its unit?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [32]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            32
+          ]
+        }
+      ]
     },
     {
       "id": "e16",
       "question": "What conditions must be met for a code to reliably detect all occurrences of up to s errors?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [13]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-5.pdf",
+          "pages": [
+            13
+          ]
+        }
+      ]
     },
     {
       "id": "e17",
       "question": "How does modulo-2 arithmetic differ from standard decimal arithmetic, and what is its role in coding theory?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [9]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-5.pdf",
+          "pages": [
+            9
+          ]
+        }
+      ]
     },
     {
       "id": "e18",
       "question": "What are the key characteristics that distinguish the two approaches to handling detected errors in transmission?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [7]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-5.pdf",
+          "pages": [
+            7
+          ]
+        }
+      ]
     },
     {
       "id": "e19",
       "question": "How does the Hamming distance metric help determine the error detection capability of a coding scheme?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-5.pdf", "pages": [10]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-5.pdf",
+          "pages": [
+            10
+          ]
+        }
+      ]
     },
     {
       "id": "e20",
       "question": "What are the practical limitations of wireless media communication compared to guided transmission channels?",
-      "expected": [{"source_file": "I2208-2024-2025-Part-3.pdf", "pages": [68]}]
+      "expected": [
+        {
+          "source_file": "I2208-2024-2025-Part-3.pdf",
+          "pages": [
+            68
+          ]
+        }
+      ]
+    }
+  ],
+  "traps": [
+    {
+      "id": "s1",
+      "stage": "quant",
+      "claim": "The capacity of a telephone channel with a 3000 Hz bandwidth is approximately 35,000 bps.",
+      "citations": [
+        "I2208-2024-2025-Part-3_p45_c1"
+      ],
+      "why": "Rounding inflation. The slide computes 34,860 bps; '35,000' is nowhere in the evidence. Strict exact match means a rounded figure is an invented one."
+    },
+    {
+      "id": "s2",
+      "stage": "quant",
+      "claim": "A telephone line normally has a bandwidth of 4000 Hz, ranging from 300 Hz to 4300 Hz.",
+      "citations": [
+        "I2208-2024-2025-Part-3_p45_c1"
+      ],
+      "why": "Fabricated figures. The slide says 3000 Hz, 300 Hz to 3300 Hz. Plausible-sounding numbers that were never in the source."
+    },
+    {
+      "id": "s3",
+      "stage": "quant",
+      "claim": "Attenuation over a 2000 km link converts some of the signal energy into heat.",
+      "citations": [
+        "I2208-2024-2025-Part-3_p31_c0"
+      ],
+      "why": "Right number, wrong chunk. 2000 km is genuine elsewhere in the corpus (Part-1 p.16, the transit-time exercise) but absent from the cited attenuation slide. Catches a real figure dragged in from unrelated evidence."
+    },
+    {
+      "id": "s4",
+      "stage": "critic",
+      "claim": "Transmission impairment is mitigated using quantum error correction at the physical layer.",
+      "citations": [
+        "I2208-2024-2025-Part-3_p30_c0"
+      ],
+      "why": "Absent concept. The corpus never mentions quantum anything. Carries no figures, so quant cannot see it - only the Critic can."
+    },
+    {
+      "id": "s5",
+      "stage": "critic",
+      "claim": "A 3000 Hz channel with an SNR of 3162 has a capacity of 34,860 bps, which is the maximum data rate achievable over fiber optic cable.",
+      "citations": [
+        "I2208-2024-2025-Part-3_p45_c1"
+      ],
+      "why": "Misattribution with every figure real. 3000, 3162 and 34,860 all appear in the cited chunk, so quant MUST pass this - by design. The slide describes a telephone line, not fiber. Tests whether the Critic reads meaning or only checks arithmetic."
+    },
+    {
+      "id": "s6",
+      "stage": "critic",
+      "claim": "Attenuation means a loss of energy, because the resistance of the medium increases with distance.",
+      "citations": [
+        "I2208-2024-2025-Part-3_p31_c0"
+      ],
+      "why": "The trailing-cause shape quiz rules 4-5 were written to prevent. The first clause is verbatim from the slide; the 'because' clause is invented (the slide says energy is spent overcoming resistance and converted to heat, never that resistance grows with distance). Guards the fix that took study grounding 68.9% -> 100%."
     }
   ]
 }
