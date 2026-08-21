@@ -15,7 +15,13 @@ corpus.yaml
 # planning material verbatim (milestone estimates, checkpoint lists) and name
 # the notes in their citations. The repo is public. bullets_*.md are committed
 # instead: those draw only on mealwise, which is public too.
-# To ship a STAR sample, regenerate it scoped to a public repo
-# (`make-star "..." --repo grounded-forge`), check it cites no vault chunk,
-# then force-add that one file.
+# To ship a STAR sample, scope it to MEALWISE, not grounded-forge:
+# `make-star "<a real question>" --repo mealwise`. The vault notes are tagged
+# `repo: grounded-forge`, so scoping there INCLUDES them; mealwise has 55 git +
+# 16 docs chunks and zero vault notes, so everything it can cite is public.
+# Check the output, then force-add that one file.
 star_*.md
+
+# Saved eval reports. Run output belongs in eval/notes.md with its commit sha,
+# not as a stray file whose provenance nobody can reconstruct later.
+eval_*.txt
