@@ -1,6 +1,8 @@
 # PIP Progress — Grounded Forge
 
-_Source: the GroundedForge repo root. Last updated: 2026-07-31 (V2-M4 — cross-source evidence synthesis checkpointed 8/10)._
+_Source: the GroundedForge repo root. Last updated: 2026-08-23 (V2-M5 — adversarial eval traps 8/10, built; D-M0 — configuration indirection 8/10)._
+
+> **Recurring gap, two concepts running:** on a trade-off, the concrete/visible cost gets named and the abstract one doesn't (token budget but not measurement integrity; silent failure but not misplaced strictness). Worth targeting directly rather than waiting for it to surface a third time.
 
 ## Concept tree
 
@@ -25,7 +27,7 @@ _Source: the GroundedForge repo root. Last updated: 2026-07-31 (V2-M4 — cross-
 - [x] **Agent run tracing and observability** — `checkpointed` (8/10) · prereqs: multi-agent-loop · code: `critic/trace.py:21`
 
 ### M5: Grounding Eval
-- [x] **Grounding evaluation and hallucination measurement** — `checkpointed` (7/10) · prereqs: claim-verification, multi-agent-loop · code: `eval/run_eval.py:84` · gap: calibrating the evaluator
+- [x] **Grounding evaluation and hallucination measurement** — `checkpointed` (7/10) · prereqs: claim-verification, multi-agent-loop · code: `eval/run_eval.py:84` · ~~gap: calibrating the evaluator~~ **closed 2026-08-23** by adversarial-eval-traps — a judge can't be calibrated by watching it agree with itself
 - [x] **Retrieval quality metrics (recall@k)** — `checkpointed` (8/10) · prereqs: nearest-neighbor-retrieval · code: `eval/run_eval.py:55`
 
 ### M7–M9: v1.5 extensions
@@ -47,7 +49,10 @@ _Source: the GroundedForge repo root. Last updated: 2026-07-31 (V2-M4 — cross-
 - [x] **Cross-source evidence synthesis** — `checkpointed` (8/10) · prereqs: metadata-filtered-retrieval, multi-agent-loop · code: `retrieve/star_evidence.py:85` (gather_evidence) + `critic/loop.py:176` (own_ids scope check) · gap: per-section retrieval is what *creates* the citation-scope boundary — named the starvation argument but not that a single pool makes `own_ids` vacuous
 
 ### V2-M5: Job eval + ship
-- [ ] **Adversarial eval traps** — `new` · prereqs: grounding-eval · code: TBD · will target v1 gap on grounding-eval (calibrating the evaluator)
+- [x] **Adversarial eval traps** — `built` (8/10) · prereqs: grounding-eval · code: `eval/run_eval.py:228` (trap_eval) + `eval/eval_set.json` (s1–s6) · gaps: (1) costed only the token direction of growing the set, not measurement integrity — tuning the Critic prompt against traps turns them into training data; (2) 6/6 is recall over an *authored* population, so unauthored shapes are unmeasured by construction; (3) s6 (regression guard, derived from the defect rules 4–5 already fixed) vs s5 (independent probe) are two instruments folded into one number
+
+### D-M0: Docker prep
+- [x] **Configuration indirection (late-bound locations)** — `checkpointed` (8/10) · prereqs: corpus-adapters · code: `ingest/corpus_config.py:21` (_expand) + `:71` (roots table) + `:82` (resolution point) · gaps: (1) costed only the silent-failure direction, not the cost of misplaced strictness; (2) placed the silent failure on the write side — the write succeeds, which is what hides it
 
 ## Mastery list (deduped — known across all projects)
 - **metadata-filtered-retrieval** — 9/10 (grounded-forge, V2-M2, 2026-07-24) — first mastered concept
