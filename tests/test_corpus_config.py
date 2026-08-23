@@ -31,6 +31,28 @@ corpora:
 """
 
 
+ROOTS_CONFIG = """\
+roots:
+  repos: ..
+  vault: ../../myvault.obsd
+
+corpora:
+  job:
+    - type: git
+      path: ${repos}/mealwise
+      repo: mealwise
+    - type: docs
+      path: ${repos}/mealwise
+      repo: mealwise
+      chunk_size: 800
+    - type: vault
+      repo: grounded-forge
+      paths:
+        - ${vault}/notes/one.md
+        - ${vault}/notes/two.md
+"""
+
+
 def _config(tmp_path, text=CONFIG):
     path = tmp_path / "corpus.yaml"
     path.write_text(text, encoding="utf-8")
@@ -88,3 +110,74 @@ def test_corpus_with_no_sources_exits(tmp_path):
 
     with pytest.raises(SystemExit):
         load_corpus("empty", path)
+
+
+# --- ${root} expansion -------------------------------------------------------
+#
+# The config names locations symbolically and a `roots:` block says where they
+# actually are, so the same corpus definition works on this laptop and inside a
+# container that mounts the vault at /mnt/vault. Config states intent, the
+# environment supplies the addresses -- the same split already made for
+# GROQ_API_KEY, applied to paths.
+
+
+def test_root_expands_in_a_path(tmp_path):
+    """The plain case: one placeholder, one string field."""
+    sources = load_corpus("job", _config(tmp_path, ROOTS_CONFIG))
+
+    assert sources[0]["path"] == "../mealwise"
+
+
+def test_root_expands_inside_a_list_of_paths(tmp_path):
+    """The vault adapter takes `paths` (a list), not `path`. Expansion walks
+    the parsed structure rather than a list of known field names, so a string
+    nested in a list is reached without the loader knowing what `paths` is --
+    the case a field-by-field implementation silently misses."""
+    sources = load_corpus("job", _config(tmp_path, ROOTS_CONFIG))
+
+    assert sources[2]["paths"] == [
+        "../../myvault.obsd/notes/one.md",
+        "../../myvault.obsd/notes/two.md",
+    ]
+
+
+def test_one_root_serves_every_source_that_names_it(tmp_path):
+    """The whole point of the block: the environmental assumption is written
+    once and overridden in one place, not repeated per entry."""
+    sources = load_corpus("job", _config(tmp_path, ROOTS_CONFIG))
+
+    assert sources[0]["path"] == sources[1]["path"] == "../mealwise"
+
+
+def test_config_without_roots_is_unchanged(tmp_path):
+    """Regression guard: study mode's config has no roots and no placeholders,
+    and must behave exactly as it did before expansion existed. Ordinary
+    strings pass through substitution untouched."""
+    sources = load_corpus("job", _config(tmp_path))
+
+    assert sources[0]["path"] == "../mealwise"
+    assert sources[1]["exclude"] == ["CLAUDE.md"]
+
+
+def test_unknown_root_exits_naming_it_and_the_defined_roots(tmp_path):
+    """An unresolved placeholder is a request that could not be filled -- if it
+    passed through, `${valut}` would reach Path() and surface three layers down
+    as a file-not-found naming a path that looks like nothing. The message is
+    the feature: it names the typo AND what was available."""
+    broken = ROOTS_CONFIG.replace("${vault}/notes/one.md", "${valut}/notes/one.md")
+
+    with pytest.raises(SystemExit) as excinfo:
+        load_corpus("job", _config(tmp_path, broken))
+
+    message = str(excinfo.value)
+    assert "valut" in message
+    assert "vault" in message and "repos" in message
+
+
+def test_non_string_values_survive_expansion(tmp_path):
+    """Expansion is a substitution, not a schema check. A numeric option has no
+    placeholder to resolve, so it is not an error -- and it must come back as
+    itself rather than falling off the end of the branch chain as None."""
+    sources = load_corpus("job", _config(tmp_path, ROOTS_CONFIG))
+
+    assert sources[1]["chunk_size"] == 800

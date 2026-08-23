@@ -5,7 +5,21 @@
 # the matching entry here, runs each source through its adapter, and writes the
 # combined chunks to chunks/<name>.json.
 #
-# Paths are resolved relative to the repo root (where you run the CLI).
+# Paths without a ${placeholder} are resolved relative to the repo root (where
+# you run the CLI). Paths with one are resolved against the matching entry in
+# `roots:` below, which may be relative or absolute.
+
+
+# OPTIONAL. Names the locations that depend on how *this* machine happens to be
+# laid out -- where the vault sits, where sibling repos live -- so the corpus
+# definitions below never spell them out. Move to another machine, or a
+# different folder arrangement, and this block is the only thing that changes.
+#
+# Corpora that only read files inside the repo (`default`, `demo`) need no
+# roots at all; a config without this block works exactly as before.
+roots:
+  repos: ../path/to/your-repos
+  vault: ../path/to/your-vault
 
 corpora:
 
@@ -26,18 +40,18 @@ corpora:
   # v2 job mode — git history + repo docs + hand-picked notes.
   # Fill these in with your own repo and note paths in corpus.yaml.
   job:
-    - type: git            # 1 commit = 1 chunk (message + diff stats)
-      path: ../your-repo
-      repo: your-repo      # short name used in citations, e.g. your-repo@a1b2c3d
+    - type: git                   # 1 commit = 1 chunk (message + diff stats)
+      path: ${repos}/your-repo
+      repo: your-repo             # short name in citations, e.g. your-repo@a1b2c3d
 
-    - type: docs           # README / CLAUDE.md / docs/*.md, chunked by heading
-      path: ../your-repo
+    - type: docs                  # README / docs/*.md, chunked by heading
+      path: ${repos}/your-repo
       repo: your-repo
-      exclude: [CLAUDE.md] # optional: file names to skip. Agent-instruction
-                           # files describe how to work, not what was done.
+      exclude: [CLAUDE.md]        # optional: file names to skip. Agent-instruction
+                                  # files describe how to work, not what was done.
 
-    - type: vault          # only these explicitly-listed notes are read
-      repo: myproject      # optional: scopes notes to a project, like git/docs
+    - type: vault                 # only these explicitly-listed notes are read
+      repo: myproject             # optional: scopes notes to a project, like git/docs
       paths:
-        - ../path/to/note-one.md
-        - ../path/to/note-two.md
+        - ${vault}/note-one.md
+        - ${vault}/note-two.md
