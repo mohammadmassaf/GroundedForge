@@ -17,10 +17,11 @@ by relevance" task).
 """
 from dotenv import load_dotenv
 from sentence_transformers import CrossEncoder
+from retrieve.model_pins import RERANK_MODEL, RERANK_REVISION
 
 load_dotenv()  # HF_TOKEN from .env -> authenticated model downloads
 
-MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
 
 _model = None
 
@@ -28,7 +29,7 @@ _model = None
 def _get_model() -> CrossEncoder:
     global _model
     if _model is None:
-        _model = CrossEncoder(MODEL_NAME)
+        _model = CrossEncoder(RERANK_MODEL , revision = RERANK_REVISION)
     return _model
 
 

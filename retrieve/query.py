@@ -12,9 +12,11 @@ Returns a list of result dicts, ordered by relevance (best first):
 """
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
+from retrieve.model_pins import EMBEDDING_MODEL , EMBEDDING_KWARGS
 
 
-MODEL_NAME = "all-MiniLM-L6-v2"
+
+
 
 _embeddings = None
 
@@ -23,7 +25,7 @@ _embeddings = None
 def _get_embeddings():
     global _embeddings
     if _embeddings is None:
-        _embeddings = HuggingFaceEmbeddings(model_name=MODEL_NAME)
+        _embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL , model_kwargs= EMBEDDING_KWARGS)
     return _embeddings
 
 

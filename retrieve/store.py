@@ -12,8 +12,9 @@ from pathlib import Path
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from retrieve.model_pins import EMBEDDING_MODEL , EMBEDDING_KWARGS
 
-MODEL_NAME = "all-MiniLM-L6-v2"  # 384-dim, fast, good quality, ~90MB download on first use
+
 
 
 def _chunk_metadata(chunk: dict) -> dict:
@@ -45,8 +46,8 @@ def build(corpus: str = "default") -> None:
     chunks = json.loads(chunks_path.read_text(encoding="utf-8"))
     print(f"Loaded {len(chunks)} chunks from {chunks_path}")
 
-    print(f"Loading embedding model ({MODEL_NAME})...")
-    embeddings = HuggingFaceEmbeddings(model_name = MODEL_NAME)
+    print(f"Loading embedding model ({EMBEDDING_MODEL})...")
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL , model_kwargs= EMBEDDING_KWARGS)
     dcmts = []
     for chunk in chunks :
         dcmts.append(Document(page_content=chunk["text"], metadata=_chunk_metadata(chunk)))
