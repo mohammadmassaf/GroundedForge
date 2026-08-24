@@ -46,6 +46,8 @@ COPY . .
 # ship the example config so `demo` and `default` work out of the box.
 COPY corpus.example.yaml ./corpus.yaml
 
+RUN mkdir -p chunks chroma_db traces out
+
 RUN chown -R appuser:appuser /app "$HF_HOME"
 USER appuser
 
