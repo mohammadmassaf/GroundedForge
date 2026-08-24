@@ -1,0 +1,26 @@
+# Secrets and personal config -- never sent to the build context (D0).
+.env
+.env.*
+!.env.example
+corpus.yaml
+
+# Generated / local state -- rebuilt inside the image, or supplied by a
+# volume from D-M2 onward.
+chroma_db/
+chunks/
+traces/
+data/
+*.pdf
+
+# VCS and Python cruft.
+.git
+.github
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+.venv/
+
+# PIP plugin state -- local learning/grading data, not part of the app.
+.pip/
