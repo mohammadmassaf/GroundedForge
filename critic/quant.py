@@ -35,8 +35,26 @@ import re
 # "4 services" would pass because some commit sha contains a 4).
 #   (?<![\w.])  not preceded by a letter/digit/dot  -> kills the "4" in "ac4"
 #   (?![\w])    not followed by a letter/digit      -> kills "8912" in "8912ac4"
+#
+# The unit list must be EXHAUSTIVE for the units that actually appear, because
+# an unlisted one makes the number invisible rather than merely unlabelled:
+# with only single letters listed, "920MB" matched nothing at all -- `m` was
+# consumed and then `B` failed the trailing guard. That struck a true claim
+# ("920 MB layer") against evidence that said "920MB". Found 2026-08-26 running
+# make-bullets in the container.
+#
+# Why a list and not "digits may be followed by letters": the rule-based version
+# would readmit sha fragments whose tail happens to be alphabetic ("920abcd"),
+# which fails PERMISSIVELY and in silence. An unlisted unit fails strictly and
+# announces itself in the strike reason -- the same asymmetry this module's
+# policy is built on. Add units here when one shows up.
+#
+# ORDER MATTERS: Python's `|` is first-match, not longest-match. "mb" must
+# precede "m", or "920MB" tries `m`, fails on `B`, and never reaches `mb`.
 NUMBER_RE = re.compile(
-    r"(?<![\w.])\d[\d,]*(?:\.\d+)?\s*(?:%|percent|x|ms|k|m)?(?![\w])",
+    r"(?<![\w.])\d[\d,]*(?:\.\d+)?\s*"
+    r"(?:percent|hrs|min|sec|fps|mb|gb|kb|tb|ms|hz|hr|%|x|k|m|b|s|h)?"
+    r"(?![\w])",
     re.IGNORECASE,
 )
 

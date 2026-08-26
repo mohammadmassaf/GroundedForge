@@ -52,6 +52,28 @@ def test_extracts_figures_with_units():
     assert extract_numbers(text) == ["92.7%", "41", "1200", "3x", "10ms"]
 
 
+def test_multi_letter_units_are_not_invisible():
+    """Regression, 2026-08-26: with only single letters in the unit list,
+    "920MB" matched NOTHING -- `m` was consumed and `B` failed the trailing
+    guard -- so a true claim ("920 MB layer") was struck against evidence
+    reading "920MB". A number glued to a multi-character unit must still be
+    found."""
+    assert extract_numbers("verified 2.13.0+cpu, 920MB layer") == ["2.13", "920mb"]
+    assert extract_numbers("bake took 210s and 186MB") == ["210s", "186mb"]
+
+
+def test_spacing_around_a_unit_does_not_change_the_token():
+    """The whole point of the fix: the claim spells it "920 MB", the commit
+    message spells it "920MB", and the check must see one quantity."""
+    assert extract_numbers("920 MB") == extract_numbers("920MB")
+
+
+def test_unit_is_kept_so_different_quantities_stay_different():
+    """Normalizing the unit AWAY would make a claim of 920 MB pass on evidence
+    about 920ms -- same digits, different quantity, silent false pass."""
+    assert extract_numbers("920mb") != extract_numbers("920ms")
+
+
 def test_text_without_figures_yields_nothing():
     """The common, healthy case: prose with no digits must not raise."""
     assert extract_numbers("Refactored the planner service") == []
