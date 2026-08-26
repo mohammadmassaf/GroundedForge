@@ -26,3 +26,8 @@ star_*.md
 # not as a stray file whose provenance nobody can reconstruct later.
 eval_*.txt
 out/
+
+# The container's corpus config: same corpora, a different `roots:` block
+# (/mnt/repos, /mnt/vault). Ignored for the same reason corpus.yaml is -- it
+# still spells out the vault's folder layout.
+docker/corpus.docker.yaml

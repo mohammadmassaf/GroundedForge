@@ -41,6 +41,22 @@ COPY docker/bake_models.py .
 RUN --mount=type=cache,target=/root/.cache/pip \
     mkdir -p "$HF_HOME" && python bake_models.py && rm bake_models.py
 
+# git: the git adapter shells out to `git log`, and slim has no git binary.
+# Deliberately NOT with the other system packages at the top -- that layer sits
+# above torch and the model bake, so touching it would re-download ~1.1GB. Here
+# it invalidates nothing (C1: bandwidth is the binding constraint).
+#
+# safe.directory '*': git refuses to run in a repo owned by another user, since
+# a foreign .git/config can name commands git will execute. Mounted host repos
+# arrive with an owner uid that is not appuser, so every `git log` fails with
+# "dubious ownership". Blanket-allowing is right HERE specifically: this image
+# exists to read repos it does not own, at paths the invoker chooses, with one
+# user inside and the mounts read-only. Listing paths instead would mean editing
+# the guard on every use, which is friction, not safety.
+RUN apt-get update && apt-get install git -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --system --add safe.directory '*'
+
 COPY . .
 # The real corpus.yaml is gitignored (D0) and never enters the build context;
 # ship the example config so `demo` and `default` work out of the box.
