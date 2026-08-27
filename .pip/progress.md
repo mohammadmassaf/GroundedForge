@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: the GroundedForge repo root. Last updated: 2026-08-23 (V2-M5 — adversarial eval traps 8/10, built; D-M0 — configuration indirection 8/10)._
+_Source: the GroundedForge repo root. Last updated: 2026-08-24 (D-M1 + D-M2 shipped; new stack **devops-containers** opened with 3 of 16 concepts done)._
 
 > **Recurring gap, two concepts running:** on a trade-off, the concrete/visible cost gets named and the abstract one doesn't (token budget but not measurement integrity; silent failure but not misplaced strictness). Worth targeting directly rather than waiting for it to surface a third time.
 
@@ -53,6 +53,13 @@ _Source: the GroundedForge repo root. Last updated: 2026-08-23 (V2-M5 — advers
 
 ### D-M0: Docker prep
 - [x] **Configuration indirection (late-bound locations)** — `checkpointed` (8/10) · prereqs: corpus-adapters · code: `ingest/corpus_config.py:21` (_expand) + `:71` (roots table) + `:82` (resolution point) · gaps: (1) costed only the silent-failure direction, not the cost of misplaced strictness; (2) placed the silent failure on the write side — the write succeeds, which is what hides it
+
+### D-M1: Dockerfile + offline image
+- [x] **Container image layering and build cache** — `checkpointed` (8/10) · stack: devops-containers · prereqs: none · code: `Dockerfile:30` (torch on its own line) → `:41` (bake) → `:44` (`COPY . .`) · measured both directions: source edit rebuilt in 10 s, an edit above the bake cost 210 s + 186 MB
+- [x] **Build/runtime pin symmetry for reproducibility** — `checkpointed` (8/10, raised from 6 by a targeted pass) · stack: devops-containers · prereqs: container-image-layering · code: `retrieve/model_pins.py:8` + `docker/bake_models.py:13` + `retrieve/store.py:50` · ~~gap: incidental vs guaranteed~~ **closed 2026-08-24** — carries the test *"which line would have to change for the wrong version to arrive?"*, and transferred it to a mutable-tag/digest case in CI · remaining gap: naming what makes a defect invisible (absence of a **trigger**, not of a bug — correct behaviour under the one condition where it cannot fail is not evidence). `recheck: true`
+
+### D-M2: Volumes and state
+- [x] **Container state persistence: volumes, bind mounts, mount-point ownership** — `checkpointed` (8/10) · stack: devops-containers · prereqs: container-image-layering · code: `Dockerfile:49` (`mkdir -p` before `chown -R`) · a volume mounted where the image has nothing is created by the daemon as root; `chown -R` cannot reach a path that does not exist yet
 
 ## Mastery list (deduped — known across all projects)
 - **metadata-filtered-retrieval** — 9/10 (grounded-forge, V2-M2, 2026-07-24) — first mastered concept
