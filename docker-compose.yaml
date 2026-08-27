@@ -14,7 +14,13 @@ services:
   gf:
     build: .
     image: grounded-forge:latest
-    env_file: .env
+    # required: false -- a plain `env_file: .env` makes the file MANDATORY, so
+    # this service refused to start on a fresh clone. Demo retrieval needs no
+    # key, so demanding the file contradicted the one promise `gf` makes.
+    # Found by the clean-clone test, which is the only place it could show up.
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - "gf_chunks:/app/chunks"       # named volume: state, not for host eyes
       - "gf_chroma:/app/chroma_db"    # named volume: the index (D4)
