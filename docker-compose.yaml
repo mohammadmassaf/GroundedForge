@@ -1,0 +1,45 @@
+# The invocation, versioned (D10). Two services share ONE image:
+#
+#   docker compose run --rm gf                  demo corpus, no key, no personal paths
+#   docker compose run --rm gf-job make-bullets "..." --repo grounded-forge
+#
+# The split is the honesty note from the plan made structural rather than
+# written in prose: `gf` is what a stranger can run after cloning, `gf-job`
+# needs a personal corpus mounted from paths only this machine has.
+
+services:
+
+  # Demo service. Everything it touches is either in the image or created by
+  # compose, so `docker compose run --rm gf` works on a fresh clone.
+  gf:
+    build: .
+    image: grounded-forge:latest
+    env_file: .env
+    volumes:
+      - "gf_chunks:/app/chunks"       # named volume: state, not for host eyes
+      - "gf_chroma:/app/chroma_db"    # named volume: the index (D4)
+      - "./out:/app/out"              # bind mount: artifacts must leave the container
+      - "./traces:/app/traces"        # bind mount: a trace nobody can read is worthless
+
+  # Job mode. Same image -- `image:` names it and `build:` is identical, so
+  # compose builds once. Adds the two read-only corpus roots and the container's
+  # own corpus config, which repoints `roots:` at /mnt/repos and /mnt/vault.
+  gf-job:
+    build: .
+    image: grounded-forge:latest
+    env_file: .env
+    volumes:
+      - "gf_chunks:/app/chunks"
+      - "gf_chroma:/app/chroma_db"
+      - "./out:/app/out"
+      - "./traces:/app/traces"
+      - "..:/mnt/repos:ro"                                  # sibling repos
+      - "../../myvault.obsd:/mnt/vault:ro"                  # the vault
+      - "./docker/corpus.docker.yaml:/app/corpus.yaml:ro"   # single-file mount
+
+# Named volumes must be declared here as well as used above, or compose refuses
+# to start. Compose creates and namespaces them (groundedforge_gf_chunks), which
+# is why the volumes you filled by hand with `docker run` are NOT these.
+volumes:
+  gf_chunks:
+  gf_chroma:

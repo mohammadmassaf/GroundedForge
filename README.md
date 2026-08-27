@@ -63,6 +63,47 @@ python main.py build-index --corpus mycourse     # embed chunks -> ChromaDB
 python main.py make-quiz "your topic" --corpus mycourse -n 5
 ```
 
+### Or run it in Docker
+
+The image carries the dependencies **and the model weights** — both MiniLM
+models are baked in at pinned commit shas, so a container works with no network
+at all:
+
+```bash
+copy .env.example .env                            # only needed for generation
+docker compose run --rm gf
+```
+
+That builds the image and runs the demo end to end — ingest, index, and a
+retrieval query printing ranked cited chunks. It needs no API key, because
+retrieval is entirely local (embeddings, BM25, the cross-encoder, ChromaDB);
+only generation calls out to Groq.
+
+Any CLI command works through the same service:
+
+```bash
+docker compose run --rm gf make-quiz "TCP connection establishment" --corpus demo -n 5
+```
+
+The index and chunk store live in named volumes, so they survive between runs;
+generated artifacts and Critic traces are bind-mounted to `out/` and `traces/`
+so they land on your disk rather than dying with the container.
+
+**Offline is a claim this repo tests rather than asserts:**
+
+```bash
+docker run --rm --network none -e HF_HUB_OFFLINE=1 grounded-forge:latest
+```
+
+Same output, no network interface.
+
+> **The `gf-job` service is not runnable from a clone.** Job mode (below) reads a
+> personal corpus — a vault and sibling repos mounted read-only from paths that
+> exist on one machine — plus a `docker/corpus.docker.yaml` that is gitignored
+> for the same privacy reason `corpus.yaml` is. `gf` is the service a stranger
+> can run; `gf-job` is the one I run. The split is in `docker-compose.yaml`
+> rather than in a paragraph nobody reads.
+
 ## Real output
 
 From an actual run against the shipped demo corpus
