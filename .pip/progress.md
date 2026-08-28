@@ -1,6 +1,6 @@
 # PIP Progress — Grounded Forge
 
-_Source: the GroundedForge repo root. Last updated: 2026-08-24 (D-M1 + D-M2 shipped; new stack **devops-containers** opened with 3 of 16 concepts done)._
+_Source: the GroundedForge repo root. Last updated: 2026-08-27 (D-M3 + D-M4 shipped; the Docker plan is complete. **devops-containers**: 7 of 17 concepts with provenance, 4 checkpointed)._
 
 > **Recurring gap, two concepts running:** on a trade-off, the concrete/visible cost gets named and the abstract one doesn't (token budget but not measurement integrity; silent failure but not misplaced strictness). Worth targeting directly rather than waiting for it to surface a third time.
 
@@ -60,6 +60,14 @@ _Source: the GroundedForge repo root. Last updated: 2026-08-24 (D-M1 + D-M2 ship
 
 ### D-M2: Volumes and state
 - [x] **Container state persistence: volumes, bind mounts, mount-point ownership** — `checkpointed` (8/10) · stack: devops-containers · prereqs: container-image-layering · code: `Dockerfile:49` (`mkdir -p` before `chown -R`) · a volume mounted where the image has nothing is created by the daemon as root; `chown -R` cannot reach a path that does not exist yet
+
+### D-M3: Real corpora and the key
+- [x] **Secrets at build time vs run time** — `built` (ungraded) · stack: devops-containers · code: `docker-compose.yaml` (env_file) + `Dockerfile` (no ARG anywhere) · `docker history` is readable by anyone holding the image, which is why a build arg is not a secret
+- [x] **Non-root containers and least privilege** — `built` (ungraded) · stack: devops-containers · code: `Dockerfile:45` (safe.directory) + `:52` (USER appuser) · `--global` writes `/root/.gitconfig` at build time while the app runs as appuser — appears to work, changes nothing
+
+### D-M4: Compose, README, ship
+- [x] **Declaring the invocation with Compose** — `built` (ungraded) · stack: devops-containers · code: `docker-compose.yaml` · two services over one image; project-name volume prefixing; the volume-vs-bind split is "does a human need to read it"
+- [x] **Clean-environment verification** — `checkpointed` (6/10) · stack: devops-containers · prereqs: container-image-layering · code: `docker-compose.yaml:14` (`env_file` → `required: false`) · three instances in four days: `--network none` found the pin was not in force, the clean clone found an uncommitted deliverable and a mandatory `env_file` · gap: **the coverage half** — a clean environment only catches what is actually exercised in it; needed prompting to separate "clean runner" from "ran the broken surface" (CI clones fresh but only runs pytest). `recheck: true`
 
 ## Mastery list (deduped — known across all projects)
 - **metadata-filtered-retrieval** — 9/10 (grounded-forge, V2-M2, 2026-07-24) — first mastered concept
