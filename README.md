@@ -128,6 +128,14 @@ demo corpus is what's reproducible, the course corpus is what's measured.
 
 `python main.py eval --corpus mycourse` runs two independent measurements over a fixed eval set ([eval/eval_set.json](eval/eval_set.json)):
 
+> **Reproducing these numbers costs most of a free-tier day.** "Runs on a free tier" is true of
+> the product and false of the eval. Grounding spends two LLM calls per claim, so a full
+> 15-question job-mode run is ~90–96k tokens against Groq's ~100k rolling-day cap: one run, one
+> day. That is why the harness takes `--limit` / `--offset` — a set too big for one day's tokens
+> is evaluated in windows and the **claim counts** are added together (averaging the two
+> percentages is wrong whenever the windows produced different numbers of claims, which they
+> always do). The retrieval half is local and free: `--limit 0` runs recall@k on its own.
+
 | Metric | Result | What it grades |
 |---|---|---|
 | recall@3 | 90% | retrieval ranking |
