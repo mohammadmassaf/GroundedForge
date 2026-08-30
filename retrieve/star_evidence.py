@@ -93,16 +93,20 @@ def _where_for(sources: list[str], repo: str | None = None) -> dict:
 def gather_evidence(question: str, corpus: str = "job", k: int = 6,
                     repo: str | None = None) -> dict[str, list[dict]]:
     """
-    Retrieve one evidence pool per STAR section. See module docstring for the
-    two decisions you need to make. 
+    Retrieve one evidence pool per STAR section. See the module docstring for
+    the two decisions this implements.
 
-    TODO(you) — V2-M4:
-      1. For each of the four sections in SECTION_SOURCES:
-           - build the filter with _where_for(...)
-           - decide the query text for this section (DECISION 1)
-           - retrieve with hybrid_search(..., where=..., use_rerank=True)
-      2. Apply your fallback rule when the pool comes back thin (DECISION 2).
-      3. Return the dict of four pools.
+    Each section gets its own filtered retrieval: the question plus that
+    section's hint text, scoped to the source types that can answer it
+    (SECTION_SOURCES). Separate pools are what make a pool an authorization
+    boundary rather than a bucket of context - run_star_loop flags any section
+    that cites outside its own, so "what I did" cannot be answered from a
+    planning note.
+
+    When a filtered pool comes back under MIN_POOL, it is topped up from
+    WIDENED_SOURCES. Widening relaxes the SOURCE TYPE only; the repo stays
+    pinned, because a thin pool means the evidence lived in an unexpected
+    source, never that another project's history is fair game.
     """
     pools= {}
     

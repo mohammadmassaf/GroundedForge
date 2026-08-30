@@ -37,27 +37,17 @@ MIN_EVIDENCE_SCORE = 0.25
 def run_loop(topic: str, chunks: list[dict], n: int = 5,
              corpus: str | None = None) -> tuple[list, list]:
    """
-    TODO(you): the orchestration.
+    Cite-or-strike for quiz items: generate, critique each item against ONLY
+    the chunks it cited, keep the supported ones and strike the rest.
 
-    Steps:
-    1. tracer = Tracer("quiz"); by_id = {c["chunk_id"]: c for c in chunks}
-       kept, struck = [], []
-    2. for round_num in range(1, MAX_ROUNDS + 1):
-         a. how many items are still needed? need = n - len(kept)
-            if need == 0: break
-         b. quiz = generate(topic, chunks, n=need)
-            tracer.log("generated", round=round_num, count=len(quiz.items))
-         c. for each item in quiz.items:
-              cited_chunks = [by_id[cid] for cid in item.citations]
-              verdict = check_claim(item.question, item.answer, cited_chunks)
-              tracer.log("critic_verdict", round=round_num,
-                         question=item.question,
-                         supported=verdict.supported, reason=verdict.reason)
-              if verdict.supported: kept.append(item)
-              else: struck.append((item, verdict.reason))
-    3. tracer.log("done", kept=len(kept), struck=len(struck))
-       print(f"Trace: {tracer.path}")
-    4. return kept, struck
+    Runs up to MAX_ROUNDS, asking each round only for the shortfall (n minus
+    what survived), so a round that loses three items regenerates three rather
+    than restarting. Stops early once enough items are kept.
+
+    Unlike bullets, an empty generation here is still a hard failure rather
+    than a gap - see the note in the open-work list. v1 claims and measures
+    that an off-corpus topic yields zero items loudly, and that behaviour is
+    published.
     """
    tracer = Tracer("quiz", corpus=corpus)
    by_id = {c["chunk_id"]: c for c in chunks}

@@ -93,32 +93,19 @@ def _strike(data: dict, pool: list[str] | None, trace_path: Path) -> dict:
 
 def load_strikes(trace_path: Path) -> list[dict]:
       """
-      TODO(you): pull every struck claim out of one trace file.
+      Every struck claim in one trace file, normalized.
 
-      A trace is JSONL - one event per line, in the order they happened. Two
-      things you need travel on DIFFERENT lines, which is the whole difficulty:
+      The difficulty is that the two halves travel on DIFFERENT lines: `pool`
+      rides on the `generated` event once per round, while `citations` and the
+      verdict ride on each `quant_check` / `critic_verdict`. Neither line is
+      enough alone, so the most recent pool is carried forward as the file is
+      read and attached to every verdict met after it - replaying an event log
+      in order to reconstruct state.
 
-        - `pool` rides on the `generated` event, once per round
-        - `citations` + the verdict ride on `quant_check` / `critic_verdict`
-
-      So you have to carry the most recent pool forward as you read down the
-      file, and attach it to each verdict you meet after it. (A round-2
-      regeneration logs a fresh `generated` - the pool is the same list today,
-      but read it per-round anyway rather than assuming.)
-
-      A claim was struck when a `critic_verdict` has supported == False, or a
-      `quant_check` has passed == False. Note the two events use DIFFERENT key
-      names for the same idea, and different key names for the claim text too
-      (`bullet` for bullets, `question` for quiz, `section` for star) - normalize
-      to one shape here so nothing downstream has to know which generator ran.
-
-      Return a list of dicts, one per strike, each carrying at least: the claim
-      text, its citations, the pool it came from, the reason, and which stage
-      struck it ("quant" or "critic"). Include the trace filename too - when the
-      report shows you a suspicious shortlist you will want to open the source.
-
-      Guard: a pool-era check. If a verdict arrives with no pool recorded, mark
-      it unattributable rather than pretending the uncited set is empty.
+      A verdict with no pool recorded is marked unattributable rather than
+      given an empty one. 222 of the traces on disk predate 22fb586 and never
+      logged it, and "we did not record this" must not read as "there was
+      nowhere else to look".
       """
       current_pool = None 
       strikes = []
@@ -144,12 +131,17 @@ def load_strikes(trace_path: Path) -> list[dict]:
 
 def uncited(strike: dict) -> list[str]:
     """
-    TODO(you): the chunks that were available and not cited.
+    The chunks that were available to the generator and not cited - i.e.
+    where the support could have been instead.
 
-    Set arithmetic - but return a LIST, ordered as the pool was. Pool order is
-    retrieval rank, and "the generator skipped the top-ranked chunk" is a
-    different story from "it skipped the 9th", so throwing that order away
-    throws away a signal you will want.
+    Returns a LIST, in pool order, not a set: pool order is retrieval rank, and
+    "it skipped the top-ranked chunk" is a different story from "it skipped the
+    9th".
+
+    Raises rather than returning [] for an unattributable strike. The caller
+    already holds `attributable` and is expected to check it; reaching here
+    without doing so is a bug at the call site, which is why this is a plain
+    ValueError nobody is meant to catch.
     """
 
     
@@ -168,23 +160,21 @@ def uncited(strike: dict) -> list[str]:
 
 def rank_uncited(claim: str, ids: list[str], corpus: str) -> list[tuple[str, float]]:
     """
-    TODO(you): score each uncited chunk against the claim, best first.
+    Score each of `ids` against the claim, best first, as [(chunk_id, score)].
 
-    What you have to work with:
-      - index, chunks = _get_index(corpus)
-      - index.get_scores(tokens) -> one score per CORPUS chunk, positionally
-        aligned with `chunks` (score[i] belongs to chunks[i]) - exactly the
-        alignment you relied on in search_bm25()
-      - _tokenize(text) -> the same tokenizer the corpus was built with
+    Scoring, not retrieval: the candidate set is already fixed by the caller,
+    so unlike search_bm25 this ranks a given list rather than searching for one.
+    Used for both sides of the comparison - hand it the uncited chunks for the
+    shortlist, hand it the citations for the baseline.
 
-    The trap worth naming: do NOT build a fresh BM25Okapi over just these ~9
-    chunks. BM25 weights a term by how RARE it is across the collection, and
-    "rare across 9 documents" is noise. Score against the full-corpus index and
-    select the positions you care about.
+    Scored against the FULL-corpus index, never a fresh BM25 over just these
+    few chunks. BM25 weights a term by how rare it is across the collection,
+    and rarity measured over nine documents is noise - `and` appears in 117 of
+    244 chunks here and is correctly worth almost nothing, but over nine it
+    would look distinctive and a chunk could win on it.
 
-    You need chunk_id -> position. `chunks` is a list; build the lookup once.
-
-    Return [(chunk_id, score), ...] sorted best first.
+    get_scores returns one score per corpus chunk, positionally aligned with
+    `chunks`, so chunk_id -> position is the bridge between an id and its score.
     """
     result = []
     query_tokens = _tokenize(claim)
@@ -202,20 +192,26 @@ def rank_uncited(claim: str, ids: list[str], corpus: str) -> list[tuple[str, flo
 
 def attribute(strike: dict, corpus: str) -> dict:
     """
-    TODO(you): decide what this one strike LOOKS like, and say how confidently.
+    Score what the claim cited, score what it ignored, compare, and label -
+    returning the strike with the shortlist, both baselines and a verdict added.
 
-    Add to the strike dict:
-      - the ranked uncited shortlist (from rank_uncited)
-      - the best score among its CITED chunks, for comparison
-      - a lead flag: did some uncited chunk outscore everything it cited?
+    The verdict is three-way rather than a flag, because there are three real
+    states and only two of them are answers:
 
-    DECISION - where you put the bar. `best_uncited > best_cited` is the
-    loosest possible rule and will flag the 0.12-vs-0.15 cases, which are two
-    chunks that both say nothing. Consider requiring a margin, or a floor on
-    the uncited score, so "a better chunk existed" means something. Whatever
-    you pick, put the threshold in a named constant with a comment saying what
-    you observed, not a magic number inline - same reason MIN_EVIDENCE_SCORE
-    is named in critic/loop.py.
+      lead         an uncited chunk scored materially better - go read it
+      no_lead      it cited the best thing available - the strike is over-reach
+      unmeasurable the cited chunk scored below MIN_BASELINE, so the scorer
+                   could not read it and no comparison was possible
+
+    Forcing that third state into a boolean breaks in both directions: as a
+    lead it overstates mis-citation, as a no_lead it manufactures evidence for
+    over-reach out of cases never measured. Same call already made for gapped
+    questions in grounding_eval, and for EmptyGeneration being a sibling of
+    GenerationError rather than a subclass.
+
+    Checks unmeasurable FIRST. The four SECRET_key strikes carry the LARGEST
+    margins in the set precisely because their baseline is broken, so a margin
+    test run first would rank the least trustworthy cases highest.
     """
     shortlist = rank_uncited(strike["claim"] , uncited(strike) , corpus)
     cited = rank_uncited(strike["claim"] , strike["citations"] , corpus)

@@ -31,7 +31,6 @@ def _chunk_metadata(chunk: dict) -> dict:
         value (e.g. a vault chunk that has no `status`) must be DROPPED, not
         stored as None.
     """
-    # TODO(you): return every chunk key except "text", dropping None values (V2-M2)
     metadata = { k : v for k , v in chunk.items() if k != "text" and v is not  None }
     return metadata
     

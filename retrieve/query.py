@@ -42,7 +42,6 @@ def search(query_text: str, corpus: str = "default", k: int = 5,
     the filter are considered. None = search the whole corpus (v1 behavior).
     """
     store = Chroma(collection_name=corpus, persist_directory="chroma_db", embedding_function=_get_embeddings())
-    # TODO(you): pass `where` to similarity_search_with_score as its `filter=` arg (V2-M2)
     results = store.similarity_search_with_score(query_text, k =k , filter = where)
     final = []
     for doc , dist in results:

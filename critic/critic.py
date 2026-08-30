@@ -49,17 +49,13 @@ MAX_OUTPUT_TOKENS = 900
 
 def _build_critic_prompt(question: str, answer: str, cited_chunks: list[dict]) -> str:
    """
-    TODO(you): build the Critic's user prompt.
+    Build the Critic's user prompt: the cited chunks as labeled EVIDENCE
+    blocks, then the claim, then the question to answer.
 
-    Steps:
-    1. Format the cited chunks as labeled EVIDENCE blocks — same pattern as
-       _build_user_prompt in the generator ([chunk_id] header + text).
-    2. Present the claim, e.g.:
-           CLAIM
-           Question: <question>
-           Answer: <answer>
-    3. End with: "Is the claim fully supported by the evidence? JSON only."
-    4. Return the full string.
+    Only the CITED chunks go in, never the whole pool. The Critic's job is
+    "does this claim follow from what it points at", not "is this claim true
+    somewhere in the corpus" - so a claim supported by a chunk it failed to
+    cite is struck, correctly.
    """
    block = []
    for chunk in cited_chunks:
@@ -77,14 +73,13 @@ def _build_critic_prompt(question: str, answer: str, cited_chunks: list[dict]) -
 
 def _parse_verdict(raw: str) -> Verdict:
    """
-    TODO(you): raw model reply -> Verdict, or raise ValueError.
+    Raw model reply -> Verdict, or ValueError.
 
-    Same three-layer idea as _parse_and_validate, minus the semantic layer
-    (a Verdict has no runtime ids to cross-check):
-    1. strip fences if present
-    2. json.loads -> ValueError(f"Invalid JSON: {e}")
-    3. Verdict.model_validate -> ValueError(f"Schema error: {e}")
-    4. return the Verdict
+    Two layers, the same shape as _parse_and_validate in the generator minus
+    its semantic layer (a Verdict carries no chunk ids to cross-check): strip
+    any code fence the model added despite instructions, then json.loads, then
+    Verdict.model_validate. Both failures surface as ValueError so
+    check_claim's retry loop only has to catch one thing.
     """
    raw = raw.strip()
    if raw.startswith("```"):
@@ -106,16 +101,17 @@ def _parse_verdict(raw: str) -> Verdict:
 
 def check_claim(question: str, answer: str, cited_chunks: list[dict]) -> Verdict:
    """
-    TODO(you): the Critic call with a retry loop.
+    Ask the Critic whether `answer` is supported by `cited_chunks`, with a
+    retry-on-invalid loop.
 
-    Same shape as generate(), smaller:
-    1. messages = [critic system prompt, user prompt from _build_critic_prompt]
-    2. loop MAX_RETRIES + 1 times:
-       call the LLM with temperature=0.0
-       try: return _parse_verdict(raw)
-       except ValueError as e: keep last_error, append the assistant reply
-           + a correction message (same pattern as generate())
-    3. after the loop: raise SystemExit(f"Critic failed: {last_error}")
+    temperature=0.0: a verdict must be reproducible. The same claim against the
+    same evidence cannot be supported on one run and struck on the next, or the
+    grounding score is measuring sampling noise.
+
+    On a malformed reply the bad output and a correction are appended to the
+    message list and the model is asked again, so it sees its own mistake -
+    same pattern as generate(). Exhausting the retries is fatal: a Critic that
+    cannot answer must never be defaulted to "supported".
     """
    base = [
       {"role": "system", "content": CRITIC_SYSTEM_PROMPT},

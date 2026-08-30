@@ -324,17 +324,16 @@ def _get_client() -> Groq:
 
 def _build_prompt(chunks:list[dict],task :str) -> str:
    """
-    TODO(you): build the user prompt string.
+    Build the user prompt: every retrieved chunk as a labeled block, then the
+    task.
 
-    Steps:
-    1. Format each chunk as a labeled block:
-           [<chunk_id>] (source: <source_file>, p.<page>)
-           <text>
-       joined with blank lines. The label is what the model cites.
-    2. End with the instruction, e.g.:
-           "Generate {n} quiz items about: {topic}. Remember: JSON only,
-            cite only the chunk_ids above."
-    3. Return the full string.
+    The `[chunk_id]` label is the mechanism the whole project rests on. It is
+    what the model writes back as a citation, which is what makes a claim
+    traceable to a source and what _parse_and_validate checks against the pool.
+    Without labels in the context there is nothing to cite and no way to verify.
+
+    The model sees ONLY these chunks - no corpus access, no web - so anything it
+    cannot support from them it has to decline.
    """
   
    block = []
@@ -355,22 +354,26 @@ def _build_prompt(chunks:list[dict],task :str) -> str:
 
 def _parse_and_validate(raw: str, valid_ids: set[str] , model = Quiz) -> Quiz:
    """
-    TODO(you): turn the raw model reply into a validated Quiz, or raise
-    ValueError with a message the model can act on.
+    Turn the raw model reply into a validated object, or raise ValueError with
+    a message the model can act on.
 
-    Steps:
-    1. Strip markdown fences if present (the model sometimes adds them
-       despite instructions): if raw starts with "```", cut the first and
-       last fence lines. (Look at mealwise's parser.py — you solved this
-       there with .strip() and slicing.)
-    2. json.loads(raw) — on json.JSONDecodeError, raise
-       ValueError(f"Invalid JSON: {e}")
-    3. Quiz.model_validate(data) — on pydantic.ValidationError, raise
-       ValueError(f"Schema error: {e}")
-    4. Semantic check: for every item, every citation must be in valid_ids.
-       If not, raise ValueError(f"Unknown chunk_id(s) cited: {bad_ids} — "
-                                "cite only chunk_ids from the context")
-    5. Return the Quiz.
+    Three layers, cheapest first:
+      1. syntax   - strip any code fence, then json.loads
+      2. shape    - model_validate, so Pydantic enforces the schema
+      3. semantic - every cited id must be in valid_ids
+
+    Layer 3 is the one Pydantic cannot do: it checks the citations against THIS
+    run's retrieved pool, which only exists at runtime. A model that invents a
+    plausible-looking chunk_id passes layers 1 and 2 cleanly.
+
+    Every failure is a ValueError carrying what was wrong, because _run appends
+    that message back into the conversation and asks again - so the message is
+    an instruction to the model, not just a log line.
+
+    EmptyGeneration is raised separately, and only once the object is known
+    valid. A model that obeyed "produce fewer rather than invent" has DECLINED,
+    which is a normal completion, not malformed output. It is not a ValueError,
+    so _run's retry loop ignores it for free.
    """
    raw = raw.strip()
    if raw.startswith("```"):

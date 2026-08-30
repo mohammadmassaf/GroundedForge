@@ -118,8 +118,8 @@ def test_each_section_uses_its_own_filter(monkeypatch):
 
 
 def test_query_carries_the_section_hint(monkeypatch):
-    """TODO(you): every recorded query must contain BOTH the question text and
-    that section's hint from SECTION_HINTS. Without the hint the four sections
+    """Every query must carry BOTH the question text and that section's
+    hint from SECTION_HINTS. Without the hint the four sections
     issue identical queries; without the question the hint retrieves generic
     prose (both failure modes were measured on 2026-07-31)."""
     fake, calls = _recorder(lambda where: [_chunk("a"), _chunk("b"), _chunk("c")])
@@ -135,10 +135,8 @@ def test_query_carries_the_section_hint(monkeypatch):
 
 
 def test_thin_pool_triggers_widened_retry(monkeypatch):
-    """TODO(you): make the filtered call return FEWER than MIN_POOL chunks and
-    assert a second call happened for that section, carrying the WIDENED
-    filter (WIDENED_SOURCES) rather than the original one.
-    Hint: results_for receives `where`, so you can branch on it."""
+    """A pool coming back under MIN_POOL triggers a second retrieval for
+    that section, carrying the WIDENED filter rather than the original one."""
     fake , calls = _recorder(lambda where: [_chunk(f"c{i}") for i in range(MIN_POOL - 1)])
     monkeypatch.setattr("retrieve.star_evidence.hybrid_search", fake)
 
@@ -151,10 +149,10 @@ def test_thin_pool_triggers_widened_retry(monkeypatch):
 
 
 def test_fallback_does_not_duplicate_chunks(monkeypatch):
-    """TODO(you): have the widened call return a chunk the filtered call
-    ALREADY returned. Assert the final pool holds no repeated chunk_id.
-    A duplicate reaches the Generator as two independent pieces of evidence
-    when it is one."""
+    """The widened retry never re-adds a chunk the filtered call already
+    returned. A duplicate reaches the Generator as two independent pieces of
+    evidence when it is one, which is exactly how a claim ends up looking
+    better supported than it is."""
     WIDE = [_where_for(v) for v in WIDENED_SOURCES.values()]
 
     def results_for(where):
@@ -171,9 +169,9 @@ def test_fallback_does_not_duplicate_chunks(monkeypatch):
         assert "fresh" in ids
 
 def test_fallback_stops_at_k(monkeypatch):
-    """TODO(you): have the widened call return far more than k fresh chunks.
-    Assert the pool never exceeds k -- the loop is bounded by the pool being
-    full, not by how many results came back."""
+    """The pool never exceeds k however many chunks the widened call
+    returns - the loop is bounded by the pool being full, not by the size of
+    the result set it is drawing from."""
     WIDE = [_where_for(v) for v in WIDENED_SOURCES.values()]
     
     def results_for(where):
@@ -191,9 +189,9 @@ def test_fallback_stops_at_k(monkeypatch):
 
 
 def test_healthy_pool_skips_the_fallback(monkeypatch):
-    """TODO(you): when the filtered call already returns >= MIN_POOL, that
-    section must make exactly ONE call. Widening a pool that isn't thin would
-    quietly let vault notes into a git-only section."""
+    """A section whose filtered call already returns >= MIN_POOL makes
+    exactly ONE call. Widening a pool that isn't thin would quietly let vault
+    notes into a git-only section."""
     fake, calls = _recorder(lambda where: [_chunk("a"), _chunk("b"), _chunk("c")])
     monkeypatch.setattr("retrieve.star_evidence.hybrid_search", fake)
     
@@ -205,10 +203,10 @@ def test_healthy_pool_skips_the_fallback(monkeypatch):
 
 
 def test_pool_may_end_short_when_evidence_is_thin(monkeypatch):
-    """TODO(you): both calls return almost nothing -> the section's pool is
-    allowed to come back under k (even empty) without raising. A short pool
-    is the honest signal that drives "insufficient evidence in corpus"; the
-    bug would be manufacturing chunks to fill it."""
+    """When both calls come back empty the section's pool is allowed to
+    end under k, even empty, without raising. A short pool is the honest
+    signal that drives "insufficient evidence in corpus"; manufacturing
+    chunks to fill it would be the bug."""
     def results_for(where):
         return []
     fake , calls = _recorder(results_for)

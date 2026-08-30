@@ -30,36 +30,31 @@ CHUNKS = [
 
 
 def _fake_generate(topic, chunks, n=5):
-    """TODO(you): return a canned Quiz with TWO items:
-       - item A: question/answer + citations=["c1"]   (will be judged supported)
-       - item B: question/answer + citations=["c2"]   (will be judged NOT supported)
-    Build it with Quiz(items=[QuizItem(...), QuizItem(...)]). Ignore the
-    args — this fake doesn't call any LLM."""
+    """A canned Quiz of two items, one citing c1 and one citing c2, so the
+    fake Critic below can support exactly one of them. Ignores its arguments:
+    no LLM is called, which is what makes this test free and deterministic."""
     itema = QuizItem(question = "question 1" , answer = "answer " , citations = ["c1"])
     itemb = QuizItem(question = "question 2 " , answer = "answer " , citations = ["c2"])
     return Quiz(items = [itema,itemb])
 
 
 def _fake_check_claim(question, answer, cited_chunks):
-    """TODO(you): return a Verdict. Make it deterministic on the evidence:
-    if the cited chunk is c1 -> supported=True; otherwise supported=False.
-    You can look at cited_chunks[0]["chunk_id"]. reason must be >=5 chars."""
+    """A Verdict decided by the evidence rather than at random: c1 is
+    supported, anything else is not. Deciding on the CITED chunk rather than
+    on the item is what makes this test exercise the real wiring - the loop
+    has to resolve citations to chunks correctly for the verdicts to land."""
     if cited_chunks[0]["chunk_id"] == "c1":
         return Verdict(supported=True, reason="found in evidence")
     return Verdict(supported=False, reason="not in evidence")
 
 
 def test_unsupported_claim_is_struck(monkeypatch):
-    """TODO(you):
-    1. monkeypatch.setattr("critic.loop.generate", _fake_generate)
-       monkeypatch.setattr("critic.loop.check_claim", _fake_check_claim)
-       monkeypatch.setattr("critic.loop.MAX_ROUNDS", 1)   # one round, so the
-           # regeneration path doesn't re-run _fake_generate and double the counts
-    2. kept, struck = run_loop("any topic", CHUNKS, n=2)
-    3. Assert: len(kept) == 1 and len(struck) == 1.
-       Assert the kept item is the c1 one, the struck one is the c2 one.
-       struck is a list of (QuizItem, reason) tuples — check struck[0][0]
-       and that struck[0][1] is the reason string.
+    """The policy end to end: of two generated items the supported one is
+    kept and the unsupported one is struck, each landing on the right side.
+
+    MAX_ROUNDS is pinned to 1 so the top-up round doesn't re-run the fake
+    generator and double the counts - the test is about the keep/strike
+    decision, not about the regeneration loop.
     """
     monkeypatch.setattr("critic.loop.generate",_fake_generate)
     monkeypatch.setattr("critic.loop.check_claim" , _fake_check_claim)

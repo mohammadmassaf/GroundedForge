@@ -48,20 +48,20 @@ def deframe(question: str, corpus: str = "job") -> str:
     Return `question` with its low-information tokens dropped, judged against
     the IDF table of `corpus`.
 
-    TODO(you) - V2-M4:
-      1. Tokenize the question the same way the corpus was tokenized. Reuse
-         _tokenize; do not roll a second tokenizer, or the two alphabets drift.
-      2. Get this corpus's IDF table off the index.
-      3. Score each query token by how much it discriminates, handling tokens
-         the table has never seen (DECISION 2).
-      4. Keep the informative ones (DECISION 4), and make sure a question that
-         survives nothing still produces a usable query rather than "".
-      5. Reassemble into a string.
+    Tokens are scored off the corpus's own IDF table and the informative ones
+    kept; a question that survives nothing falls back to the original rather
+    than returning "".
 
-         Order matters here and the reason is worth knowing: BM25 is a bag of
-         words and cannot see order at all, but the embedding and the
-         cross-encoder are sequence models that read position. Reordering by
-         IDF would hand two of your three consumers word salad.
+    Word order is preserved rather than sorted by IDF. BM25 is a bag of words
+    and cannot see order at all, but the embedding model and the cross-encoder
+    are sequence models that read position - reordering would hand two of the
+    three consumers word salad.
+
+    MEASURED HARMFUL, and kept as a negative result worth being able to
+    explain. On the job corpus it stripped topic words while keeping framing
+    words: `retrieval` scores idf 1.97 and was dropped, `tell` scores 4.80 and
+    was kept, because IDF measures rarity in THIS corpus and a corpus about
+    retrieval mentions retrieval constantly. Not wired into any pipeline.
     """
     tokenized = _tokenize(question)
     index , _ = _get_index(corpus)

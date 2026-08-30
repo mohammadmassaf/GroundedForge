@@ -25,20 +25,20 @@ RRF_K = 60
 
 def rrf_merge(list_a: list[dict], list_b: list[dict], k: int = 5) -> list[dict]:
     """
-    TODO(you): fuse two ranked result lists into one, return the top k.
+    Fuse two ranked result lists into one, returning the top k.
 
-    Both inputs are the usual result dicts (chunk_id, source_file, page,
-    score, text), best first. The same chunk_id can appear in both lists.
+    Both inputs are the usual result dicts (chunk_id, source_file, page, score,
+    text), best first, and the same chunk_id may appear in both - that overlap
+    is the point, since a chunk ranked decently by both retrievers should beat
+    one ranked first by only one of them.
 
-    Intent:
-    1. Walk each list, accumulating every chunk's RRF contribution into
-       one shared tally keyed by chunk_id. (Accumulator pattern - same as
-       hits/total_kept, but keyed. enumerate(list, start=1) gives ranks.)
-    2. Keep one representative result dict per chunk_id so you can return
-       real results, not just ids.
-    3. Sort chunk_ids by fused score, best first; take the top k.
-    4. Return their result dicts, with "score" replaced by the fused RRF
-       score (so downstream printing still works).
+    Each list contributes 1/(RRF_K + rank) per chunk into a shared tally keyed
+    by chunk_id, so only RANKS are combined, never the raw scores: a cosine
+    distance and a BM25 score are not on the same scale and adding them would
+    be meaningless.
+
+    The returned dicts carry "score" replaced by the fused RRF value, so
+    anything downstream that prints or thresholds a score still works.
     """
     points = {}
     rep ={}

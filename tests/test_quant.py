@@ -80,21 +80,21 @@ def test_text_without_figures_yields_nothing():
 
 
 def test_sha_fragments_are_not_numbers():
-    """TODO(you): "mealwise@8912ac4" must yield NOTHING. Both digit runs are
+    """"mealwise@8912ac4" must yield NOTHING. Both digit runs are
     glued to word characters; if either leaked, a commit sha in the evidence
     would make the haystack permissive enough to pass invented figures."""
     assert extract_numbers("mealwise@8912ac4") == []
 
 
 def test_identifier_fragments_are_not_numbers():
-    """TODO(you): "cross-encoder/ms-marco-MiniLM-L-6-v2" must yield NOTHING.
+    """"cross-encoder/ms-marco-MiniLM-L-6-v2" must yield NOTHING.
     Regression test -- this shipped as ['6'] and struck a true claim in the
     first make-star run."""
     assert extract_numbers("cross-encoder/ms-marco-MiniLM-L-6-v2") == []
 
 
 def test_one_sided_hyphen_is_still_a_quantity():
-    """TODO(you): "a 3-day plan" must still yield the 3, and a diff stat like
+    """"a 3-day plan" must still yield the 3, and a diff stat like
     "(+56/-32)" must still yield both numbers. The identifier rule keys on a
     hyphen on BOTH sides -- prove it didn't over-reach onto real figures."""
     assert extract_numbers("a 3-day plan") == ["3"]
@@ -129,7 +129,7 @@ def test_figure_may_come_from_any_cited_chunk():
 
 
 def test_fabricated_figure_is_struck():
-    """TODO(you): a claim stating a figure absent from every cited chunk
+    """a claim stating a figure absent from every cited chunk
     returns ok=False, AND the reason names that specific figure -- the reason
     reaches the artifact and the run trace, so "a number failed" is not
     good enough."""
@@ -142,7 +142,7 @@ def test_fabricated_figure_is_struck():
 
 
 def test_rounded_figure_is_struck():
-    """TODO(you): claim "~93%" against evidence "92.7%" must STRIKE. This is
+    """claim "~93%" against evidence "92.7%" must STRIKE. This is
     the strict-exact-match policy decided 2026-07-19 -- rounding is a
     semantic judgment, so the Refiner rewrites to the exact figure instead.
     If this test ever fails, someone loosened the policy by accident."""
@@ -154,7 +154,7 @@ def test_rounded_figure_is_struck():
 
 
 def test_same_number_different_context_still_passes():
-    """TODO(you): claim "41 chunks" against evidence "41 files" -> passes.
+    """claim "41 chunks" against evidence "41 files" -> passes.
     Deliberate: this layer catches FABRICATED figures, the LLM Critic checks
     meaning. Pin it so the boundary between the two stages doesn't drift."""
     ok , _ = check_quantities(

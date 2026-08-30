@@ -82,12 +82,13 @@ def _scope(item: dict) -> dict | None:
 
 def _hit(results: list[dict], expected: list[dict]) -> bool:
     """
-    TODO(you): does any retrieved result match any expected location?
+    Did retrieval surface any of the known-right locations?
 
-    A result matches when its source file equals an expected entry's file
-    AND its page is one of that entry's pages. Return True/False.
-    (You've done this kind of cross-checking before - the semantic
-    citation check in _parse_and_validate.)
+    A result matches when its source file equals an expected entry's file AND
+    its page is one of that entry's pages. Matching on (file, page) rather than
+    on chunk_id is deliberate: chunk ids change whenever chunk size, overlap or
+    the ingest order changes, and an eval set that has to be rewritten after
+    every re-chunk is not a fixed measuring stick.
     """
     for result in results:
         for actual in expected:
@@ -101,15 +102,17 @@ def _hit(results: list[dict], expected: list[dict]) -> bool:
 def retrieval_eval(items: list[dict], corpus: str , mode = "vector",
                    gen_k: int = GEN_K) -> dict:
     """
-    TODO(you): compute recall@k for each k in KS.
+    recall@k for each k in KS: of the eval questions, what fraction had a
+    known-right chunk somewhere in the top k?
 
-    Idea: retrieve once per eval question with the LARGEST k. The top-3
-    results are just the first 3 of those - slice, don't re-query.
-    For each k, count the questions where _hit() is true over the first
-    k results, divide by the number of questions.
+    Grades RETRIEVAL alone, with no LLM involved, which is why it is free and
+    reproducible. It is also the CEILING on grounding - the generator cannot
+    cite evidence that never reached it, so a recall miss and a generation
+    failure look identical in the output and need opposite fixes.
 
-    Return {"recall@3": 0.8, "recall@5": ..., "recall@10": ...} plus a
-    list of the questions that missed at the largest k (for the report).
+    One retrieval per question, at the largest k; the smaller ks are slices of
+    that same ranked list rather than fresh queries, so every row of the table
+    describes the same retrieval.
     """
     ks = _ks(gen_k)
     hits = {k:0 for k in ks}
@@ -147,18 +150,21 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2,
                    generator: str = "quiz", mode: str = "rerank",
                    gen_k: int = GEN_K) -> dict:
     """
-    TODO(you): compute the grounding score over the eval set.
+    The grounding score: of every claim generated over the eval set, what
+    fraction did the Critic support against the sources it cited?
 
-    Idea: for each eval question, run the full pipeline (you already have
-    run_loop) asking for a small n. Tally supported vs struck across all
-    questions - the counts are just the lengths of what run_loop returns.
-    grounding % = supported / total claims generated.
+    Grades GENERATION alone. Two LLM calls per claim, so a full 15-question job
+    run costs ~90-96k tokens against a ~100k rolling-day cap - hence --limit and
+    --offset, and hence the raw kept/struck counts in the return value, so two
+    windowed runs can be combined correctly by summing counts. Averaging their
+    percentages is wrong whenever the windows produced different numbers of
+    claims, which they always do.
 
-    Return {"grounded": <float 0..1>, "total_claims": int,
-            "struck_examples": [(question, reason), ...]}.
-
-    Note: this makes 2 LLM calls per claim - on the free tier, run it on
-    a SUBSET first (items[:5]) while debugging.
+    Questions that produce no claims - gapped, failed, or never reached - are
+    counted separately rather than folded into the ratio. A claim can only lower
+    the score by being generated and struck, so a run where 13 of 15 questions
+    declined would otherwise report a confident percentage over the two that
+    answered.
     """
     total_kept = total_struck = failed = 0
     evaluated = gapped = 0
@@ -242,25 +248,23 @@ def trap_eval(traps: list[dict], corpus: str = "job") -> dict:
     "critic" (semantically wrong, but every number in it does appear — so the
     deterministic check cannot see it).
 
-    TODO(you) — V2-M5:
-      1. Load chunks/<corpus>.json and index it by chunk_id, so a trap's
-         citations can be resolved to real chunk dicts (same by_id shape
-         run_star_loop builds).
-      2. For each trap, run the SAME two stages the loop runs, in the same
-         order: check_quantities first, then check_claim only if it passes.
-         Record whether the trap was struck and which stage struck it.
-      3. Return the catch rate plus enough detail for the report: which traps
-         escaped, and which were caught by a stage other than the expected one.
+    Each trap carries {claim, citations, stage, why}. `stage` is which check
+    SHOULD catch it: "quant" (a figure absent from the cited chunks) or
+    "critic" (semantically wrong, but every number in it does appear - so the
+    deterministic check cannot see it).
 
-    DECISION — what counts as a catch. A trap struck by the "wrong" stage was
-    still struck, so the artifact would be safe; but a t5-style trap caught by
-    quant means the haystack isn't what we think it is. Decide whether the
-    headline rate counts stage-correctness or only strike/no-strike, and make
-    the other one visible rather than silently folded in.
+    Traps run the same two stages as the real loop, in the same order, so this
+    measures the guard as shipped rather than a reimplementation of it.
+
+    The headline rate counts strike / no-strike, because a trap struck by the
+    "wrong" stage still would not have reached the artifact. Stage mismatches
+    are reported separately rather than folded in: a critic-stage trap caught
+    by quant means the evidence is not what the trap author thought, which is a
+    problem with the trap, not the guard.
 
     Note the asymmetry with grounding %: there, struck claims are the bad
-    outcome. Here, struck claims are the ONLY good outcome. A trap that
-    survives is a hole in the guard.
+    outcome. Here they are the ONLY good outcome, and a trap that survives is a
+    hole in the guard.
     """
     chunks = json.loads(Path(f"chunks/{corpus}.json").read_text(encoding="utf-8"))
 

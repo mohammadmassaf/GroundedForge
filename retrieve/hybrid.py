@@ -25,16 +25,17 @@ FETCH_N = 20   # candidates fetched per retriever and kept through the merge
 def hybrid_search(query_text: str, corpus: str = "default", k: int = 5,
                   use_rerank: bool = False, where: dict | None = None) -> list[dict]:
     """
-    TODO(you): chain the pipeline. No new tools - you wrote all four
-    functions this calls.
+    The full retrieval pipeline: vector + BM25 -> RRF fusion -> optional
+    cross-encoder re-rank -> top k.
 
-    Intent:
-    1. Fetch FETCH_N results from vector search and FETCH_N from BM25.
-    2. Fuse them with RRF, keeping FETCH_N candidates (not k - the wide
-       net stays wide until the last stage).
-    3. If use_rerank: hand the candidates to the cross-encoder, keep k.
-       Otherwise: keep the first k of the fused list.
-    4. Return the final list.
+    The wide net stays wide until the last stage. Both retrievers fetch FETCH_N
+    and the fusion keeps FETCH_N, not k: narrowing to k before the re-ranker
+    runs would throw away the candidates it exists to promote. Only the final
+    stage cuts to k.
+
+    Without use_rerank the fused order is taken as final - a bi-encoder ranking,
+    cheap and approximate. With it, the cross-encoder re-reads each candidate
+    against the query and reorders (the two-stage retrieve-then-rerank pattern).
     """
     from retrieve.query import search
 

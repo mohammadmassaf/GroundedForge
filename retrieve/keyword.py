@@ -64,22 +64,18 @@ def _matches(chunk: dict, where: dict | None) -> bool:
 def search_bm25(query_text: str, corpus: str = "default", k: int = 5,
                 where: dict | None = None) -> list[dict]:
     """
-    TODO(you): top-k chunks by BM25 score, same result shape as
-    retrieve.query.search() so the two lists are interchangeable.
+    Top-k chunks by BM25 score, in the same result shape as
+    retrieve.query.search() so the two lists are interchangeable - which is
+    what lets rrf_merge fuse them without knowing which retriever produced
+    which.
 
-    What you have to work with:
-      - index, chunks = _get_index(corpus)
-      - index.get_scores(tokenized_query) returns one score per chunk,
-        in the SAME ORDER as the chunks list (score[i] belongs to chunks[i])
-      - you need the indices of the k highest scores, best first
+    The query is tokenized with _tokenize, the same function the index was
+    built with: query and corpus must pass through one tokenizer or "Configured"
+    never matches the stored "configured" and the score silently reads zero.
 
-    Steps in intent:
-    1. Tokenize the query the same way the corpus was tokenized.
-    2. Get the score array.
-    3. Find the top-k chunk positions by score. (Hint: sorted() with a
-       key, over range(len(scores)) or enumerate - or look up argsort.)
-    4. Build the usual result dicts (chunk_id, source_file, page, score,
-       text) from those chunks, best first, and return them.
+    get_scores returns one score per chunk, positionally aligned with `chunks`
+    (score[i] belongs to chunks[i]), so ranking is done over positions and the
+    chunks are looked up afterwards.
     """
     query_tokens = _tokenize(query_text)
     index , chunks = _get_index(corpus)

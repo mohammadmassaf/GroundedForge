@@ -35,20 +35,18 @@ def _get_model() -> CrossEncoder:
 
 def rerank(query_text: str, candidates: list[dict], k: int = 5) -> list[dict]:
     """
-    TODO(you): re-order the candidate results by cross-encoder relevance,
-    return the top k.
+    Re-order candidates by cross-encoder relevance and return the top k.
 
-    What you have to work with:
-      - _get_model().predict(list_of_pairs) where each pair is
-        (query_text, chunk_text); returns one relevance score per pair,
-        in input order (score[i] belongs to candidates[i] - same
-        parallel-arrays situation as BM25's get_scores).
+    The difference from the retrievers upstream: a bi-encoder embeds the query
+    and the chunk SEPARATELY and compares the two vectors, so it never sees them
+    together. A cross-encoder reads (query, chunk) as one input and scores the
+    pair directly - far more accurate, and far too slow to run over a whole
+    corpus. Hence the two-stage shape: retrieve wide and cheap, re-rank narrow
+    and expensive.
 
-    Intent:
-    1. Build the (query, text) pair list from the candidates.
-    2. Get the scores.
-    3. Sort candidates by their score, best first; take top k.
-    4. Return them with "score" replaced by the cross-encoder score.
+    predict() returns one score per pair in input order (score[i] belongs to
+    candidates[i]), so ranking runs over positions. The returned dicts carry
+    "score" replaced by the cross-encoder score.
     """
     pairs  = [(query_text,c["text"] )for c in candidates]
     scores = _get_model().predict(pairs)

@@ -96,11 +96,9 @@ def extract_numbers(text: str) -> list[str]:
     """
     Return every numeric token in `text`, normalized.
 
-    TODO(you) — V2-M3:
-      1. Use NUMBER_RE.findall(text) to pull out the raw numeric tokens.
-      2. Run each through normalize().
-      3. Return the list (duplicates are fine; empty list if the text has no
-         numbers — that's the common, healthy case).
+    Identifier fragments are skipped, so a commit sha or a model name does not
+    contribute phantom figures. Duplicates are kept and an empty list is the
+    common, healthy case - most claims carry no numbers at all.
     """
     numbers = []
     for match in NUMBER_RE.finditer(text):
@@ -118,27 +116,23 @@ def check_quantities(claim_text: str, cited_chunks: list[dict]) -> tuple[bool, s
         (True,  "")                      every number in the claim is in evidence
         (False, "<why>")                 at least one number is unsupported
 
-    TODO(you) — V2-M3:
-      1. numbers = extract_numbers(claim_text)
-         If there are none -> return (True, "") immediately. A bullet with no
-         figures can't inflate a figure; the LLM Critic still checks its meaning.
-      2. Build the evidence haystack: the normalized numbers found across ALL
-         cited chunks (extract_numbers over each chunk's "text").
-         Hint: a set makes the membership test cheap and reads clearly.
-      3. Every claim number must be present in that haystack. Collect the ones
-         that are missing.
-      4. If any are missing -> return (False, <a reason naming the exact
-         unsupported figure(s)>). That reason lands in the artifact and the run
-         trace, so make it specific: the Refiner and the reader both need to
-         know WHICH number failed, not just that one did.
-      5. Otherwise -> return (True, "").
+    Stage 1 of two, and the cheap one: it runs BEFORE the LLM Critic and costs
+    nothing, so an inflated figure is struck without spending a token. A claim
+    with no figures passes straight through - it cannot inflate one - and the
+    Critic still judges its meaning.
 
-    Edge cases worth a thought:
-      - the same number appearing in a different context ("41 chunks" in the
-        claim vs "41 files" in evidence) still PASSES — this check is about
-        fabricated figures, not about semantics. The LLM Critic covers meaning;
-        these two layers are deliberately different jobs.
-      - a claim citing several chunks: the number may come from ANY of them.
+    Every number in the claim must appear somewhere in the numbers extracted
+    from the cited chunks, any of them, since a claim may legitimately draw one
+    figure from one citation and another from a second.
+
+    Deliberately blind to semantics: "41 chunks" in the claim against "41 files"
+    in the evidence PASSES. This layer asks only whether a figure was
+    FABRICATED. Whether it means what the claim says it means is the Critic's
+    job, and keeping the two apart is what makes this one deterministic.
+
+    The reason string names the exact failing figures, because it lands in both
+    the artifact and the run trace - "a number failed" is not answerable later,
+    "93% is not in the cited evidence" is.
     """
     numbers = extract_numbers(claim_text)
     if not numbers:

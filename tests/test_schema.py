@@ -46,8 +46,7 @@ GUIDE_NO_CITE   = {"sections": [{"heading": "H", "claims": [{"text": "long enoug
 
 
 def test_valid_quiz_parses():
-    """TODO(you): model_validate a well-formed quiz dict (one item, valid
-    question/answer/citations). Assert it has 1 item and the fields match."""
+    """A well-formed quiz dict validates with its fields intact."""
     
     quiz = Quiz.model_validate(VALID_QUIZ)
     assert len(quiz.items) == 1
@@ -58,8 +57,8 @@ def test_valid_quiz_parses():
 
 
 def test_valid_guide_parses():
-    """TODO(you): build a valid Guide (one section, one claim). Assert the
-    nesting came through: 1 section, 1 claim, right heading."""
+    """A valid Guide validates with its nesting intact:
+    section -> claims -> citations."""
     
     guide = Guide.model_validate(VALID_GUIDE)
     assert len(guide.sections) == 1
@@ -72,9 +71,8 @@ def test_valid_guide_parses():
 # --- reject paths (each should raise ValidationError) ----------------------
 
 def test_empty_quiz_items_rejected():
-    """TODO(you): a Quiz with items=[] must raise. Use:
-        with pytest.raises(ValidationError):
-            Quiz.model_validate({"items": []})
+    """A Quiz with items=[] must raise: an artifact with nothing in it is
+    malformed output, not an answer.
     """
     with pytest.raises(ValidationError):
         Quiz.model_validate(NO_ITEMS)
@@ -82,28 +80,31 @@ def test_empty_quiz_items_rejected():
 
 
 def test_quiz_item_needs_a_citation():
-    """TODO(you): a QuizItem with citations=[] must raise."""
+    """A QuizItem with citations=[] must raise. This single constraint is
+    the cite-or-strike guarantee made mechanical - an uncited claim cannot
+    leave the generator, whatever the prompt said."""
     with pytest.raises(ValidationError):
         Quiz.model_validate(NO_CITATION)
 
 
 def test_short_question_rejected():
-    """TODO(you): a QuizItem whose question is under 10 chars must raise."""
+    """A question under 10 characters must raise - a length floor against
+    degenerate output like "?" passing as an item."""
     with pytest.raises(ValidationError):
         Quiz.model_validate(SHORT_QUESTION)
 
 
 
 def test_empty_guide_sections_rejected():
-    """TODO(you): a Guide with sections=[] must raise."""
+    """A Guide with sections=[] must raise."""
     
     with pytest.raises(ValidationError):
         Guide.model_validate(NO_SECTIONS)
 
 
 def test_guide_claim_needs_a_citation():
-    """TODO(you): a GuideClaim with citations=[] must raise (nested three
-    levels deep — proves Pydantic validates recursively)."""
+    """A GuideClaim with citations=[] must raise, three levels deep -
+    proving Pydantic validates recursively rather than only the top level."""
     with pytest.raises(ValidationError):
         Guide.model_validate(GUIDE_NO_CITE)
 
@@ -111,13 +112,13 @@ def test_guide_claim_needs_a_citation():
 # --- all_citations() flattening -------------------------------------------
 
 def test_quiz_all_citations_flattens():
-    """TODO(you): build a Quiz with two items whose citations are e.g.
-    ["c1","c2"] and ["c3"]. Assert all_citations() == ["c1","c2","c3"]."""
+    """all_citations() flattens every item's citations into one list -
+    what _parse_and_validate checks against the retrieved pool."""
 
     assert Quiz.model_validate(TWO_ITEM_QUIZ).all_citations() == ["c1", "c2", "c3"]
 
 def test_guide_all_citations_flattens():
-    """TODO(you): build a Guide with citations spread across sections/claims.
-    Assert all_citations() returns them all, flattened."""
+    """The same flattening through Guide's extra level of nesting, so the
+    caller never needs to know how deep a given artifact's citations sit."""
     
     assert Guide.model_validate(MULTI_GUIDE).all_citations() == ["c1", "c2", "c3", "c4"]
