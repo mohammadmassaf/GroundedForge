@@ -666,3 +666,106 @@ Every trap was verified against the real chunk text before being written, and th
 was checked deterministically (quant-only, no LLM) before spending anything on the Critic.
 Three job-mode eval items were authored from memory earlier in this project and had to be
 corrected; that is the reason for the order.
+
+---
+
+## Finding 8: mis-citation is not the dominant strike — over-reach is
+
+Measured 2026-08-30 at commit `8b16dc4`, `python main.py strikes`, **zero LLM calls**. The
+inputs were traces already on disk; nothing was re-run and nothing was spent.
+
+The open-work list had carried this since 2026-08-22:
+
+> *Mis-citation is the dominant remaining strike. [...] Count it on the next run before
+> touching the prompt — if mis-citation is most of the remaining strikes, that is a much
+> cheaper fix than anything retrieval-side.*
+
+It was a reasonable read of j13, and it is **wrong**.
+
+### What made it countable
+
+A strike has two causes that read identically in the Critic's reason string: the support was
+nowhere in the pool (retrieval), or it was in the pool under a chunk the claim did not cite
+(mis-citation). Opposite fixes. Since `22fb586` the trace records `pool` on the generated
+event and `citations` on every verdict, so `pool − citations` — "where the support could have
+been instead" — is recoverable offline. Each leftover chunk is scored against the struck claim
+with the corpus-wide BM25 index and compared against the best-scoring chunk the claim actually
+cited.
+
+### Results
+
+| corpus | attributed | lead | over-reach | unmeasurable |
+|---|---|---|---|---|
+| job | 21 | 2 | 15 | 4 |
+| networks | 15 | 3 | 12 | 0 |
+| **both** | **36** | **5** | **27** | **4** |
+
+Of 119 strikes recorded in `traces/`, 83 predate `22fb586` and carry no pool, leaving 36
+attributable. **Five of 36 had a better-scoring uncited chunk. Twenty-seven cited the best
+thing available**, which makes them over-reach — the claim went further than good evidence
+supported — not misdirected citation.
+
+The two job leads read as genuine on inspection:
+
+- *"Implemented automatic table creation via SQLAlchemy models and Alembic"* cited
+  `mealwise@0ba4343` *"feat: adding db services"* (5.62) while `mealwise@8912ac4`
+  *"fix: create database tables automatically on startup"* (15.46) sat uncited in the same
+  pool. The uncited commit is the claim.
+- *"Added database-backed logic for POST /meal-plan/{id}/regenerate-day"* cited `@f0ebb48`
+  (5.32) over `@d1a9001` (13.43). Subtler: the claim spans both commits, so this is an
+  **incomplete** citation rather than a wrong one — a different prompt fix.
+
+The networks lead is the adjacent-section shape j13 predicted: cited `Part-3_p22` (16.27)
+with `Part-3_p21` (19.47) uncited in the same pool. The pattern is real. It is just rare.
+
+### Why "unmeasurable" is a third bucket and not a rounding error
+
+Four job strikes score ~0 against the chunk they cited, which looks like the strongest possible
+mis-citation signal and is not. `_tokenize` splits on whitespace and strips only ``.,;:!?"'()[]``,
+so the README's `SECRET_key=your_jwt_secret` survives as **one token** and the claim's words
+*secret*, *key* and *jwt* can never match the chunk that actually contains them. Their true
+margins are unknowable.
+
+Folding them either way corrupts the result in a different direction: as leads they take
+mis-citation from 2 to 6 and reverse the conclusion; as no_leads they add three cases to the
+over-reach count that were never measured, manufacturing evidence for the finding. So they are
+reported separately — the same call already made for gapped questions in `grounding_eval`, and
+for `EmptyGeneration` being a sibling of `GenerationError` rather than a subclass.
+
+This is also the limit of the method: **a low score is weak evidence of anything**, because the
+scorer inherits the tokenizer's blindness. The report prints ranked shortlists rather than only
+counts for exactly this reason. The worked example is the warning — `mealwise@0cf0a59` topped a
+shortlist at 8.61 against a cited 0.12 and, read, is about Gemini scaffolding and supports
+nothing. The tool proposes; reading disposes.
+
+### What this changes
+
+- **Citation-discipline prompt work is not where the remaining points are.** It would address
+  5 of 36 strikes, two of which are a different defect (incomplete rather than wrong).
+- **Over-reach at 27 of 36 is the real target**, and it is a Generator-prompt problem —
+  consistent with Findings 1 and 2, where job-mode strikes were abstraction rather than
+  fabrication.
+- The `--retrieval hybrid --gen-k 8` comparison keeps its priority: retrieval was never
+  implicated by this, and it is still the untested prediction.
+
+### Method notes worth keeping
+
+**The corpus is decided by measurement, not by filename.** `belongs_to()` asks whether a
+trace's chunk ids resolve against `chunks/<corpus>.json`. Reading the corpus off the filename
+(`quiz_*` → networks) is a guess, and ambiguous besides — quiz runs exist over `networks` and
+`demo` both. The two corpora come out exactly complementary (job attributes 21 and calls 15
+foreign; networks the reverse), which is the check that the partition is real. It also covers
+the planned re-ingest: if chunk ids shift, an old trace stops resolving and is reported as
+foreign rather than scored against chunks that no longer mean the same thing.
+
+**The dataset had to be cleaned before it could be counted.** `test_loop_integration.py` ran
+the real `Tracer`, so every `pytest` invocation appended a genuine trace file full of canned
+content. 81 had accumulated; 28 carried a pool and landed in the attributable bucket, making
+the count read 62 where it is 36 — and it grew by one per test run, so it was not stable
+between two invocations of the same measurement. Fixed by redirecting `TRACE_DIR` to `tmp_path`
+in an autouse fixture (`eb4b9b9`), which closes the class of bug rather than the instance, and
+the 81 were deleted.
+
+The general lesson, and the one worth carrying to the next project: **establish what wrote into
+a dataset before measuring it.** `traces/` looked like a log of production runs and was actually
+production runs and test output sharing a directory.
