@@ -238,7 +238,52 @@ def attribute(strike: dict, corpus: str) -> dict:
     }
 
 
-def strike_report(strikes: list[dict], attributed: list[dict]) -> str:
+def belongs_to(strike: dict, corpus: str) -> bool:
+    """
+    Does this strike come from a run over `corpus`?
+
+    Decided by whether its chunk ids actually resolve against
+    chunks/<corpus>.json - a measurement rather than an inference. The
+    alternative is reading the corpus off the filename (`quiz_*` => networks),
+    which is a guess encoded in a naming convention and ambiguous anyway, since
+    quiz runs exist over both `networks` and `demo`.
+
+    Traces written after the run_start header landed say so outright, but 243
+    of the traces on disk predate it, so this has to work without them.
+
+    It also catches the case that will arrive with the next re-ingest: if chunk
+    ids shift, an old trace stops resolving and is reported as foreign instead
+    of scoring its claims against chunks that no longer mean the same thing.
+    """
+    ids = {c["chunk_id"] for c in _get_index(corpus)[1]}
+    return bool(strike["pool"]) and all(cid in ids for cid in strike["pool"])
+
+
+def sweep(corpus: str, pattern: str = "*.jsonl") -> tuple[list, list, int]:
+    """
+    Load every trace matching `pattern`, attribute the ones belonging to
+    `corpus`, and return (all_strikes, attributed, foreign_count).
+
+    Three buckets, kept apart on purpose: a strike can be unattributable (no
+    pool recorded), foreign (a different corpus), or attributed. Only the third
+    is measurable, and the report has to show the other two or a lead count
+    over 21 strikes gets read as a lead count over 198.
+    """
+    all_strikes, attributed, foreign = [], [], 0
+    for path in sorted(TRACE_DIR.glob(pattern)):
+        for strike in load_strikes(path):
+            all_strikes.append(strike)
+            if not strike["attributable"]:
+                continue
+            if not belongs_to(strike, corpus):
+                foreign += 1
+                continue
+            attributed.append(attribute(strike, corpus))
+    return all_strikes, attributed, foreign
+
+
+def strike_report(strikes: list[dict], attributed: list[dict],
+                  foreign: int = 0) -> str:
     """
     The summary, worded so it cannot be misquoted.
 
@@ -258,11 +303,13 @@ def strike_report(strikes: list[dict], attributed: list[dict]) -> str:
     # The denominator first. A strike from a pre-22fb586 trace recorded no pool,
     # so it cannot be attributed at all -- reporting only the attributable ones
     # would quietly present a third of the data as the whole of it.
-    skipped = len(strikes) - len(attributed)
+    no_pool = sum(1 for s in strikes if not s["attributable"])
     lines.append(f"  strikes loaded     : {len(strikes)}")
-    lines.append(f"  attributable       : {len(attributed)}")
-    if skipped:
-        lines.append(f"  not attributable   : {skipped}  (no pool recorded - traces predate {POOL_ERA})")
+    lines.append(f"  attributed         : {len(attributed)}")
+    if no_pool:
+        lines.append(f"  no pool recorded   : {no_pool}  (traces predate {POOL_ERA})")
+    if foreign:
+        lines.append(f"  another corpus     : {foreign}  (chunk ids do not resolve here)")
 
     stages = Counter(s["stage"] for s in attributed)
     if stages:

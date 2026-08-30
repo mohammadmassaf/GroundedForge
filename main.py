@@ -157,6 +157,13 @@ def cmd_eval(args):
     print(report(retrieval, grounding, trap_results))
 
 
+def cmd_strikes(args):
+    from eval.strikes import sweep, strike_report
+
+    strikes, attributed, foreign = sweep(args.corpus, pattern=args.pattern)
+    print(strike_report(strikes, attributed, foreign))
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="grounded-forge",
@@ -232,6 +239,17 @@ def build_parser():
                              "recall@<gen-k> is always added to the report, since that "
                              "row is the ceiling on grounding.")
     p_eval.set_defaults(func=cmd_eval)
+
+    p_strikes = sub.add_parser("strikes",
+                               help="Attribute past strikes to a cause, offline from traces/")
+    p_strikes.add_argument("--corpus", default="job",
+                           help="Corpus to score against. Traces whose chunk ids don't "
+                                "resolve here are reported as another corpus, not scored.")
+    p_strikes.add_argument("--pattern", default="*.jsonl",
+                           help="Glob over traces/ (e.g. 'bullets_*.jsonl'). Narrowing is "
+                                "an optimisation only - foreign traces are excluded by id "
+                                "resolution either way.")
+    p_strikes.set_defaults(func=cmd_strikes)
 
     return parser
 
