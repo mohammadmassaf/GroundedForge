@@ -34,7 +34,7 @@ def cmd_make_quiz(args):
     print(f"Retrieving chunks for: {args.topic}")
     chunks = search(args.topic, corpus=args.corpus, k=args.k)
     print(f"Generating {args.n} quiz items from {len(chunks)} chunks (cite-or-strike)...")
-    kept, struck = run_loop(args.topic, chunks, n=args.n)
+    kept, struck = run_loop(args.topic, chunks, n=args.n, corpus=args.corpus)
     print(f"Critic: {len(kept)} kept, {len(struck)} struck")
     markdown = render(kept, chunks, args.topic, struck=struck)
 
@@ -53,7 +53,7 @@ def cmd_make_guide(args):
     print(f"Retrieving chunks for: {args.topic}")
     chunks = hybrid_search(args.topic, corpus=args.corpus, k=args.k , use_rerank = True)
     print(f"Generating a guide from  {len(chunks)} chunks (cite-or-strike)...")
-    kept, struck = run_guide_loop(args.topic, chunks)
+    kept, struck = run_guide_loop(args.topic, chunks, corpus=args.corpus)
     print(f"Critic: {len(kept)} kept, {len(struck)} struck")
     markdown = render_guide(kept, chunks, args.topic, struck=struck)
 
@@ -82,7 +82,7 @@ def cmd_make_bullets(args):
     print(f"Retrieving chunks for: {args.topic}" + (f" [filter: {where}]" if where else ""))
     chunks = hybrid_search(args.topic, corpus=args.corpus, k=args.k, use_rerank=True, where=where)
     print(f"Generating {args.n} bullets from {len(chunks)} chunks (cite-or-strike)...")
-    kept, struck, gap = run_bullets_loop(args.topic, chunks, n=args.n)
+    kept, struck, gap = run_bullets_loop(args.topic, chunks, n=args.n, corpus=args.corpus)
     if gap:
         print(f"GAP: {gap}")
     else:
@@ -108,7 +108,7 @@ def cmd_make_star(args):
     for name, pool in pools.items():
         print(f"  {name:10} {len(pool)} chunks")
     print("Generating STAR answer (cite-or-strike)...")
-    answer, flagged = run_star_loop(args.question, pools)
+    answer, flagged = run_star_loop(args.question, pools, corpus=args.corpus)
     print(f"Critic: {len(flagged)} section(s) flagged")
     markdown = render_star(answer, pools, flagged=flagged)
 

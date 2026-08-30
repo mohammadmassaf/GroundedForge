@@ -172,9 +172,11 @@ def grounding_eval(items: list[dict], corpus: str, n: int = 2,
             if generator == "bullets":
                 # job mode: quiz items over a commit history are meaningless.
                 # Same cite-or-strike policy, different output type.
-                kept, struck, gap = run_bullets_loop(item["question"], chunks, n=n)
+                kept, struck, gap = run_bullets_loop(item["question"], chunks, n=n,
+                                                     corpus=corpus)
             else:
-                kept , struck  = run_loop(item["question"] , chunks , n=n )
+                kept , struck  = run_loop(item["question"] , chunks , n=n ,
+                                          corpus=corpus)
                 gap = None
         except  GenerationError as e:
             failed += 1

@@ -459,3 +459,27 @@ def test_a_decline_after_strikes_still_reports_what_was_struck(monkeypatch):
     assert kept == []
     assert len(struck) == 1            # round 1's bullet, struck
     assert gap                         # kept is empty, so the gap branch fired
+
+
+# --- the trace as a record, not a summary ----------------------------------
+# A trace must record at least what the traced function RETURNS. scope_violation
+# once logged only `stray`, so run_star_loop returned a flagged section that a
+# replay of its own trace could not find -- the gap surfaced only as a
+# disagreement between the replay and the run's own `done` count.
+
+def test_scope_violation_logs_the_same_shape_as_a_verdict(monkeypatch):
+    """A consumer reading strikes off a trace tests one flag and reads one
+    reason. If this event alone needs a special case, every such consumer has
+    to know about it -- so it carries a verdict's fields, plus `stray` to say
+    WHICH citation broke scope."""
+    fake_critic, _ = _critic_recorder(supported=True)
+    _patch(monkeypatch, _answer(action=("what I implemented", ["s1"])), fake_critic)
+    monkeypatch.setattr("critic.loop.Tracer", _RecordingTracer)
+
+    run_star_loop("a question", POOLS)
+
+    event = _events("scope_violation")[0]
+    assert event["supported"] is False          # a flag to test, like its siblings
+    assert "s1" in event["reason"]              # a reason to read, like its siblings
+    assert event["citations"] == ["s1"]         # what it cited
+    assert event["stray"] == ["s1"]             # which part was out of scope

@@ -34,7 +34,8 @@ MAX_ROUNDS = 2
 MIN_EVIDENCE_SCORE = 0.25
 
 
-def run_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list]:
+def run_loop(topic: str, chunks: list[dict], n: int = 5,
+             corpus: str | None = None) -> tuple[list, list]:
    """
     TODO(you): the orchestration.
 
@@ -58,7 +59,7 @@ def run_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list]:
        print(f"Trace: {tracer.path}")
     4. return kept, struck
     """
-   tracer = Tracer("quiz")
+   tracer = Tracer("quiz", corpus=corpus)
    by_id = {c["chunk_id"]: c for c in chunks}
    kept ,struck = [] , []
    for round_num in range(1, MAX_ROUNDS + 1):
@@ -80,7 +81,8 @@ def run_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list]:
 
    return kept,struck
    
-def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, list, str | None]:
+def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5,
+                     corpus: str | None = None) -> tuple[list, list, str | None]:
     """
     Cite-or-strike for CV bullets. Same shape as run_loop, with TWO differences:
 
@@ -97,7 +99,7 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
     Returns (kept, struck, gap): gap is None on a normal run, or a message when
     the corpus doesn't cover the topic.
     """
-    tracer = Tracer("bullets")
+    tracer = Tracer("bullets", corpus=corpus)
     by_id = {c["chunk_id"]: c for c in chunks}
 
     # --- honest gap reporting: is there any real evidence to work from? ---
@@ -169,7 +171,8 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5) -> tuple[list, 
     return kept, struck, None
 
 
-def run_star_loop(question: str, pools: dict[str, list[dict]]) -> tuple[object, list]:
+def run_star_loop(question: str, pools: dict[str, list[dict]],
+                  corpus: str | None = None) -> tuple[object, list]:
     """
     Cite-or-strike for a STAR answer. Verifies each of the four sections
     independently, with the same two-stage check as bullets.
@@ -179,7 +182,7 @@ def run_star_loop(question: str, pools: dict[str, list[dict]]) -> tuple[object, 
     section (a STAR answer with no Result is broken) — we keep it and flag it,
     so the artifact shows what isn't trustworthy.
     """
-    tracer = Tracer("star")
+    tracer = Tracer("star", corpus=corpus)
     by_id = {c["chunk_id"]: c for pool in pools.values() for c in pool}
 
     answer = generate_star(question, pools)
@@ -195,8 +198,18 @@ def run_star_loop(question: str, pools: dict[str, list[dict]]) -> tuple[object, 
         own_ids = {c["chunk_id"] for c in pools.get(name.lower(), [])}
         stray = [cid for cid in section.citations if cid not in own_ids]
         if stray:
-            flagged.append((name, f"cited outside its evidence pool: {stray}"))
-            tracer.log("scope_violation", section=name, stray=stray)
+            reason = f"cited outside its evidence pool: {stray}"
+            flagged.append((name, reason))
+            # Logged in the SAME field shape as a critic_verdict, deliberately.
+            # This event used to carry only `stray`, so the trace recorded
+            # strictly less than the function returned: a replay of the trace
+            # could not see the strike at all, and it surfaced only as a
+            # disagreement with this run's own `done` count. `stray` is kept
+            # alongside `citations` because it says WHICH of them broke scope --
+            # unifying the shape must not cost information.
+            tracer.log("scope_violation", section=name,
+                       citations=section.citations, stray=stray,
+                       supported=False, reason=reason)
             continue
 
         # stage 1 — deterministic
@@ -219,8 +232,8 @@ def run_star_loop(question: str, pools: dict[str, list[dict]]) -> tuple[object, 
     return answer, flagged
 
 
-def run_guide_loop(topic, chunks) -> tuple[list, list]:
-   tracer = Tracer("guide")
+def run_guide_loop(topic, chunks, corpus: str | None = None) -> tuple[list, list]:
+   tracer = Tracer("guide", corpus=corpus)
    by_id = {c["chunk_id"]: c for c in chunks}
    struck = [] 
    kept_sections = []
