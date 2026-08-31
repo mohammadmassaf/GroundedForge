@@ -1,0 +1,136 @@
+{
+  "_comment": "Eval set for the PUBLIC demo corpus (demo_corpus/ = RFC 768/791/793). Exists so the live demo can show the Critic striking a planted claim without touching the course PDFs, which are gitignored for copyright. Retrieval is correct if a top-k chunk comes from ANY listed (source_file, page) pair. Traps carry {claim, citations, stage, why}: `stage` is which check SHOULD catch it -- quant when the claim states a figure absent from the cited chunk, critic when every figure in the claim IS present but attached to the wrong thing, so the deterministic check cannot see it. Every trap below was written against the literal text of the chunk it cites; the quoted phrase in each `why` is what the RFC actually says.",
+  "items": [
+    {
+      "id": "d1",
+      "question": "What is the minimum value of the Length field in a UDP header?",
+      "expected": [
+        {
+          "source_file": "rfc768.txt",
+          "pages": [
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d2",
+      "question": "What size datagram must every internet module be able to forward without fragmenting it?",
+      "expected": [
+        {
+          "source_file": "rfc791.txt",
+          "pages": [
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d3",
+      "question": "In what units is the fragment offset measured?",
+      "expected": [
+        {
+          "source_file": "rfc791.txt",
+          "pages": [
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d4",
+      "question": "What happens to a datagram when its Time to Live field reaches zero?",
+      "expected": [
+        {
+          "source_file": "rfc791.txt",
+          "pages": [
+            8,
+            20,
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d5",
+      "question": "Why was 576 octets chosen as the datagram size every destination must accept?",
+      "expected": [
+        {
+          "source_file": "rfc791.txt",
+          "pages": [
+            19,
+            31
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d6",
+      "question": "What Time to Live does TCP ask the internet layer to use, and what is the assumed maximum segment lifetime?",
+      "expected": [
+        {
+          "source_file": "rfc793.txt",
+          "pages": [
+            57
+          ]
+        }
+      ]
+    }
+  ],
+  "traps": [
+    {
+      "id": "dt1",
+      "claim": "Every internet module must be able to forward a datagram of 128 octets without further fragmentation.",
+      "citations": [
+        "rfc791_p31_c1"
+      ],
+      "stage": "quant",
+      "why": "The chunk says 68 octets. 128 appears nowhere in it, so the deterministic figure check strikes this without an LLM call."
+    },
+    {
+      "id": "dt2",
+      "claim": "The minimum value of the UDP Length field is 4 octets, because that is the size of the UDP header.",
+      "citations": [
+        "rfc768_p2_c0"
+      ],
+      "stage": "quant",
+      "why": "The chunk says the minimum value of the length is eight. The digit 4 is absent from the chunk entirely."
+    },
+    {
+      "id": "dt3",
+      "claim": "The number 576 was selected to allow a data block of 512 octets plus 128 header octets to fit in a datagram.",
+      "citations": [
+        "rfc791_p19_c2"
+      ],
+      "stage": "quant",
+      "why": "576 and 512 are both genuinely in the chunk -- only the third figure is invented. The RFC says 64 header octets. A guard that stops at the first matching number would pass this."
+    },
+    {
+      "id": "dt4",
+      "claim": "The fragment offset is measured in units of 64 octets, and the first fragment has offset zero.",
+      "citations": [
+        "rfc791_p20_c0"
+      ],
+      "stage": "critic",
+      "why": "The chunk reads 'measured in units of 8 octets (64 bits)'. The claim's only figure, 64, IS in the chunk -- attached to bits, not octets. The deterministic check cannot see the difference; the Critic has to read the sentence. ESCAPES as of 2026-08-31 (see notes.md Finding 9): the Critic quoted 'units of 8 octets (64 bits)' back and called it a match. Left failing on purpose -- it is the before-measurement for the Critic prompt fix, not a broken trap."
+    },
+    {
+      "id": "dt5",
+      "claim": "Every internet destination must be able to receive a datagram of 68 octets, either in one piece or in fragments to be reassembled.",
+      "citations": [
+        "rfc791_p31_c1"
+      ],
+      "stage": "critic",
+      "why": "Both requirements live in this one chunk: forward 68 octets, receive 576 octets. The claim takes the real figure from the first and attaches it to the second. Every number checks out; the meaning does not."
+    },
+    {
+      "id": "dt6",
+      "claim": "A datagram whose Time to Live field reaches zero must be queued for retransmission by the next gateway that processes it.",
+      "citations": [
+        "rfc791_p20_c0"
+      ],
+      "stage": "critic",
+      "why": "The chunk says the datagram must be destroyed. The claim states the opposite and carries no figures at all, so the quantitative stage has nothing to test and passes it straight through."
+    }
+  ]
+}

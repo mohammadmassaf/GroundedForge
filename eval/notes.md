@@ -769,3 +769,78 @@ the 81 were deleted.
 The general lesson, and the one worth carrying to the next project: **establish what wrote into
 a dataset before measuring it.** `traces/` looked like a log of production runs and was actually
 production runs and test output sharing a directory.
+
+---
+
+## Finding 9: the Critic quoted the contradicting sentence and called it a match
+
+Measured 2026-08-31, `python main.py eval --corpus demo --limit 0`, 4 Groq calls.
+
+### Why there was a demo trap set to run at all
+
+The live demo has to show a strike or it shows nothing — cite-or-strike is the product, and
+a panel that is empty whenever the generator happens not to hallucinate is not a
+demonstration of anything. The fallback in the shipping plan was "show an adversarial trap
+instead", and that fallback did not exist: all six traps in `eval_set.json` cite
+`I2208-2024-2025-Part-3_*`, the course corpus, which is gitignored for copyright. **The one
+corpus a stranger can run was the one corpus with nothing to strike.** Worse, it failed
+quietly — `_eval_path` routed every non-`job` corpus to the v1 set, so `eval --corpus demo`
+handed `trap_eval` citations it could not resolve and landed in the `except` at
+`main.py:156`, printing a report with no adversarial half rather than an error.
+
+So: `eval/eval_set_demo.json`, six traps written against the literal text of RFC 768/791/793,
+three per stage. The stage split was verified offline with `check_quantities` before spending
+a single call — quant traps state a figure absent from the cited chunk, critic traps state
+figures that are all present and attached to the wrong thing.
+
+### Result: 5/6
+
+| stage | traps | caught |
+|---|---|---|
+| quant | 3 | 3 |
+| critic | 3 | 2 |
+
+The escape is `dt4`, and it is not a badly-authored trap:
+
+> **claim** — "The fragment offset is measured in units of **64 octets**, and the first
+> fragment has offset zero."
+> **evidence** (`rfc791_p20_c0`, first sentence) — "The fragment offset is measured in units
+> of **8 octets (64 bits)**. The first fragment has offset zero."
+> **verdict** — supported. **reason** — *"The evidence states the fragment offset is measured
+> in units of 8 octets (64 bits) and that the first fragment has offset zero, matching the
+> claim."*
+
+The Critic **retrieved the contradicting sentence, quoted it correctly, and then concluded it
+matched.** This is not a retrieval failure and not a reading failure — the right text was in
+front of it, in its own reason string. It is a comparison failure: `64` appears in the
+evidence, so the unit it is attached to went unchecked. 64 bits and 64 octets differ by a
+factor of eight.
+
+### Why this trap and not the other two
+
+`dt5` and `dt6` were both caught, so the Critic is not broadly blind to this shape:
+
+- `dt5` moves a real figure between two requirements in the same chunk (68 octets is the
+  *forward* minimum; the claim asserts it as the *receive* minimum, which is 576). Caught.
+- `dt6` states the opposite of the evidence with no figures at all. Caught.
+
+The distinguishing feature of `dt4` is that the wrong element is a **unit**, not a fact — the
+sentence structure is otherwise identical to the source, and the number matches. That is the
+narrowest possible defect a semantic Critic has to catch, and the one where a
+figure-presence heuristic looks most like understanding.
+
+### What is deliberately NOT being done in this commit
+
+The obvious response is to add a units instruction to the Critic prompt. Not here, for the
+reason Finding 5 already paid for: the Critic prompt judges every claim in every mode, so a
+change to it invalidates the published grounding number, which was measured on the current
+one. Patching the prompt in the same commit that introduces the trap would also destroy the
+before/after — the trap would arrive already passing, and the only evidence the bug existed
+would be this paragraph.
+
+So the traps land with the escape recorded and the rate reported as **83.3%**. The prompt fix
+is a separate change with a measured delta, and it has to answer two questions, not one:
+does `dt4` get caught, and does grounding hold on the questions that were already passing.
+
+**Adversarial coverage is now on a public corpus**, which is the reusable part: the trap
+example in any writeup no longer has to come from PDFs that cannot be shown.

@@ -29,6 +29,7 @@ from retrieve.hybrid import hybrid_search
 
 EVAL_SET = Path("eval/eval_set.json")
 EVAL_SET_JOB = Path("eval/eval_set_job.json")
+EVAL_SET_DEMO = Path("eval/eval_set_demo.json")
 
 # The pool size the Generator reads, and the default for --gen-k. Not decoration:
 # it is the only recall figure that predicts what the Generator can actually
@@ -49,8 +50,22 @@ KS = _ks()
 
 
 def _eval_path(corpus: str) -> Path:
-    """Job mode has its own eval set; every other corpus uses the v1 one."""
-    return EVAL_SET_JOB if corpus == "job" else EVAL_SET
+    """
+    Each corpus that has its own eval set gets it; everything else falls back
+    to the v1 one.
+
+    `demo` needs its own because an eval set is only meaningful against the
+    chunks it cites. The v1 set's items and all six of its traps name
+    I2208-2024-2025-Part-3 chunks, which do not exist in chunks/demo.json --
+    so `eval --corpus demo` used to hand trap_eval citations it could not
+    resolve and land in the "trap eval failed" catch in main.py, reporting a
+    demo run with no adversarial half at all.
+
+    That mattered once the demo went public: the course PDFs are gitignored
+    for copyright, so the corpus a stranger can actually run was the one
+    corpus with nothing to strike.
+    """
+    return {"job": EVAL_SET_JOB, "demo": EVAL_SET_DEMO}.get(corpus, EVAL_SET)
 
 
 def load_eval_set(corpus: str = "default") -> list[dict]:
