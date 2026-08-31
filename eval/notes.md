@@ -844,3 +844,54 @@ does `dt4` get caught, and does grounding hold on the questions that were alread
 
 **Adversarial coverage is now on a public corpus**, which is the reusable part: the trap
 example in any writeup no longer has to come from PDFs that cannot be shown.
+
+### Follow-up, same day: the prompt fix does not work, and is not being kept
+
+Two attempts at the Critic prompt, ~10 Groq calls total. Neither caught `dt4`.
+
+**Attempt 1, declarative.** A new rule 3: a figure is supported only if the number AND what
+it is attached to both match — the unit, and the quantity it measures. First draft of it
+used the literal words `"8 octets (64 bits)"` and `"64 octets"` as the illustration, which
+is teaching to the test: `dt4` would then pass because the prompt names `dt4`. Rewritten
+with an unrelated example (ms vs seconds) before it was ever run. Result: `dt4` supported.
+
+**Attempt 2, procedural.** Same rule turned into an instruction to execute: take each number
+in the claim, find it in the evidence, check which unit and which quantity the evidence
+attaches it to, and strike if either differs. Result: `dt4` supported.
+
+Both attempts left `dt5` and `dt6` caught, so neither made the Critic broadly stricter —
+they simply did not reach this case.
+
+The verdict text is the same each time: the model **quotes the contradicting clause and
+returns supported.**
+
+> *"The evidence explicitly states that the fragment offset is measured in units of 8 octets
+> (64 bits) and that the first fragment has offset zero, matching the claim."*
+
+The likely mechanism is the parenthetical. `(64 bits)` puts the digits `64` in the evidence
+with an air of authority, and the comparison the rule asks for — `64 octets` against
+`8 octets` — is one the model does not perform even when instructed to perform it step by
+step. This is the Finding 5 lesson in a new place: **a limitation of `openai/gpt-oss-20b` at
+this task, not a gap in the wording.** No third variant was tried, because any variant likely
+to work from here has to name octets and bits, and a trap that passes because the prompt
+describes it measures nothing.
+
+**The prompt is reverted.** A change that catches no additional trap while invalidating the
+published grounding number — measured on the current prompt — is strictly negative. The
+expensive half of the before/after was never spent: no grounding re-measure was needed,
+because there is no improvement to weigh it against.
+
+`dt4` stays in the set, failing, annotated. It is worth more as a standing negative than as
+a trap quietly deleted for being inconvenient: it is the cheapest available test of whether
+a future model, or a future Critic, can do unit comparison. The honest headline is
+**5/6 (83.3%) on the public corpus**, and the reason the sixth escapes is known and written
+down.
+
+### Method note: the trap harness puts the claim in the ANSWER slot
+
+`trap_eval` calls `check_claim("", trap["claim"], cited)` — empty question, claim as the
+answer. Two of the diagnostics above were first run with the arguments the other way round,
+which builds a prompt reading `Question: <the claim>` / `Answer:` (empty). The verdict and
+the reason came back materially the same either way, so nothing above rests on it, but the
+general point stands: **a diagnostic that calls the function differently from the harness is
+not measuring the harness.** Check the call site before quoting a verdict as evidence.
