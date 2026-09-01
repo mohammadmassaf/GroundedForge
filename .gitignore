@@ -2,12 +2,25 @@
 __pycache__/
 *.pyc
 *.pyo
+# Holds EVERY corpus in one sqlite file - job (vault notes) and networks
+# (course PDFs) included. Never committable. The demo's store lives apart, in
+# chroma_demo/, which is committed on purpose: see retrieve/paths.py.
 chroma_db/
 data/
 venv/
 .venv/
 *.pdf
-chunks/
+
+# `chunks/*` rather than `chunks/`: git does not descend into an excluded
+# DIRECTORY, so a `!chunks/demo.json` under `chunks/` would silently never
+# match. Excluding the contents instead leaves the negation reachable.
+#
+# demo.json is public-domain RFC text and is committed so the Gradio Space,
+# which has no build step, does not have to re-ingest on every cold boot.
+# job.json and networks.json stay ignored.
+chunks/*
+!chunks/demo.json
+
 traces/
 corpus.yaml
 

@@ -13,6 +13,7 @@ Returns a list of result dicts, ordered by relevance (best first):
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from retrieve.model_pins import EMBEDDING_MODEL , EMBEDDING_KWARGS
+from retrieve.paths import chroma_dir
 
 
 
@@ -41,7 +42,7 @@ def search(query_text: str, corpus: str = "default", k: int = 5,
     results are still ranked by embedding similarity, but only chunks matching
     the filter are considered. None = search the whole corpus (v1 behavior).
     """
-    store = Chroma(collection_name=corpus, persist_directory="chroma_db", embedding_function=_get_embeddings())
+    store = Chroma(collection_name=corpus, persist_directory=chroma_dir(corpus), embedding_function=_get_embeddings())
     results = store.similarity_search_with_score(query_text, k =k , filter = where)
     final = []
     for doc , dist in results:

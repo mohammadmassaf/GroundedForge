@@ -2,8 +2,10 @@
 Embeds all chunks from chunks/<corpus>.json and stores them in ChromaDB.
 Run once per corpus (or re-run to rebuild).
 
-ChromaDB persists to chroma_db/ (gitignored).
-Each corpus gets its own collection so corpora never mix.
+ChromaDB persists to the directory `retrieve.paths.chroma_dir()` picks for the
+corpus: chroma_demo/ (committed, public RFCs) for `demo`, chroma_db/
+(gitignored) for everything else. Each corpus gets its own collection so
+corpora never mix.
 """
 import json
 from pathlib import Path
@@ -13,6 +15,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from retrieve.model_pins import EMBEDDING_MODEL , EMBEDDING_KWARGS
+from retrieve.paths import chroma_dir
 
 
 
@@ -50,6 +53,7 @@ def build(corpus: str = "default") -> None:
     dcmts = []
     for chunk in chunks :
         dcmts.append(Document(page_content=chunk["text"], metadata=_chunk_metadata(chunk)))
+    persist_directory = chroma_dir(corpus)
     Chroma.from_documents(documents  = dcmts, embedding = embeddings , ids =[ c["chunk_id"] for c in chunks] ,
-                        collection_name=corpus, persist_directory="chroma_db", collection_metadata={"hnsw:space": "cosine"})
-    print(f"Stored {len(chunks)} embeddings in ChromaDB collection '{corpus}' (via LangChain)")
+                        collection_name=corpus, persist_directory=persist_directory, collection_metadata={"hnsw:space": "cosine"})
+    print(f"Stored {len(chunks)} embeddings in ChromaDB collection '{corpus}' at {persist_directory}/ (via LangChain)")
