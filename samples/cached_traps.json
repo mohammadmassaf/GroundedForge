@@ -1,0 +1,130 @@
+{
+  "_comment": "Cached verdicts for the demo corpus's adversarial traps, so the Space can show the Critic striking a planted claim with no Groq call. Traps are authored in eval/eval_set_demo.json; regenerate this file from there rather than editing it. dt4 is a KNOWN escape, kept visible on purpose -- see eval/notes.md Finding 9.",
+  "corpus": "demo",
+  "generated_at": "2026-09-02",
+  "model": "openai/gpt-oss-20b",
+  "caught": 5,
+  "total": 6,
+  "traps": [
+    {
+      "id": "dt1",
+      "claim": "Every internet module must be able to forward a datagram of 128 octets without further fragmentation.",
+      "citations": [
+        "rfc791_p31_c1"
+      ],
+      "expected_stage": "quant",
+      "caught_by": "quant",
+      "struck": true,
+      "reason": "these numbers from claim are missing from cited evidence: 128",
+      "why": "The chunk says 68 octets. 128 appears nowhere in it, so the deterministic figure check strikes this without an LLM call.",
+      "evidence": [
+        {
+          "chunk_id": "rfc791_p31_c1",
+          "source_file": "rfc791.txt",
+          "page": 31,
+          "text": " with the the\n    datagram total length field (of course, the header is counted in the\n    total length and not in the fragments).\n\n    When fragmentation occurs, some options are copied, but others\n    remain with the first fragment only.\n\n    Every internet module must be able to forward a datagram of 68\n    octets without further fragmentation.  This is because an internet\n    header may be up to 60 octets, and the minimum fragment is 8 octets.\n\n    Every internet destination must be able to receive a datagram of 576\n    octets either in one piece or in fragments to be reassembled.\n\n    The fields which may be affected by fragmentation include:\n\n      (1) options field\n      (2) more frag"
+        }
+      ]
+    },
+    {
+      "id": "dt2",
+      "claim": "The minimum value of the UDP Length field is 4 octets, because that is the size of the UDP header.",
+      "citations": [
+        "rfc768_p2_c0"
+      ],
+      "expected_stage": "quant",
+      "caught_by": "quant",
+      "struck": true,
+      "reason": "these numbers from claim are missing from cited evidence: 4",
+      "why": "The chunk says the minimum value of the length is eight. The digit 4 is absent from the chunk entirely.",
+      "evidence": [
+        {
+          "chunk_id": "rfc768_p2_c0",
+          "source_file": "rfc768.txt",
+          "page": 2,
+          "text": "\n\n                                                             28 Aug 1980\nUser Datagram Protocol                                           RFC 768\nFields\n\n\n\nDestination  Port has a meaning  within  the  context  of  a  particular\ninternet destination address.\n\nLength  is the length  in octets  of this user datagram  including  this\nheader  and the data.   (This  means  the minimum value of the length is\neight.)\n\nChecksum is the 16-bit one's complement of the one's complement sum of a\npseudo header of information from the IP header, the UDP header, and the\ndata,  padded  with zero octets  at the end (if  necessary)  to  make  a\nmultiple of two octets.\n\nThe pseudo  header  conceptually prefix"
+        }
+      ]
+    },
+    {
+      "id": "dt3",
+      "claim": "The number 576 was selected to allow a data block of 512 octets plus 128 header octets to fit in a datagram.",
+      "citations": [
+        "rfc791_p19_c2"
+      ],
+      "expected_stage": "quant",
+      "caught_by": "quant",
+      "struck": true,
+      "reason": "these numbers from claim are missing from cited evidence: 128",
+      "why": "576 and 512 are both genuinely in the chunk -- only the third figure is invented. The RFC says 64 header octets. A guard that stops at the first matching number would pass this.",
+      "evidence": [
+        {
+          "chunk_id": "rfc791_p19_c2",
+          "source_file": "rfc791.txt",
+          "page": 19,
+          "text": "urance that the destination\n    is prepared to accept the larger datagrams.\n\n    The number 576 is selected to allow a reasonable sized data block to\n    be transmitted in addition to the required header information.  For\n    example, this size allows a data block of 512 octets plus 64 header\n    octets to fit in a datagram.  The maximal internet header is 60\n    octets, and a typical internet header is 20 octets, allowing a\n    margin for headers of higher level protocols.\n\n  Identification:  16 bits\n\n    An identifying value assigned by the sender to aid in assembling the\n    fragments of a datagram.\n\n  Flags:  3 bits\n\n    Various Control Flags.\n\n      Bit 0: reserved, must be zero\n      B"
+        }
+      ]
+    },
+    {
+      "id": "dt4",
+      "claim": "The fragment offset is measured in units of 64 octets, and the first fragment has offset zero.",
+      "citations": [
+        "rfc791_p20_c0"
+      ],
+      "expected_stage": "critic",
+      "caught_by": null,
+      "struck": false,
+      "reason": "The evidence states the fragment offset is measured in units of 8 octets (64 bits) and that the first fragment has offset zero.",
+      "why": "The chunk reads 'measured in units of 8 octets (64 bits)'. The claim's only figure, 64, IS in the chunk -- attached to bits, not octets. The deterministic check cannot see the difference; the Critic has to read the sentence. ESCAPES as of 2026-08-31 (see notes.md Finding 9): the Critic quoted 'units of 8 octets (64 bits)' back and called it a match. Left failing on purpose -- it is the before-measurement for the Critic prompt fix, not a broken trap.",
+      "evidence": [
+        {
+          "chunk_id": "rfc791_p20_c0",
+          "source_file": "rfc791.txt",
+          "page": 20,
+          "text": "\n\n                                                          September 1981\nInternet Protocol\nSpecification\n\n\n\n    The fragment offset is measured in units of 8 octets (64 bits).  The\n    first fragment has offset zero.\n\n  Time to Live:  8 bits\n\n    This field indicates the maximum time the datagram is allowed to\n    remain in the internet system.  If this field contains the value\n    zero, then the datagram must be destroyed.  This field is modified\n    in internet header processing.  The time is measured in units of\n    seconds, but since every module that processes a datagram must\n    decrease the TTL by at least one even if it process the datagram in\n    less than a second, the TTL must b"
+        }
+      ]
+    },
+    {
+      "id": "dt5",
+      "claim": "Every internet destination must be able to receive a datagram of 68 octets, either in one piece or in fragments to be reassembled.",
+      "citations": [
+        "rfc791_p31_c1"
+      ],
+      "expected_stage": "critic",
+      "caught_by": "critic",
+      "struck": true,
+      "reason": "The evidence states that a destination must receive 576 octets, not 68 octets.",
+      "why": "Both requirements live in this one chunk: forward 68 octets, receive 576 octets. The claim takes the real figure from the first and attaches it to the second. Every number checks out; the meaning does not.",
+      "evidence": [
+        {
+          "chunk_id": "rfc791_p31_c1",
+          "source_file": "rfc791.txt",
+          "page": 31,
+          "text": " with the the\n    datagram total length field (of course, the header is counted in the\n    total length and not in the fragments).\n\n    When fragmentation occurs, some options are copied, but others\n    remain with the first fragment only.\n\n    Every internet module must be able to forward a datagram of 68\n    octets without further fragmentation.  This is because an internet\n    header may be up to 60 octets, and the minimum fragment is 8 octets.\n\n    Every internet destination must be able to receive a datagram of 576\n    octets either in one piece or in fragments to be reassembled.\n\n    The fields which may be affected by fragmentation include:\n\n      (1) options field\n      (2) more frag"
+        }
+      ]
+    },
+    {
+      "id": "dt6",
+      "claim": "A datagram whose Time to Live field reaches zero must be queued for retransmission by the next gateway that processes it.",
+      "citations": [
+        "rfc791_p20_c0"
+      ],
+      "expected_stage": "critic",
+      "caught_by": "critic",
+      "struck": true,
+      "reason": "The evidence states that a datagram with TTL zero must be destroyed, not queued for retransmission.",
+      "why": "The chunk says the datagram must be destroyed. The claim states the opposite and carries no figures at all, so the quantitative stage has nothing to test and passes it straight through.",
+      "evidence": [
+        {
+          "chunk_id": "rfc791_p20_c0",
+          "source_file": "rfc791.txt",
+          "page": 20,
+          "text": "\n\n                                                          September 1981\nInternet Protocol\nSpecification\n\n\n\n    The fragment offset is measured in units of 8 octets (64 bits).  The\n    first fragment has offset zero.\n\n  Time to Live:  8 bits\n\n    This field indicates the maximum time the datagram is allowed to\n    remain in the internet system.  If this field contains the value\n    zero, then the datagram must be destroyed.  This field is modified\n    in internet header processing.  The time is measured in units of\n    seconds, but since every module that processes a datagram must\n    decrease the TTL by at least one even if it process the datagram in\n    less than a second, the TTL must b"
+        }
+      ]
+    }
+  ]
+}
