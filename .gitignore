@@ -2,10 +2,17 @@
 __pycache__/
 *.pyc
 *.pyo
-# Holds EVERY corpus in one sqlite file - job (vault notes) and networks
-# (course PDFs) included. Never committable. The demo's store lives apart, in
-# chroma_demo/, which is committed on purpose: see retrieve/paths.py.
+# Chroma stores are never committed - not even the demo's, which is public.
+# Chroma rewrites its HNSW files and sqlite pages on every READ, so committing
+# chroma_demo/ meant an ordinary `query` left 4.7 MB of binary diff behind.
+# What ships instead is index/demo_vectors.npz (0.75 MB, immutable): the
+# vectors themselves, which change only on a re-ingest. retrieve.store's
+# ensure_store() rebuilds the store from it in ~3s with no model loaded.
+#
+# chroma_db/ additionally holds job (vault notes) and networks (course PDFs)
+# in one sqlite file, so it could never have been committed anyway.
 chroma_db/
+chroma_demo/
 data/
 venv/
 .venv/

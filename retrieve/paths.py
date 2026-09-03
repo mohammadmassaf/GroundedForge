@@ -35,9 +35,15 @@ from pathlib import Path
 # Everything except the demo. Gitignored, holds all corpora in one sqlite file.
 PRIVATE_CHROMA_DIR = Path("chroma_db")
 
-# Public-domain RFCs only (demo_corpus/), committed so the Space boots warm.
-# 4.4 MB. If this ever holds anything else, the repo has leaked.
+# The demo's store. ALSO gitignored, despite being public: Chroma rewrites its
+# HNSW files and sqlite pages on every read, so committing it meant an ordinary
+# query left 4.7 MB of binary diff behind. What ships instead is the vector
+# pack below, and this directory is rebuilt from it -- see ensure_store().
 PUBLIC_CHROMA_DIR = Path("chroma_demo")
+
+# Committed, immutable: the embeddings themselves. Same chunks + same pinned
+# model revision = same floats, so this file changes only on a re-ingest.
+VECTOR_PACK_DIR = Path("index")
 
 # Corpora whose store is committed. A set, not a bool on the corpus, because
 # the question "is this public?" is answered here rather than in nine call sites.
@@ -53,3 +59,19 @@ def chroma_dir(corpus: str) -> str:
     """
     directory = PUBLIC_CHROMA_DIR if corpus in PUBLIC_CORPORA else PRIVATE_CHROMA_DIR
     return str(directory)
+
+
+def vector_pack(corpus: str) -> str:
+    """
+    The committed embeddings for `corpus`, as `index/<corpus>_vectors.npz`.
+
+    Only public corpora have one, and only public corpora may: the pack is
+    committed, and an embedding is not anonymous -- vectors of vault notes are
+    still derived from vault notes, and they sit next to the chunk_ids that
+    name them.
+    """
+    if corpus not in PUBLIC_CORPORA:
+        raise ValueError(
+            f"{corpus!r} is not a public corpus; its embeddings must not be committed"
+        )
+    return str(VECTOR_PACK_DIR / f"{corpus}_vectors.npz")
