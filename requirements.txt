@@ -10,3 +10,6 @@ pytest
 langchain-huggingface
 langchain-chroma
 gradio
+# Space-only: ZeroGPU will not start without a @spaces.GPU function declared.
+# app.py guards the import, so a local clone needs neither this nor a GPU.
+spaces
