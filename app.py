@@ -399,6 +399,11 @@ with gr.Blocks(title="Grounded Forge") as demo:   # theme goes to launch() in Gr
             label="Topic",
             placeholder="e.g. TCP connection establishment and the three-way handshake",
             scale=4,
+            # Gradio 6 grows a Textbox to fill its row unless the line count is
+            # pinned, which on the Space rendered a one-line input as a textarea
+            # tall enough to push the quiz below the fold.
+            lines=1,
+            max_lines=2,
         )
         go = gr.Button("Generate cited quiz", variant="primary", scale=1)
 
