@@ -398,6 +398,28 @@ def _parse_and_validate(raw: str, valid_ids: set[str] , model = Quiz) -> Quiz:
                                 "cite only chunk_ids from the context")
    return obj
 
+def _reasoning_exhausted(choice) -> bool:
+    """
+    Did the model spend its whole output budget thinking and return nothing?
+
+    gpt-oss-20b bills reasoning tokens as OUTPUT, against the same cap as the
+    answer. On a thin or off-topic pool it reasons until the cap and emits no
+    content at all: finish_reason "length", content empty.
+
+    This is worth detecting because RETRYING IT IS FREE MONEY BURNED. The retry
+    loop exists for a model that produced malformed JSON and can be shown its
+    mistake; here there is no mistake to show, and the model refills whatever
+    budget it is given -- measured at 1998 of 2000 tokens, then 3998 of 4000
+    when the cap was raised to check. Three attempts cost ~6000 tokens to
+    produce the same nothing three times.
+
+    Raising the cap is therefore not the fix, and neither is retrying. The
+    honest reading of this state is that the corpus cannot answer the question,
+    which is what the caller reports.
+    """
+    return choice.finish_reason == "length" and not (choice.message.content or "").strip()
+
+
 def _run(system_prompt, chunks, task, model):
     valid_ids = set(c["chunk_id"] for c in chunks)
     base = [
@@ -407,6 +429,12 @@ def _run(system_prompt, chunks, task, model):
     messages = base
     for i in range(MAX_RETRIES + 1):
         resp = _complete(messages, 0.3, MAX_OUTPUT_TOKENS)
+        if _reasoning_exhausted(resp.choices[0]):
+            raise GenerationError(
+                "the model spent its entire output budget reasoning and returned "
+                "nothing - the retrieved context does not support the request. "
+                "Not retried: see _reasoning_exhausted()."
+            )
         raw  = resp.choices[0].message.content
         try:
             return _parse_and_validate(raw,valid_ids , model = model)
@@ -466,6 +494,15 @@ def generate_star(question: str, pools: dict[str, list[dict]]) -> STARAnswer:
     messages = base
     for _ in range(MAX_RETRIES + 1):
         resp = _complete(messages, 0.3, MAX_OUTPUT_TOKENS)
+        # STAR carries four pools, so its prompt is the largest in the project
+        # and it has the least room left for reasoning -- this guard matters
+        # more here than in _run, not less.
+        if _reasoning_exhausted(resp.choices[0]):
+            raise GenerationError(
+                "the model spent its entire output budget reasoning and returned "
+                "nothing - the pooled evidence does not support this question. "
+                "Not retried: see _reasoning_exhausted()."
+            )
         raw = resp.choices[0].message.content
         try:
             return _parse_and_validate(raw, valid_ids, model=STARAnswer)

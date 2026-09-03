@@ -895,3 +895,72 @@ which builds a prompt reading `Question: <the claim>` / `Answer:` (empty). The v
 the reason came back materially the same either way, so nothing above rests on it, but the
 general point stands: **a diagnostic that calls the function differently from the harness is
 not measuring the harness.** Check the call site before quoting a verdict as evidence.
+
+---
+
+## Finding 10: the duplicate questions did not reproduce, and the fix I predicted did not pay
+
+Measured 2026-09-03, ~35 Groq calls, demo corpus.
+
+Two claims went into this one and both came out weaker than they went in. Recording it
+because the alternative is a repo where every investigation happens to confirm its hypothesis.
+
+### The duplicate questions: one sighting, not a behaviour
+
+A live demo run produced two questions that were the same question — *"What is the purpose of
+the TCP PUSH flag?"* and *"What is the purpose of the PUSH flag in TCP?"*, sharing 8 of 9 words.
+It looked like a Generator weakness worth a prompt fix, since the Generator's rule 3 already
+says to produce FEWER items rather than invent material to fill the count, and restating a
+question is a way of filling the count.
+
+Then it was measured before touching the prompt: **0 duplicate pairs in 11 generations** — six
+topics spanning covered, narrow and off-corpus, plus five repeats of the exact topic that
+produced it. Temperature is 0.3, so one sighting is one sample.
+
+**No prompt change was made.** Changing the Generator prompt invalidates the published grounding
+number the same way changing the Critic prompt does, and paying that to fix a defect that
+appears in under 1 in 11 runs is not a trade worth making. `app.py` still filters restatements
+at the display layer and says how many it hid; that is presentation, and it costs nothing.
+
+Worth noting what the same 11 generations showed instead: on both off-corpus topics the
+Generator returned **one item, not four**. Rule 3 works.
+
+### The reasoning-exhaustion guard: right in principle, unproven in practice
+
+The same runs surfaced something reproducible: the trigger topic raised `GenerationError` in
+**3 of 5 runs**. gpt-oss-20b bills reasoning tokens as OUTPUT against the answer's cap, so on a
+thin pool it reasons to the cap and returns `finish_reason="length"` with empty content.
+Raising the cap does not help — at 2000 it spent 1998 reasoning, at 4000 it spent 3998.
+
+Retrying that is provably useless: there is no malformed output to show the model, and it
+refills whatever budget it gets. So `_reasoning_exhausted()` now short-circuits it instead of
+consuming all three attempts.
+
+**The saving is within noise.** Same topic, five runs, guard off versus on:
+
+| | calls | output tokens | errors |
+|---|---|---|---|
+| before | 14 | 10,646 | 2/5 |
+| after | 13 | 9,309 | 2/5 |
+
+One call. The "~6000 tokens per off-corpus query" figure asserted earlier came from
+extrapolating the FIRST observation of this failure, where all three attempts happened to be
+exhaustion. Typically the first response is malformed JSON — which the retry loop is right to
+retry — and exhaustion arrives on attempt two or three, so there is less to skip than predicted.
+
+The guard is kept anyway, on two grounds that are not token count:
+
+- It is unconditionally safe. It fires only on `finish_reason="length"` with empty content, a
+  state where retrying cannot succeed. Successful generations and malformed-JSON retries are
+  untouched, verified by tests that count calls in both directions — so no published number
+  moves.
+- It makes the failure legible. The caller now gets "the model spent its entire output budget
+  reasoning and returned nothing" instead of `Expecting value: line 1 column 1 (char 0)`, which
+  is what the demo turns into "the RFCs do not cover that".
+
+**The lesson is the same one as Finding 8, in the other direction.** There, a hypothesis carried
+for eight days ("mis-citation is the dominant strike") turned out wrong once counted. Here, two
+hypotheses formed in a single session — "the Generator repeats itself" and "the retry loop burns
+6000 tokens" — both shrank on contact with a sample larger than one. **A defect seen once is a
+sample of one**, and the cost of measuring it first was ~35 calls against a prompt change that
+would have cost a free-tier day to re-validate.
