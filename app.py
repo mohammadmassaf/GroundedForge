@@ -38,9 +38,22 @@ import time
 from datetime import date
 from pathlib import Path
 
-import gradio as gr
+# Every path in this project is relative to the repo root -- chunks/<corpus>.json,
+# chroma_db/, index/, samples/, traces/. main.py gets away with it because a CLI
+# is run from the directory you cloned into. A Space is not: HF starts app.py
+# with some other working directory, and the first thing that touched disk died
+# with FileNotFoundError: 'chunks/demo.json' -- a file that WAS deployed, one
+# directory away.
+#
+# Establishing the invariant here rather than rewriting every path to be
+# absolute: app.py is an entrypoint, and an entrypoint is exactly where a
+# process-wide assumption like "cwd is the repo root" belongs. Before the
+# project imports, so nothing can read a file first.
+os.chdir(Path(__file__).resolve().parent)
 
-from retrieve.store import ensure_store
+import gradio as gr                                        # noqa: E402
+
+from retrieve.store import ensure_store                    # noqa: E402
 
 # --- tunables, all of them constraint 2 --------------------------------------
 

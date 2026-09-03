@@ -150,6 +150,29 @@ def test_live_runs_are_capped_below_the_token_cliff():
     assert app.N_ITEMS < 5
 
 
+def test_the_app_boots_from_any_working_directory(tmp_path):
+    """
+    Regression, 2026-09-03: the first deploy died with
+    `FileNotFoundError: 'chunks/demo.json'` -- a file that was deployed
+    correctly, one directory away.
+
+    Every path in this project is relative to the repo root. main.py gets away
+    with that because a CLI runs from the directory you cloned into; HF starts
+    app.py from somewhere else. app.py now chdir's to its own location, and
+    this asserts it, because nothing else in the suite would: pytest runs from
+    the repo root, so the bug is invisible to every other test here.
+    """
+    import subprocess
+    import sys
+
+    repo = Path.cwd().resolve()
+    out = subprocess.run(
+        [sys.executable, "-c",
+         f"import sys; sys.path.insert(0, r'{repo}'); import app; print('BOOTED', len(app.CACHED['kept']))"],
+        capture_output=True, text=True, cwd=tmp_path)      # <- deliberately NOT the repo root
+    assert "BOOTED" in out.stdout, out.stdout + out.stderr
+
+
 def test_importing_the_app_does_not_import_torch():
     """
     The whole point of the cached-first design: the page is useful before the
