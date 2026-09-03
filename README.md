@@ -6,7 +6,9 @@ colorTo: gray
 sdk: gradio
 sdk_version: 6.26.0
 app_file: app.py
+python_version: '3.12'
 pinned: false
+license: mit
 short_description: Every claim cites a source; a Critic strikes the rest.
 ---
 
