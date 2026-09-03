@@ -1,104 +1,96 @@
 {
   "_comment": "A real run of the demo pipeline, frozen so the Space renders instantly on load and costs no Groq quota. Regenerate with scripts, not by hand -- an edited artifact is no longer evidence of anything.",
-  "topic": "TCP connection establishment and the three-way handshake",
+  "topic": "UDP checksum and the pseudo header",
   "corpus": "demo",
-  "generated_at": "2026-09-02",
+  "generated_at": "2026-09-03",
   "model": "openai/gpt-oss-20b",
   "k": 8,
-  "n": 5,
+  "n": 4,
   "chunks": [
     {
-      "chunk_id": "rfc793_p36_c3",
-      "source_file": "rfc793.txt",
-      "page": 36,
-      "text": "on\n\n  The \"three-way handshake\" is the procedure used to establish a\n  connection.  This procedure normally is initiated by one TCP and\n  responded to by another TCP.  The procedure also works if two TCP\n  simultaneously initiate the procedure.  When simultaneous attempt\n  occurs, each TCP receives a \"SYN\" segment which carries no\n  acknowledgment after it has sent a \"SYN\".  Of course, the arrival of\n  an old duplicate \"SYN\" segment can potentially make it appear, to the\n  recipient, that a simultaneous connection initiation is in progress.\n  Proper use of \"reset\" segments can disambiguate these cases.\n\n  Several examples of connection initiation follow.  Although these\n  examples do not sho",
-      "score": 0.7372
+      "chunk_id": "rfc768_p2_c1",
+      "source_file": "rfc768.txt",
+      "page": 2,
+      "text": "he end (if  necessary)  to  make  a\nmultiple of two octets.\n\nThe pseudo  header  conceptually prefixed to the UDP header contains the\nsource  address,  the destination  address,  the protocol,  and the  UDP\nlength.   This information gives protection against misrouted datagrams.\nThis checksum procedure is the same as is used in TCP.\n\n                  0      7 8     15 16    23 24    31 \n                 +--------+--------+--------+--------+\n                 |          source address           |\n                 +--------+--------+--------+--------+\n                 |        destination address        |\n                 +--------+--------+--------+--------+\n                 |  zero  |protoco",
+      "score": 0.7721
     },
     {
-      "chunk_id": "rfc793_p36_c4",
-      "source_file": "rfc793.txt",
-      "page": 36,
-      "text": "se cases.\n\n  Several examples of connection initiation follow.  Although these\n  examples do not show connection synchronization using data-carrying\n  segments, this is perfectly legitimate, so long as the receiving TCP\n  doesn't deliver the data to the user until it is clear the data is\n  valid (i.e., the data must be buffered at the receiver until the\n  connection reaches the ESTABLISHED state).  The three-way handshake\n  reduces the possibility of false connections.  It is the\n\n\n\n[Page 30]                                                               \n",
-      "score": 0.7193
+      "chunk_id": "rfc768_p2_c0",
+      "source_file": "rfc768.txt",
+      "page": 2,
+      "text": "\n\n                                                             28 Aug 1980\nUser Datagram Protocol                                           RFC 768\nFields\n\n\n\nDestination  Port has a meaning  within  the  context  of  a  particular\ninternet destination address.\n\nLength  is the length  in octets  of this user datagram  including  this\nheader  and the data.   (This  means  the minimum value of the length is\neight.)\n\nChecksum is the 16-bit one's complement of the one's complement sum of a\npseudo header of information from the IP header, the UDP header, and the\ndata,  padded  with zero octets  at the end (if  necessary)  to  make  a\nmultiple of two octets.\n\nThe pseudo  header  conceptually prefix",
+      "score": 0.6603
     },
     {
-      "chunk_id": "rfc793_p38_c1",
-      "source_file": "rfc793.txt",
-      "page": 38,
-      "text": "      --> SYN-RECEIVED\n\n  5.  SYN-RECEIVED --> <SEQ=100><ACK=301><CTL=SYN,ACK> ...\n\n  6.  ESTABLISHED  <-- <SEQ=300><ACK=101><CTL=SYN,ACK> <-- SYN-RECEIVED\n\n  7.               ... <SEQ=101><ACK=301><CTL=ACK>     --> ESTABLISHED\n\n                Simultaneous Connection Synchronization\n\n                               Figure 8.\n\n  The principle reason for the three-way handshake is to prevent old\n  duplicate connection initiations from causing confusion.  To deal with\n  this, a special control message, reset, has been devised.  If the\n  receiving TCP is in a  non-synchronized state (i.e., SYN-SENT,\n  SYN-RECEIVED), it returns to LISTEN on receiving an acceptable reset.\n  If the TCP is in one of",
-      "score": 0.7037
+      "chunk_id": "rfc768_p2_c2",
+      "source_file": "rfc768.txt",
+      "page": 2,
+      "text": "s        |\n                 +--------+--------+--------+--------+\n                 |  zero  |protocol|   UDP length    |\n                 +--------+--------+--------+--------+\n\nIf the computed  checksum  is zero,  it is transmitted  as all ones (the\nequivalent  in one's complement  arithmetic).   An all zero  transmitted\nchecksum  value means that the transmitter  generated  no checksum  (for\ndebugging or for higher level protocols that don't care).\n\nUser Interface\n--------------\n\nA user interface should allow\n\n  the creation of new receive ports,\n\n  receive  operations  on the receive  ports that return the data octets\n  and an indication of source port and source address,\n\n  and an operati",
+      "score": 0.6534
     },
     {
-      "chunk_id": "rfc793_p36_c2",
-      "source_file": "rfc793.txt",
-      "page": 36,
-      "text": "\n\n    To summarize: every segment emitted occupies one or more sequence\n    numbers in the sequence space, the numbers occupied by a segment are\n    \"busy\" or \"in use\" until MSL seconds have passed, upon crashing a\n    block of space-time is occupied by the octets of the last emitted\n    segment, if a new connection is started too soon and uses any of the\n    sequence numbers in the space-time footprint of the last segment of\n    the previous connection incarnation, there is a potential sequence\n    number overlap area which could cause confusion at the receiver.\n\n3.4.  Establishing a connection\n\n  The \"three-way handshake\" is the procedure used to establish a\n  connection.  This procedure n",
-      "score": 0.6827
+      "chunk_id": "rfc791_p20_c2",
+      "source_file": "rfc791.txt",
+      "page": 20,
+      "text": " (e.g., time to live), this is recomputed and verified at each point\n    that the internet header is processed.\n\n    The checksum algorithm is:\n\n      The checksum field is the 16 bit one's complement of the one's\n      complement sum of all 16 bit words in the header.  For purposes of\n      computing the checksum, the value of the checksum field is zero.\n\n    This is a simple to compute checksum and experimental evidence\n    indicates it is adequate, but it is provisional and may be replaced\n    by a CRC procedure, depending on further experience.\n\n  Source Address:  32 bits\n\n    The source address.  See section 3.2.\n\n  Destination Address:  32 bits\n\n    The destination address.  See sectio",
+      "score": 0.6532
     },
     {
-      "chunk_id": "rfc793_p18_c0",
+      "chunk_id": "rfc793_p22_c2",
       "source_file": "rfc793.txt",
-      "page": 18,
-      "text": "\n\n                                                          September 1981\nTransmission Control Protocol\nPhilosophy\n\n\n\n  If there are several pending passive OPENs (recorded in TCBs) with the\n  same local socket, an foreign active OPEN will be matched to a TCB\n  with the specific foreign socket in the foreign active OPEN, if such a\n  TCB exists, before selecting a TCB with an unspecified foreign socket.\n\n  The procedures to establish connections utilize the synchronize (SYN)\n  control flag and involves an exchange of three messages.  This\n  exchange has been termed a three-way hand shake [3].\n\n  A connection is initiated by the rendezvous of an arriving segment\n  containing a SYN and a waiti",
-      "score": 0.6632
+      "page": 22,
+      "text": "s beginning with the one indicated in the\n    acknowledgment field which the sender of this segment is willing to\n    accept.\n\n  Checksum:  16 bits\n\n    The checksum field is the 16 bit one's complement of the one's\n    complement sum of all 16 bit words in the header and text.  If a\n    segment contains an odd number of header and text octets to be\n    checksummed, the last octet is padded on the right with zeros to\n    form a 16 bit word for checksum purposes.  The pad is not\n    transmitted as part of the segment.  While computing the checksum,\n    the checksum field itself is replaced with zeros.\n\n    The checksum also covers a 96 bit pseudo header conceptually\n\n\n[Page 16]               ",
+      "score": 0.6416
     },
     {
-      "chunk_id": "rfc793_p37_c2",
-      "source_file": "rfc793.txt",
-      "page": 37,
-      "text": "                                             TCP B\n\n  1.  CLOSED                                               LISTEN\n\n  2.  SYN-SENT    --> <SEQ=100><CTL=SYN>               --> SYN-RECEIVED\n\n  3.  ESTABLISHED <-- <SEQ=300><ACK=101><CTL=SYN,ACK>  <-- SYN-RECEIVED\n\n  4.  ESTABLISHED --> <SEQ=101><ACK=301><CTL=ACK>       --> ESTABLISHED\n\n  5.  ESTABLISHED --> <SEQ=101><ACK=301><CTL=ACK><DATA> --> ESTABLISHED\n\n          Basic 3-Way Handshake for Connection Synchronization\n\n                                Figure 7.\n\n  In line 2 of figure 7, TCP A begins by sending a SYN segment\n  indicating that it will use sequence numbers starting with sequence\n  number 100.  In line 3, TCP B sends a SYN and a",
-      "score": 0.6509
+      "chunk_id": "rfc791_p9_c0",
+      "source_file": "rfc791.txt",
+      "page": 9,
+      "text": "\n\nSeptember 1981                                                          \n                                                       Internet Protocol\n                                                            Introduction\n\n\n\n  The Options provide for control functions needed or useful in some\n  situations but unnecessary for the most common communications.  The\n  options include provisions for timestamps, security, and special\n  routing.\n\n  The Header Checksum provides a verification that the information used\n  in processing internet datagram has been transmitted correctly.  The\n  data may contain errors.  If the header checksum fails, the internet\n  datagram is discarded at once by the entit",
+      "score": 0.6091
     },
     {
-      "chunk_id": "rfc793_p37_c0",
-      "source_file": "rfc793.txt",
-      "page": 37,
-      "text": "\n\nSeptember 1981                                                          \n                                           Transmission Control Protocol\n                                                Functional Specification\n\n\n\n  implementation of a trade-off between memory and messages to provide\n  information for this checking.\n\n  The simplest three-way handshake is shown in figure 7 below.  The\n  figures should be interpreted in the following way.  Each line is\n  numbered for reference purposes.  Right arrows (-->) indicate\n  departure of a TCP segment from TCP A to TCP B, or arrival of a\n  segment at B from A.  Left arrows (<--), indicate the reverse.\n  Ellipsis (...) indicates a segment whi",
-      "score": 0.6497
+      "chunk_id": "rfc768_p3_c0",
+      "source_file": "rfc768.txt",
+      "page": 3,
+      "text": "\n\n28 Aug 1980\nRFC 768                                           User Datagram Protocol\n                                                            IP Interface\n\n\n\nIP Interface\n-------------\n\nThe UDP module  must be able to determine  the  source  and  destination\ninternet addresses and the protocol field from the internet header.  One\npossible  UDP/IP  interface  would return  the whole  internet  datagram\nincluding all of the internet header in response to a receive operation.\nSuch an interface  would  also allow  the UDP to pass  a  full  internet\ndatagram  complete  with header  to the IP to send.  The IP would verify\ncertain fields for consistency and compute the internet header checksum",
+      "score": 0.6078
     },
     {
-      "chunk_id": "rfc793_p11_c2",
+      "chunk_id": "rfc793_p22_c3",
       "source_file": "rfc793.txt",
-      "page": 11,
-      "text": "ialize and maintain certain status information for\n    each data stream.  The combination of this information, including\n    sockets, sequence numbers, and window sizes, is called a connection.\n    Each connection is uniquely specified by a pair of sockets\n    identifying its two sides.\n\n    When two processes wish to communicate, their TCP's must first\n    establish a connection (initialize the status information on each\n    side).  When their communication is complete, the connection is\n    terminated or closed to free the resources for other uses.\n\n    Since connections must be established between unreliable hosts and\n    over the unreliable internet communication system, a handshake\n    ",
-      "score": 0.6302
+      "page": 22,
+      "text": " zeros.\n\n    The checksum also covers a 96 bit pseudo header conceptually\n\n\n[Page 16]                                                               \n",
+      "score": 0.6075
     }
   ],
   "kept": [
     {
-      "question": "What is the purpose of the three‑way handshake in TCP?",
-      "answer": "It is the procedure used to establish a connection between two TCPs.",
+      "question": "Which fields are included in the pseudo header used for the UDP checksum?",
+      "answer": "The pseudo header contains the source address, the destination address, the protocol, and the UDP length.",
       "citations": [
-        "rfc793_p18_c0"
+        "rfc768_p2_c1"
       ]
     },
     {
-      "question": "Which segments are exchanged during the three‑way handshake?",
-      "answer": "A SYN segment, a SYN‑ACK segment, and an ACK segment.",
+      "question": "How is the UDP checksum calculated?",
+      "answer": "It is the 16‑bit one's complement of the one's complement sum of the pseudo header, the UDP header, and the data, padded with zero octets at the end to make a multiple of two octets.",
       "citations": [
-        "rfc793_p37_c2"
+        "rfc768_p2_c0"
       ]
     },
     {
-      "question": "What state does a TCP enter after receiving a SYN‑ACK segment?",
-      "answer": "ESTABLISHED.",
+      "question": "What is transmitted when the computed UDP checksum is zero?",
+      "answer": "If the computed checksum is zero, it is transmitted as all ones; an all‑zero transmitted checksum indicates that no checksum was generated.",
       "citations": [
-        "rfc793_p37_c2"
+        "rfc768_p2_c2"
       ]
     },
     {
-      "question": "What mechanism does TCP use to prevent old duplicate SYN segments from causing confusion?",
-      "answer": "Reset segments.",
+      "question": "What is the purpose of including the pseudo header in the UDP checksum?",
+      "answer": "It provides protection against misrouted datagrams.",
       "citations": [
-        "rfc793_p36_c3",
-        "rfc793_p38_c1"
-      ]
-    },
-    {
-      "question": "Why must data be buffered until the connection reaches the ESTABLISHED state?",
-      "answer": "Because data‑carrying segments may be part of the connection initiation and should not be delivered until the connection is established.",
-      "citations": [
-        "rfc793_p36_c4"
+        "rfc768_p2_c1"
       ]
     }
   ],

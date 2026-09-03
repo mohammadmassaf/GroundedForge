@@ -9,3 +9,4 @@ rank_bm25
 pytest
 langchain-huggingface
 langchain-chroma
+gradio
