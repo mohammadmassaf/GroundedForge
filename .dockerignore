@@ -7,7 +7,16 @@ corpus.yaml
 # Generated / local state -- rebuilt inside the image, or supplied by a
 # volume from D-M2 onward.
 chroma_db/
-chunks/
+# `chunks/*` with an exception, not `chunks/`: the Hugging Face Space builds a
+# container and honours this file, so `chunks/` dropped the demo's chunk store
+# out of the image and the Space died on boot with FileNotFoundError for a file
+# that was committed and pushed correctly. index/ and samples/ survived because
+# neither is listed here.
+#
+# demo.json is public-domain RFC text and is READ at runtime by ensure_store();
+# job.json and networks.json stay out, as before.
+chunks/*
+!chunks/demo.json
 traces/
 data/
 *.pdf
