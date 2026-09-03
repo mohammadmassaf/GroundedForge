@@ -85,7 +85,23 @@ def _boot():
     corpus has nothing on this" — a grounding finding — which is exactly the
     wrong story to tell about a broken deployment.
     """
-    built = ensure_store(CORPUS)
+    try:
+        built = ensure_store(CORPUS)
+    except FileNotFoundError as e:
+        # A missing input here is a DEPLOYMENT fault, not a bug in the code, and
+        # the bare FileNotFoundError names one relative path while saying nothing
+        # about what did arrive. On a host whose logs you cannot stream, the
+        # traceback is the only channel there is -- so put the evidence in it.
+        here = Path.cwd()
+        listing = sorted(p.name + ("/" if p.is_dir() else "") for p in here.iterdir())
+        raise SystemExit(
+            f"boot failed: {e}\n"
+            f"  cwd        : {here}\n"
+            f"  contents   : {listing}\n"
+            f"  chunks/    : {sorted(p.name for p in (here / 'chunks').iterdir()) if (here / 'chunks').is_dir() else 'MISSING'}\n"
+            f"  index/     : {sorted(p.name for p in (here / 'index').iterdir()) if (here / 'index').is_dir() else 'MISSING'}\n"
+            f"  samples/   : {sorted(p.name for p in (here / 'samples').iterdir()) if (here / 'samples').is_dir() else 'MISSING'}"
+        ) from e
     print(f"[boot] store ready (rebuilt={built})", flush=True)
 
 
