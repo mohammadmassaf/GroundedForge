@@ -1,6 +1,20 @@
+---
+title: Grounded Forge
+emoji: ⚖️
+colorFrom: indigo
+colorTo: gray
+sdk: gradio
+sdk_version: 6.26.0
+app_file: app.py
+pinned: false
+short_description: Every claim cites a source; a Critic strikes the rest.
+---
+
 # Grounded Forge
 
 ![tests](https://github.com/mohammadmassaf/GroundedForge/actions/workflows/tests.yml/badge.svg)
+
+**▶ [Try the live demo](https://huggingface.co/spaces/mohammad778/grounded-forge)** — study mode over three public-domain IETF RFCs, so every citation is checkable.
 
 **A cite-or-strike artifact generator: every claim cites your own documents, an independent Critic agent strikes anything the sources don't support, and the no-hallucination guarantee is measured, not asserted.**
 
@@ -265,6 +279,51 @@ beside every number here.
 
 Full analysis — six findings, each with the measurement that produced it: [eval/notes.md](eval/notes.md).
 
+## The live demo
+
+[huggingface.co/spaces/mohammad778/grounded-forge](https://huggingface.co/spaces/mohammad778/grounded-forge) — study mode over `demo_corpus/`
+(RFC 768, 791, 793). Public domain, so a stranger can verify any citation against the source.
+Job mode is **not** demoable: it reads a personal vault and sibling repos, so it is shown here
+through committed sample output instead.
+
+`app.py` is a thin Gradio UI over the same `search` → `run_loop` → `render` path `main.py`
+uses. Three constraints shaped it, and each one is visible in the code:
+
+**The page must be useful before any model loads.** A cold container needs ~16 s for torch and
+the embedder. So the page opens on `samples/cached_quiz.json` — a real frozen run — and touches
+the model only when someone presses Generate. A test imports `app` in a subprocess and asserts
+`torch` is absent, because that property is easy to lose by accident.
+
+**A public URL can drain a free tier.** Live runs are rate limited per session and per day, and
+capped at 4 items: a run at 5 measured 1995 of 2000 output tokens, since `gpt-oss-20b` bills
+reasoning against the same budget. When the budget is gone the page serves the saved run rather
+than an error.
+
+**The strike is the product, and a live run may not produce one.** Both committed sample runs
+kept everything. So the struck panel is fed by [adversarial traps](#adversarial-evaluation-measuring-the-critic-itself)
+— authored claims with known defects, shown beside the sentence each one contradicts. It is
+always populated, always checkable, and includes the one trap the Critic **fails** to catch.
+
+### Deploying it
+
+Hugging Face builds the Space from the YAML block at the top of this README (`sdk: gradio`,
+`app_file: app.py`). Docker is a paid SDK on the free tier, so this runs as a Gradio Space on
+ZeroGPU:
+
+```bash
+git remote add space https://huggingface.co/spaces/mohammad778/grounded-forge
+git push space main
+```
+
+`GROQ_API_KEY` is set as a Space **secret** (not a variable — variables are world-readable).
+
+A Gradio Space has no build step: HF installs `requirements.txt` and runs `app.py`, so anything
+not committed must be rebuilt at boot. That is why `index/demo_vectors.npz` (0.75 MB) is in the
+repo and `chroma_demo/` is not — `ensure_store()` reconstructs the vector index from the pack in
+~3 s **without loading a model**, against ~34 s to re-embed 526 chunks from scratch. The Chroma
+store itself is gitignored because Chroma rewrites its index files on every *read*, so committing
+it left megabytes of binary churn after an ordinary query.
+
 ## Tech stack
 
 Python · Groq (`openai/gpt-oss-20b`) · sentence-transformers (all-MiniLM-L6-v2 embeddings + ms-marco-MiniLM-L-6-v2 cross-encoder, both local) · ChromaDB (local, cosine) · rank_bm25 · Pydantic v2 (schema-validated LLM output with retry-on-invalid) · pypdf
@@ -277,7 +336,13 @@ retrieve/   embed + store (ChromaDB, one collection per corpus), top-k query wit
             BM25 keyword search, RRF fusion, cross-encoder re-ranking, hybrid pipeline
 generate/   Generator agent, Pydantic schema, validation + retry loop, markdown renderer
 critic/     Critic agent (claim vs cited evidence), orchestration loop, JSONL run tracer
-eval/       fixed eval set, recall@k + grounding harness, findings (notes.md)
+eval/       fixed eval sets (incl. the public demo's), recall@k + grounding + trap
+            harness, findings (notes.md)
+app.py      the public demo: a Gradio UI over the same path main.py calls
+index/      committed embeddings for the demo corpus - the store is rebuilt from
+            these at boot, since a Gradio Space has no build step
+samples/    a frozen real run and the trap verdicts, so the demo page costs nothing
+            to open; regenerate them with scripts/, never by hand
 ```
 
 Corpora are fully isolated: one ChromaDB collection per `--corpus`, so subjects never cross-contaminate. Swapping domains = new files in `data/` + a new corpus name, no code changes. v2 does exactly that: the same engine over a git/docs/notes corpus, adding only adapters and output schemas — see [v2 — job mode](#v2--job-mode-the-same-engine-a-different-corpus).
