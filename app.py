@@ -443,25 +443,32 @@ footer { display:none !important; }
 }
 #gf-presets button:hover { border-color:var(--ink) !important; color:var(--ink) !important; }
 
+/* Every colour below is !important, and that is load-bearing rather than lazy.
+   Gradio re-applies `dark` to <body> AFTER the on-load js runs -- the deployed
+   page came back with body.className "theme-loaded dark" -- so its dark palette
+   wins any specificity contest these rules could otherwise mount, and the
+   question headings, ANSWER labels and chunk-id chips all rendered near-white
+   on cream. Winning on !important is deterministic; winning on a class removal
+   that Gradio undoes is not. Local looked fine only because of load timing. */
 .gf-artifact { font-size:15px; line-height:1.55; }
-.gf-item { background:var(--card); border:1px solid var(--rule);
+.gf-item { background:var(--card) !important; border:1px solid var(--rule);
   border-radius:10px; padding:16px 18px; margin:0 0 12px; }
 .gf-head { display:flex; align-items:baseline; gap:10px; }
 .gf-n { font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
-  background:var(--ink); color:var(--paper); padding:4px 7px; border-radius:4px;
-  letter-spacing:.06em; flex:none; }
+  background:var(--ink) !important; color:var(--paper) !important; padding:4px 7px;
+  border-radius:4px; letter-spacing:.06em; flex:none; }
 .gf-q { font-family:Georgia,'Iowan Old Style',serif; font-size:17px !important;
-  font-weight:700; margin:0 !important; color:var(--ink); line-height:1.35; }
+  font-weight:700; margin:0 !important; color:var(--ink) !important; line-height:1.35; }
 .gf-a { margin:11px 0 0 !important; padding:2px 0 2px 13px;
-  border-left:3px solid var(--verified); color:#33302b; }
+  border-left:3px solid var(--verified); color:#33302b !important; }
 .gf-a-label { display:block; font:700 10px/1 ui-sans-serif,system-ui,sans-serif;
-  letter-spacing:.13em; text-transform:uppercase; color:var(--verified);
+  letter-spacing:.13em; text-transform:uppercase; color:var(--verified) !important;
   margin-bottom:4px; }
-.gf-cite { background:var(--cite-bg); border:1px solid var(--rule-soft);
+.gf-cite { background:var(--cite-bg) !important; border:1px solid var(--rule-soft);
   border-radius:7px; padding:9px 11px; margin-top:10px; font-size:13px;
-  color:var(--ink-soft); }
+  color:var(--ink-soft) !important; }
 .gf-cid { font:600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;
-  background:var(--cid-bg); color:var(--cid-ink); padding:2px 6px;
+  background:var(--cid-bg) !important; color:var(--cid-ink) !important; padding:2px 6px;
   border-radius:4px; margin-right:7px; }
 /* Colour stated on the spans, not inherited from .gf-cite: Gradio has its own
    rule for bare <span> and it wins over inheritance, which left the source line
@@ -472,24 +479,27 @@ footer { display:none !important; }
   color:#4a453c !important; }
 .gf-cite-missing { border-color:var(--strike); color:var(--strike); }
 
-.gf-struck { margin-top:16px; padding:14px 16px; background:#fdf3f2;
+.gf-struck { margin-top:16px; padding:14px 16px; background:#fdf3f2 !important;
   border:1px solid #f0d5d2; border-radius:10px; }
-.gf-struck h4 { margin:0 0 8px !important; color:var(--strike);
+.gf-struck h4 { margin:0 0 8px !important; color:var(--strike) !important;
   font-size:13px !important; letter-spacing:.04em; text-transform:uppercase; }
-.gf-struck-claim { margin:0 !important; text-decoration:line-through; opacity:.75; }
-.gf-struck-why { margin:3px 0 10px !important; font-size:13px; color:var(--strike); }
+.gf-struck-claim { margin:0 !important; text-decoration:line-through;
+  color:#6f6a61 !important; }
+.gf-struck-why { margin:3px 0 10px !important; font-size:13px;
+  color:var(--strike) !important; }
 
-.gf-trap-intro { margin:0 0 12px !important; color:var(--ink-soft); }
-.gf-trap { background:var(--card); border:1px solid var(--rule);
+.gf-trap-intro { margin:0 0 12px !important; color:var(--ink-soft) !important; }
+.gf-trap { background:var(--card) !important; border:1px solid var(--rule);
   border-radius:10px; padding:14px 16px; margin-bottom:10px; }
-.gf-trap-head { font-size:13px; color:var(--ink-soft); margin-bottom:7px; }
-.gf-trap-claim { margin:0 !important; font-family:Georgia,serif; font-size:15px; }
-.gf-verdict { margin:9px 0 0 !important; font-size:13px; color:var(--ink-soft);
+.gf-trap-head { font-size:13px; color:var(--ink-soft) !important; margin-bottom:7px; }
+.gf-trap-claim { margin:0 !important; font-family:Georgia,serif; font-size:15px;
+  color:var(--ink) !important; }
+.gf-verdict { margin:9px 0 0 !important; font-size:13px; color:var(--ink-soft) !important;
   padding-left:11px; border-left:3px solid var(--rule); }
 .gf-badge { font:700 10px/1 ui-sans-serif,system-ui,sans-serif; letter-spacing:.1em;
   text-transform:uppercase; padding:3px 6px; border-radius:4px; margin-right:6px; }
-.gf-ok  { background:#e3efe9; color:var(--verified); }
-.gf-bad { background:#fbe6e4; color:var(--strike); }
+.gf-ok  { background:#e3efe9 !important; color:var(--verified) !important; }
+.gf-bad { background:#fbe6e4 !important; color:var(--strike) !important; }
 
 /* Gradio's own chrome, brought into the palette. Written against body.dark too,
    so a viewer whose OS is dark still gets a readable page even if the class
