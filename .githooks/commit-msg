@@ -1,0 +1,13 @@
+#!/bin/sh
+# Strip any Co-Authored-By trailer naming Claude/Anthropic, then drop the
+# trailing blank lines it leaves behind. The commits in this repo are mine.
+#
+# Enabled with: git config core.hooksPath .githooks
+msg="$1"
+tmp="$msg.tmp"
+
+sed -e '/^[Cc]o-[Aa]uthored-[Bb]y:.*[Cc]laude/d' \
+    -e '/^[Cc]o-[Aa]uthored-[Bb]y:.*anthropic\.com/d' "$msg" \
+  | sed -e :a -e '/^\n*$/{$d;N;};/\n$/ba' > "$tmp"
+
+mv "$tmp" "$msg"
