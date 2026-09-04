@@ -321,7 +321,14 @@ def generate(topic: str, last_run: float):
         # misleading — the honest reading is that the corpus cannot answer.
         return (_no_coverage(topic), render_quiz(CACHED), now)
     except Exception as e:                      # noqa: BLE001 - the UI must not 500
-        return (f"⚠️ The run failed: `{type(e).__name__}`. Showing the saved run.",
+        # The message, not just the type. On a host whose container logs cannot
+        # be streamed, this line is the only diagnostic channel there is -- the
+        # first live run on the Space failed as a bare "RuntimeError", which
+        # says nothing about which of a dozen causes it was. Truncated, because
+        # an exception string is not a place to trust with unbounded output.
+        print(f"[generate] {type(e).__name__}: {e}", flush=True)
+        return (f"⚠️ The run failed: `{type(e).__name__}: {str(e)[:300]}`. "
+                f"Showing the saved run.",
                 render_quiz(CACHED), now)
 
     if not kept and not struck:
