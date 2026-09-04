@@ -91,6 +91,61 @@ def test_the_cached_quiz_renders_with_every_citation_resolved():
             assert cid in markdown
 
 
+# --- saying so when the corpus never saw the question ----------------------
+
+@pytest.mark.parametrize("topic", [
+    "TCP connection establishment and the three-way handshake",
+    "UDP checksum and the pseudo header",
+    "IP fragmentation and reassembly",
+    "The Time to Live field",
+    "TCP sequence numbers",
+])
+def test_a_covered_topic_raises_no_notice(topic):
+    """
+    The direction that must not produce false positives. A warning on a topic
+    the RFCs genuinely cover would undercut the whole page: it tells a reader
+    the answer is off-target when it is not.
+
+    "The Time to Live field" is here deliberately. It scores 0.301 on vector
+    similarity, LOWER than off-corpus "BGP route reflection" at 0.444, which is
+    why the notice cannot be built on a similarity floor.
+    """
+    assert app.unknown_terms(topic) == []
+    assert app._subject_changed(topic) == ""
+
+
+@pytest.mark.parametrize("topic,expected", [
+    ("HTTP/2 server push and header compression", {"http/2", "compression"}),
+    ("Kubernetes pod autoscaling", {"kubernetes", "pod", "autoscaling"}),
+    ("photosynthesis in C4 plants", {"photosynthesis", "c4", "plants"}),
+])
+def test_an_uncovered_topic_names_the_missing_words(topic, expected):
+    """Names the words rather than asserting a verdict, so a reader can check
+    the claim: these are absent from RFC 768, 791 and 793."""
+    assert set(app.unknown_terms(topic)) == expected
+    notice = app._subject_changed(topic)
+    assert "contains nothing about" in notice
+    for word in expected:
+        assert word in notice
+
+
+def test_the_notice_survives_words_the_corpus_shares_with_the_question():
+    """
+    The case a score-based test gets wrong. "React hooks and state management"
+    scores 7.54 on BM25 because `state` and `management` are TCP vocabulary, so
+    a keyword floor would call it covered. Membership still catches `react` and
+    `hooks`.
+    """
+    missing = app.unknown_terms("React hooks and state management")
+    assert set(missing) == {"react", "hooks"}
+
+
+def test_stopwords_are_never_reported_missing():
+    """A notice reading "contains nothing about the, and" would be absurd and
+    would fire on every topic."""
+    assert app.unknown_terms("what is the purpose of the checksum") == []
+
+
 def test_source_text_is_escaped_before_it_reaches_the_page():
     """
     RFC 793 is full of `<SEQ=100><ACK=301><CTL=SYN,ACK>` and RFC 791 of `+-+-+`

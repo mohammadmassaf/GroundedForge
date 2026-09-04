@@ -382,7 +382,8 @@ def generate(topic: str, last_run: float):
                     "citations": i.citations, "reason": r} for i, r in struck],
     }
     took = time.time() - started
-    status = (f"**{len(kept)} kept, {len(struck)} struck** in {took:.1f}s "
+    status = (_subject_changed(topic)
+              + f"**{len(kept)} kept, {len(struck)} struck** in {took:.1f}s "
               f"· {len(chunks)} chunks retrieved · {_budget_left()} live runs left today")
     repeats = len(kept) - len(shown)
     if repeats:
@@ -394,6 +395,80 @@ def generate(topic: str, last_run: float):
     if not struck:
         status += "  \nNothing was struck this time — the panel below shows the Critic on planted claims."
     return (status, render_quiz(payload), now)
+
+
+# Words too common to be evidence of anything. Deliberately short: the test is
+# whether a word appears in the corpus AT ALL, so only words that would be
+# present in any English text need excluding.
+_STOPWORDS = {
+    "the", "a", "an", "and", "or", "of", "in", "on", "to", "for", "is", "are",
+    "was", "were", "be", "with", "how", "what", "why", "when", "which", "does",
+    "do", "did", "its", "it", "this", "that", "from", "by", "as", "at",
+}
+
+_vocab: set | None = None
+
+
+def corpus_vocabulary() -> set:
+    """Every distinct token in the demo corpus. Built once, on first use."""
+    global _vocab
+    if _vocab is None:
+        from retrieve.keyword import _tokenize
+        chunks = json.loads(Path(f"chunks/{CORPUS}.json").read_text(encoding="utf-8"))
+        _vocab = set()
+        for chunk in chunks:
+            _vocab.update(_tokenize(chunk["text"]))
+    return _vocab
+
+
+def unknown_terms(topic: str) -> list[str]:
+    """
+    Words in the topic that appear NOWHERE in the corpus.
+
+    WHY THIS AND NOT A SCORE
+    ------------------------
+    Retrieval always returns its nearest neighbour, so asking for "HTTP/2 server
+    push" returns TCP's PUSH flag and the page answered a question nobody asked.
+    The obvious fix is a similarity floor, and it does not work: measured over
+    six on-corpus and six off-corpus topics, the two distributions OVERLAP.
+    "The Time to Live field" scores 0.301, a real topic covered on three pages,
+    while "BGP route reflection" scores 0.444. BM25 overlaps too, because
+    off-corpus questions reuse networking words: "React hooks and state
+    management" scores 7.54 on `state` and `management` alone.
+
+    Vocabulary membership separates them exactly. Across those twelve topics
+    every on-corpus one had ZERO unknown words and every off-corpus one had two
+    or three. It is not a threshold read off a distribution, it is a fact about
+    the corpus, and it can name the words to the reader instead of asserting a
+    verdict about them.
+    """
+    from retrieve.keyword import _tokenize
+
+    vocab = corpus_vocabulary()
+    seen, out = set(), []
+    for word in _tokenize(topic):
+        if word in _STOPWORDS or len(word) < 2 or word in seen:
+            continue
+        seen.add(word)
+        if word not in vocab:
+            out.append(word)
+    return out
+
+
+def _subject_changed(topic: str) -> str:
+    """The notice shown when the corpus has never seen part of the question.
+
+    Names the missing words rather than saying "off topic", because the reader
+    can check the claim: these words are absent from RFC 768, 791 and 793, and
+    the questions below therefore answer something adjacent to what was asked.
+    """
+    missing = unknown_terms(topic)
+    if not missing:
+        return ""
+    words = ", ".join(f"**{esc(w)}**" for w in missing[:4])
+    return (f"⚠️ The corpus contains nothing about {words}. "
+            f"Retrieval returned the nearest material it does have, so the questions "
+            f"below answer a different question than the one you asked.  \n")
 
 
 def _no_coverage(topic: str) -> str:
