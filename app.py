@@ -32,6 +32,7 @@ file. Anything not committed has to be reconstructed here at boot, which is
 what `ensure_store` does — rebuilding the Chroma index from the committed
 vector pack in ~3s without loading a model.
 """
+import html
 import json
 import os
 import time
@@ -158,6 +159,19 @@ def _quote(chunk: dict, limit: int = 240) -> str:
     return " ".join(chunk["text"].split())[:limit]
 
 
+def esc(text: str) -> str:
+    """
+    HTML-escape before interpolating anything into the page.
+
+    Everything rendered here is either model output or corpus text -- neither is
+    written by us. RFC 791 is full of ASCII header diagrams made of `+-+-+` and
+    angle brackets (`<SEQ=100><CTL=SYN>`), which a browser will happily read as
+    tags and swallow. So this is a correctness fix before it is a security one,
+    though it is both.
+    """
+    return html.escape(str(text), quote=False)
+
+
 # How much of two questions' wording must overlap before the second is treated
 # as a restatement of the first. 0.8 separates the observed case -- "What is the
 # purpose of the TCP PUSH flag?" against "What is the purpose of the PUSH flag
@@ -202,34 +216,57 @@ def distinct(items: list[dict]) -> list[dict]:
     return kept
 
 
+def _citation(cid: str, by_id: dict) -> str:
+    chunk = by_id.get(cid)
+    if chunk is None:                 # cannot happen for a validated run; see tests
+        return (f'<div class="gf-cite gf-cite-missing">'
+                f'<span class="gf-cid">{esc(cid)}</span> — source not in this artifact</div>')
+    return (
+        f'<div class="gf-cite">'
+        f'<span class="gf-cid">{esc(cid)}</span>'
+        f'<span class="gf-src">{esc(chunk["source_file"])} · p.{esc(chunk["page"])}</span>'
+        f'<span class="gf-quote">“{esc(_quote(chunk))}…”</span>'
+        f'</div>'
+    )
+
+
 def render_quiz(payload: dict) -> str:
+    """
+    One artifact as HTML.
+
+    HTML rather than markdown because the page has to make three things
+    structurally different at a glance -- the question asked, the answer
+    claimed, and the evidence it rests on. In markdown those are all just
+    paragraphs, which is why the first version read as an undifferentiated wall.
+    """
     by_id = {c["chunk_id"]: c for c in payload["chunks"]}
-    lines = []
+    out = []
+
     for i, item in enumerate(payload["kept"], 1):
-        lines.append(f"### Q{i}. {item['question']}")
-        lines.append("")
-        lines.append(f"**Answer:** {item['answer']}")
-        lines.append("")
-        for cid in item["citations"]:
-            chunk = by_id.get(cid)
-            if chunk is None:            # cannot happen for a validated run; see tests
-                lines.append(f"> `{cid}` — source not in this artifact")
-                continue
-            lines.append(
-                f"> **`{cid}`** · {chunk['source_file']} p.{chunk['page']}  \n"
-                f"> *“{_quote(chunk)}…”*"
-            )
-        lines.append("")
+        cites = "".join(_citation(cid, by_id) for cid in item["citations"])
+        out.append(
+            f'<article class="gf-item">'
+            f'  <div class="gf-head"><span class="gf-n">Q{i}</span>'
+            f'    <h3 class="gf-q">{esc(item["question"])}</h3></div>'
+            f'  <p class="gf-a"><span class="gf-a-label">Answer</span>{esc(item["answer"])}</p>'
+            f'  {cites}'
+            f'</article>'
+        )
 
     if payload.get("struck"):
-        lines.append("---")
-        lines.append("#### Struck by the Critic in this run")
-        for item in payload["struck"]:
-            lines.append(f"- ~~{item['question']}~~ — **{item['answer']}**")
-            lines.append(f"  - *Struck because:* {item.get('reason', '')}")
-        lines.append("")
+        rows = "".join(
+            f'<div class="gf-struck-row">'
+            f'  <p class="gf-struck-claim">{esc(s["question"])} — {esc(s["answer"])}</p>'
+            f'  <p class="gf-struck-why">Struck because: {esc(s.get("reason", ""))}</p>'
+            f'</div>'
+            for s in payload["struck"]
+        )
+        out.append(
+            f'<section class="gf-struck">'
+            f'  <h4>Struck by the Critic in this run</h4>{rows}</section>'
+        )
 
-    return "\n".join(lines)
+    return f'<div class="gf-artifact">{"".join(out)}</div>'
 
 
 def render_traps() -> str:
@@ -239,36 +276,38 @@ def render_traps() -> str:
     take on trust.
     """
     caught, total = TRAPS["caught"], TRAPS["total"]
-    lines = [
-        f"**{caught} of {total} planted claims were struck.** Each claim below was "
-        "written to be wrong in a specific way, then put through the same two "
-        "checks a generated claim faces.",
-        "",
-    ]
+    rows = []
     for t in TRAPS["traps"]:
         if t["struck"]:
-            stage = ("a deterministic figure check, no LLM call"
+            stage = ("a deterministic figure check — no LLM call"
                      if t["caught_by"] == "quant" else "the Critic, reading for meaning")
-            head = f"✅ **Struck** by {stage}"
+            badge = f'<span class="gf-badge gf-ok">Struck</span> by {esc(stage)}'
+            verdict = esc(t["reason"])
         else:
-            head = "❌ **Not caught** — a known gap, kept visible on purpose"
-        lines.append(f"**{t['id']}** · {head}")
-        lines.append(f"> **Claim:** {t['claim']}")
-        evidence = t["evidence"][0]
-        lines.append(
-            f"> **Evidence** (`{evidence['chunk_id']}`, {evidence['source_file']} "
-            f"p.{evidence['page']}): *“{_quote(evidence, 300)}…”*"
+            badge = ('<span class="gf-badge gf-bad">Not caught</span> '
+                     "— a known gap, kept visible on purpose")
+            verdict = ("the Critic answered <em>supported</em>, quoting the very "
+                       "sentence that contradicts the claim. Two prompt fixes failed "
+                       "and were reverted, so this is reported rather than hidden.")
+        ev = t["evidence"][0]
+        rows.append(
+            f'<article class="gf-trap">'
+            f'  <div class="gf-trap-head"><span class="gf-cid">{esc(t["id"])}</span>{badge}</div>'
+            f'  <p class="gf-trap-claim">{esc(t["claim"])}</p>'
+            f'  <div class="gf-cite">'
+            f'    <span class="gf-cid">{esc(ev["chunk_id"])}</span>'
+            f'    <span class="gf-src">{esc(ev["source_file"])} · p.{esc(ev["page"])}</span>'
+            f'    <span class="gf-quote">“{esc(_quote(ev, 300))}…”</span></div>'
+            f'  <p class="gf-verdict">{verdict}</p>'
+            f'</article>'
         )
-        if t["struck"]:
-            lines.append(f"> **Verdict:** {t['reason']}")
-        else:
-            lines.append(
-                "> **Verdict:** the Critic answered *supported*, quoting the very "
-                "sentence that contradicts the claim. Two prompt fixes failed and "
-                "were reverted, so this is reported rather than hidden."
-            )
-        lines.append("")
-    return "\n".join(lines)
+    return (
+        f'<div class="gf-artifact">'
+        f'<p class="gf-trap-intro"><strong>{caught} of {total} planted claims were '
+        f'struck.</strong> Each was written to be wrong in a specific way, then put '
+        f'through the same two checks a generated claim faces.</p>'
+        f'{"".join(rows)}</div>'
+    )
 
 
 # --- the live path ------------------------------------------------------------
@@ -371,6 +410,152 @@ def _no_coverage(topic: str) -> str:
 
 # --- UI -----------------------------------------------------------------------
 
+GF_CSS = """
+/* --- Ink & Paper -----------------------------------------------------------
+   A cite-or-strike tool is a printed brief with footnoted evidence, so it is
+   set like one. Also: every other demo in a Spaces gallery is dark, and looking
+   deliberate is most of the job here. Three roles, three treatments -- the
+   question is the heading, the answer sits behind a green rail, the evidence is
+   demoted to a footnote block. -------------------------------------------- */
+:root {
+  --paper:#f7f4ee; --card:#ffffff; --ink:#1f1d1a; --ink-soft:#5d574c;
+  --rule:#e5ded1; --rule-soft:#efe9dd;
+  --verified:#2f6f5e; --strike:#8b2f28; --cite-bg:#faf7f1; --cid-bg:#ece5d8;
+  --cid-ink:#6b4f1d;
+}
+.gradio-container, .gradio-container .prose {
+  background:var(--paper) !important; color:var(--ink) !important;
+  max-width:880px !important; margin:0 auto !important;
+}
+.gradio-container h1 { font-family:Georgia,'Iowan Old Style',serif !important;
+  font-weight:700 !important; letter-spacing:-.01em; color:var(--ink) !important; }
+footer { display:none !important; }
+
+/* preset buttons: a grid of equal cells. The old row let a two-line label make
+   its own button taller than the rest -- the ragged edge was the tell. */
+#gf-presets { display:grid !important; grid-template-columns:repeat(4,1fr) !important;
+  gap:8px !important; }
+#gf-presets button {
+  min-height:52px !important; height:100% !important; white-space:normal !important;
+  line-height:1.25 !important; font-size:12.5px !important; padding:8px 10px !important;
+  background:var(--card) !important; color:var(--ink-soft) !important;
+  border:1px solid var(--rule) !important; border-radius:8px !important;
+}
+#gf-presets button:hover { border-color:var(--ink) !important; color:var(--ink) !important; }
+
+.gf-artifact { font-size:15px; line-height:1.55; }
+.gf-item { background:var(--card); border:1px solid var(--rule);
+  border-radius:10px; padding:16px 18px; margin:0 0 12px; }
+.gf-head { display:flex; align-items:baseline; gap:10px; }
+.gf-n { font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:var(--ink); color:var(--paper); padding:4px 7px; border-radius:4px;
+  letter-spacing:.06em; flex:none; }
+.gf-q { font-family:Georgia,'Iowan Old Style',serif; font-size:17px !important;
+  font-weight:700; margin:0 !important; color:var(--ink); line-height:1.35; }
+.gf-a { margin:11px 0 0 !important; padding:2px 0 2px 13px;
+  border-left:3px solid var(--verified); color:#33302b; }
+.gf-a-label { display:block; font:700 10px/1 ui-sans-serif,system-ui,sans-serif;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--verified);
+  margin-bottom:4px; }
+.gf-cite { background:var(--cite-bg); border:1px solid var(--rule-soft);
+  border-radius:7px; padding:9px 11px; margin-top:10px; font-size:13px;
+  color:var(--ink-soft); }
+.gf-cid { font:600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:var(--cid-bg); color:var(--cid-ink); padding:2px 6px;
+  border-radius:4px; margin-right:7px; }
+/* Colour stated on the spans, not inherited from .gf-cite: Gradio has its own
+   rule for bare <span> and it wins over inheritance, which left the source line
+   and the quoted evidence near-white on cream -- the one part of the page a
+   reader is invited to check. */
+.gf-src { font-size:12px; color:var(--ink-soft) !important; }
+.gf-quote { display:block; margin-top:6px; font-style:italic;
+  color:#4a453c !important; }
+.gf-cite-missing { border-color:var(--strike); color:var(--strike); }
+
+.gf-struck { margin-top:16px; padding:14px 16px; background:#fdf3f2;
+  border:1px solid #f0d5d2; border-radius:10px; }
+.gf-struck h4 { margin:0 0 8px !important; color:var(--strike);
+  font-size:13px !important; letter-spacing:.04em; text-transform:uppercase; }
+.gf-struck-claim { margin:0 !important; text-decoration:line-through; opacity:.75; }
+.gf-struck-why { margin:3px 0 10px !important; font-size:13px; color:var(--strike); }
+
+.gf-trap-intro { margin:0 0 12px !important; color:var(--ink-soft); }
+.gf-trap { background:var(--card); border:1px solid var(--rule);
+  border-radius:10px; padding:14px 16px; margin-bottom:10px; }
+.gf-trap-head { font-size:13px; color:var(--ink-soft); margin-bottom:7px; }
+.gf-trap-claim { margin:0 !important; font-family:Georgia,serif; font-size:15px; }
+.gf-verdict { margin:9px 0 0 !important; font-size:13px; color:var(--ink-soft);
+  padding-left:11px; border-left:3px solid var(--rule); }
+.gf-badge { font:700 10px/1 ui-sans-serif,system-ui,sans-serif; letter-spacing:.1em;
+  text-transform:uppercase; padding:3px 6px; border-radius:4px; margin-right:6px; }
+.gf-ok  { background:#e3efe9; color:var(--verified); }
+.gf-bad { background:#fbe6e4; color:var(--strike); }
+
+/* Gradio's own chrome, brought into the palette. Written against body.dark too,
+   so a viewer whose OS is dark still gets a readable page even if the class
+   removal above is ever defeated -- the failure mode otherwise is invisible
+   text, which looks like a broken deploy rather than a theme problem. */
+body, body.dark, .gradio-container, body.dark .gradio-container {
+  background:var(--paper) !important; color:var(--ink) !important;
+}
+body.dark .prose, body.dark .prose p, body.dark .prose li,
+.gradio-container .prose p, .gradio-container .prose li,
+.gradio-container label, body.dark label { color:var(--ink) !important; }
+/* <strong> carries its own colour in Gradio's dark palette, so the emphasised
+   half of every sentence went white-on-paper -- the intro read with holes in
+   it, which is worse than being wholly unstyled. */
+.gradio-container .prose strong, .gradio-container .prose b,
+body.dark .prose strong, body.dark .prose b,
+.gradio-container strong, body.dark strong { color:var(--ink) !important; }
+.gradio-container .prose em, .gradio-container .prose i,
+body.dark .prose em, body.dark .prose i,
+.gradio-container em, body.dark em { color:var(--ink-soft) !important; }
+.gradio-container .prose a, body.dark .prose a { color:var(--strike) !important; }
+
+/* the primary button: ink, not the theme's violet */
+button.primary, body.dark button.primary {
+  background:var(--ink) !important; color:var(--paper) !important;
+  border:1px solid var(--ink) !important; font-weight:600 !important;
+}
+button.primary:hover { background:#3a352e !important; }
+
+/* the topic field. Gradio wraps every input in .block inside .form, both of
+   which carry their own dark surface colour -- so the field sat in a navy slab
+   on a paper page. Flattened to the page rather than restyled: the input's own
+   border is the only edge this needs. */
+.gradio-container .block, body.dark .block,
+.gradio-container .form, body.dark .form {
+  background:transparent !important; border:none !important; box-shadow:none !important;
+}
+#gf-topic textarea, #gf-topic input, body.dark #gf-topic textarea {
+  background:var(--card) !important; color:var(--ink) !important;
+  border:1px solid var(--rule) !important; font-size:14px !important;
+}
+#gf-topic textarea::placeholder { color:#a49c8e !important; }
+#gf-topic label span, #gf-topic .block-label {
+  background:transparent !important; color:var(--ink-soft) !important; }
+
+/* accordion header */
+.gradio-container .label-wrap, body.dark .label-wrap {
+  background:var(--card) !important; color:var(--ink) !important;
+  border:1px solid var(--rule) !important; border-radius:8px !important; }
+"""
+
+# Gradio follows the viewer's OS dark-mode preference by putting `dark` on
+# <body>, and every one of its own text colours keys off that. Left alone it
+# paints light text onto this light theme -- the first attempt rendered the
+# intro and every source quote invisible.
+#
+# It marks the mode with a class, so the class is what gets removed. An earlier
+# attempt set ?__theme=light and reloaded; it never fired, and a redirect on
+# load is a worse mechanism anyway -- it costs a round trip and flashes.
+FORCE_LIGHT = """
+() => {
+  document.body.classList.remove('dark');
+  document.documentElement.classList.remove('dark');
+}
+"""
+
 PRESETS = [
     "TCP connection establishment and the three-way handshake",
     "UDP checksum and the pseudo header",
@@ -396,13 +581,14 @@ Shown on load: a real run, frozen so the page costs nothing to open —
 Live runs are capped at {N_ITEMS} items and rate limited; this is a free-tier demo.
 """
 
-with gr.Blocks(title="Grounded Forge") as demo:   # theme goes to launch() in Gradio 6
+with gr.Blocks(title="Grounded Forge") as demo:   # css/js/theme go to launch() in Gradio 6
     last_run = gr.State(0.0)
 
     gr.Markdown(INTRO)
 
     with gr.Row():
         topic_box = gr.Textbox(
+            elem_id="gf-topic",
             label="Topic",
             placeholder="e.g. TCP connection establishment and the three-way handshake",
             scale=4,
@@ -414,17 +600,17 @@ with gr.Blocks(title="Grounded Forge") as demo:   # theme goes to launch() in Gr
         )
         go = gr.Button("Generate cited quiz", variant="primary", scale=1)
 
-    with gr.Row():
+    with gr.Row(elem_id="gf-presets"):
         for preset in PRESETS:
             btn = gr.Button(preset, size="sm")
             btn.click(lambda p=preset: p, outputs=topic_box)
 
     status = gr.Markdown("Showing a saved run. Press **Generate** for a live one.")
-    quiz_out = gr.Markdown(render_quiz(CACHED))
+    quiz_out = gr.HTML(render_quiz(CACHED))
 
     with gr.Accordion("Does the Critic actually catch anything? — planted claims",
                       open=False):
-        gr.Markdown(render_traps())
+        gr.HTML(render_traps())
 
     gr.Markdown(FOOTER)
 
@@ -438,4 +624,4 @@ if __name__ == "__main__":
     # HF Spaces sets PORT; locally default to Gradio's usual 7860.
     demo.launch(server_name="0.0.0.0",
                 server_port=int(os.environ.get("PORT", 7860)),
-                theme=gr.themes.Soft())
+                theme=gr.themes.Soft(), css=GF_CSS, js=FORCE_LIGHT)

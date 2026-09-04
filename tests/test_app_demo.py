@@ -91,6 +91,30 @@ def test_the_cached_quiz_renders_with_every_citation_resolved():
             assert cid in markdown
 
 
+def test_source_text_is_escaped_before_it_reaches_the_page():
+    """
+    RFC 793 is full of `<SEQ=100><ACK=301><CTL=SYN,ACK>` and RFC 791 of `+-+-+`
+    header diagrams. Rendered as HTML without escaping, a browser reads those
+    angle brackets as tags and silently swallows the text between them -- so the
+    evidence quote, the one thing a reader is invited to verify, disappears.
+
+    Escaping is also the injection guard, but the corpus breaks this on its own
+    without anyone being hostile.
+    """
+    payload = {
+        "chunks": [{"chunk_id": "c1", "source_file": "rfc793.txt", "page": 37,
+                    "text": "2. SYN-SENT --> <SEQ=100><CTL=SYN> --> SYN-RECEIVED & more"}],
+        "kept": [{"question": "What does <SYN> do?", "answer": "A & B <tag>",
+                  "citations": ["c1"]}],
+        "struck": [],
+    }
+    out = app.render_quiz(payload)
+    assert "&lt;SEQ=100&gt;" in out
+    assert "<SEQ=100>" not in out
+    assert "&amp; more" in out
+    assert "&lt;SYN&gt;" in out and "<SYN>" not in out
+
+
 def test_the_trap_panel_reports_the_real_number(monkeypatch):
     """5 of 6, not 6 of 6. The panel must print what was measured, including
     the known dt4 escape -- see notes.md Finding 9."""
