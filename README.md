@@ -14,11 +14,14 @@ short_description: Every claim cites a source; a Critic strikes the rest.
 
 # Grounded Forge
 
-![tests](https://github.com/mohammadmassaf/GroundedForge/actions/workflows/tests.yml/badge.svg)
-
-**▶ [Try the live demo](https://huggingface.co/spaces/mohammad778/grounded-forge)** — study mode over three public-domain IETF RFCs, so every citation is checkable.
+[![tests](https://github.com/mohammadmassaf/GroundedForge/actions/workflows/tests.yml/badge.svg)](https://github.com/mohammadmassaf/GroundedForge/actions/workflows/tests.yml)
+[![live demo](https://img.shields.io/badge/live%20demo-Hugging%20Face-1f1d1a?logo=huggingface&logoColor=white)](https://huggingface.co/spaces/mohammad778/grounded-forge)
 
 **A cite-or-strike artifact generator: every claim cites your own documents, an independent Critic agent strikes anything the sources don't support, and the no-hallucination guarantee is measured, not asserted.**
+
+**▶ [Try it live](https://huggingface.co/spaces/mohammad778/grounded-forge)** — study mode over three public-domain IETF RFCs (768, 791, 793), so you can check any citation against the source yourself. *Job mode is not demoable: it reads a private vault and sibling repos, and is shown below through [committed sample output](#v2--job-mode-the-same-engine-a-different-corpus) instead.*
+
+![Grounded Forge pipeline: ingest, retrieve, generate, an independent Critic that strikes unsupported claims, and an evaluation layer measuring recall, grounding and adversarial traps](docs/images/architecture.svg)
 
 Two modes on one engine. **Study mode** turns course PDFs into a cited quiz. **Job mode** turns your git history and project notes into cited CV bullets and STAR interview answers. Swapping the domain changed ingestion and the output schema; retrieval, the Critic, the orchestration loop and the eval harness are the same code.
 
@@ -38,13 +41,9 @@ A plain chat model silently blends your notes with its training knowledge. It an
 
 ## How it works
 
-```
-ingest            retrieve              generate                critic                 eval
-PDFs → chunks  →  embed (local)      →  Generator drafts    →  Critic verifies     →  grounding %
-  + metadata      ChromaDB, cosine      quiz w/ citations      each claim vs its      recall@k
-                  top-k per query       (schema-validated,     cited chunks only;
-                                        retry on invalid)      Refiner drops/regens
-```
+The diagram above is the whole pipeline. The part that matters is the dashed red
+path: a claim the Critic cannot find in its own cited chunks does not quietly
+disappear — it is struck, shown struck, and the shortfall is regenerated.
 
 - **Multi-agent loop is hand-rolled:** no LangChain/LlamaIndex. Generator (temp 0.3) → Critic (temp 0.0, strict) → Refiner (deterministic policy: keep verified, strike failed, regenerate shortfall, hard round cap).
 - **Every run writes a JSONL trace:** every generation and every verdict with its reason. "Why was this claim struck?" is answerable from the trace alone.

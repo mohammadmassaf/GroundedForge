@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 420" width="980" height="420"
+     font-family="Georgia, 'Iowan Old Style', serif" role="img"
+     aria-label="Grounded Forge pipeline: ingest, retrieve, generate, an independent Critic, and the artifact; claims the Critic cannot verify are struck and regenerated, and an evaluation layer measures recall, grounding and adversarial traps.">
+
+  <!-- Arrowheads are explicit polygons, not <marker> defs: GitHub sanitises SVGs
+       rendered in a README and marker support is not something to bet a diagram
+       on. A pipeline drawing whose arrows lost their heads reads as broken. -->
+
+  <!-- Explicit ground. GitHub renders README images on light OR dark chrome, and
+       an unpainted background leaves dark-mode readers looking at ink on ink. -->
+  <rect width="980" height="420" fill="#f7f4ee"/>
+
+  <text x="34" y="40" font-size="19" font-weight="700" fill="#1f1d1a">Grounded Forge — cite-or-strike</text>
+  <text x="34" y="62" font-size="12.5" font-family="ui-sans-serif, system-ui, sans-serif" fill="#5d574c">
+    Every claim carries the chunk ids it came from. An independent Critic re-reads each one against only those chunks.
+  </text>
+
+  <g font-family="ui-sans-serif, system-ui, sans-serif">
+
+    <!-- = stage boxes = -->
+    <rect x="34" y="94" width="150" height="78" rx="9" fill="#ffffff" stroke="#e5ded1"/>
+    <text x="48" y="118" font-size="13" font-weight="700" fill="#1f1d1a">1 · Ingest</text>
+    <text x="48" y="137" font-size="11" fill="#5d574c">PDFs · git log · notes</text>
+    <text x="48" y="153" font-size="11" fill="#5d574c">→ ~700-char chunks</text>
+    <text x="48" y="167" font-size="10" fill="#8a8274">source + page kept on each</text>
+
+    <rect x="214" y="94" width="150" height="78" rx="9" fill="#ffffff" stroke="#e5ded1"/>
+    <text x="228" y="118" font-size="13" font-weight="700" fill="#1f1d1a">2 · Retrieve</text>
+    <text x="228" y="137" font-size="11" fill="#5d574c">MiniLM + Chroma</text>
+    <text x="228" y="153" font-size="11" fill="#5d574c">BM25 · RRF · re-rank</text>
+    <text x="228" y="167" font-size="10" fill="#8a8274">top-k, entirely local</text>
+
+    <rect x="394" y="94" width="150" height="78" rx="9" fill="#ffffff" stroke="#e5ded1"/>
+    <text x="408" y="118" font-size="13" font-weight="700" fill="#1f1d1a">3 · Generator</text>
+    <text x="408" y="137" font-size="11" fill="#5d574c">context-only draft</text>
+    <text x="408" y="153" font-size="11" fill="#5d574c">must cite chunk ids</text>
+    <text x="408" y="167" font-size="10" fill="#8a8274">schema-validated, retries</text>
+
+    <rect x="574" y="94" width="164" height="78" rx="9" fill="#fffdf8" stroke="#c9bda3" stroke-width="1.7"/>
+    <text x="588" y="118" font-size="13" font-weight="700" fill="#1f1d1a">4 · Critic</text>
+    <text x="588" y="137" font-size="11" fill="#5d574c">fresh call, no memory</text>
+    <text x="588" y="153" font-size="11" fill="#5d574c">sees ONLY the cited chunks</text>
+    <text x="588" y="167" font-size="10" fill="#8a8274">asks “is this stated here?”</text>
+
+    <rect x="800" y="94" width="146" height="78" rx="9" fill="#ffffff" stroke="#e5ded1"/>
+    <text x="814" y="118" font-size="13" font-weight="700" fill="#1f1d1a">5 · Artifact</text>
+    <text x="814" y="137" font-size="11" fill="#5d574c">quiz · CV bullets</text>
+    <text x="814" y="153" font-size="11" fill="#5d574c">guide · STAR answer</text>
+    <text x="814" y="167" font-size="10" fill="#8a8274">every line cites a source</text>
+
+    <!-- = forward arrows = -->
+    <g fill="#5d574c" stroke="#5d574c">
+      <line x1="184" y1="133" x2="202" y2="133" stroke-width="1.4"/>
+      <polygon points="202,128.5 210,133 202,137.5" stroke="none"/>
+      <line x1="364" y1="133" x2="382" y2="133" stroke-width="1.4"/>
+      <polygon points="382,128.5 390,133 382,137.5" stroke="none"/>
+      <line x1="544" y1="133" x2="562" y2="133" stroke-width="1.4"/>
+      <polygon points="562,128.5 570,133 562,137.5" stroke="none"/>
+    </g>
+
+    <!-- supported -> artifact -->
+    <g fill="#2f6f5e" stroke="#2f6f5e">
+      <line x1="738" y1="133" x2="788" y2="133" stroke-width="1.9"/>
+      <polygon points="788,127.5 797,133 788,138.5" stroke="none"/>
+    </g>
+    <text x="742" y="125" font-size="10" font-weight="700" fill="#2f6f5e"
+          font-family="ui-sans-serif, system-ui, sans-serif">supported</text>
+
+    <!-- = the strike path = -->
+    <g stroke="#8b2f28" fill="#8b2f28">
+      <path d="M656 172 L656 210 L487 210" fill="none" stroke-width="1.8" stroke-dasharray="5 4"/>
+      <polygon points="487,205.5 478,210 487,214.5" stroke="none"/>
+      <path d="M470 226 L470 180" fill="none" stroke-width="1.6" stroke-dasharray="5 4"/>
+      <polygon points="465.5,180 470,171 474.5,180" stroke="none"/>
+    </g>
+    <text x="668" y="196" font-size="10" font-weight="700" fill="#8b2f28">not supported</text>
+    <text x="404" y="196" font-size="10" font-weight="700" fill="#8b2f28">regenerate</text>
+
+    <rect x="330" y="226" width="300" height="62" rx="9" fill="#fdf3f2" stroke="#f0d5d2"/>
+    <text x="344" y="248" font-size="12.5" font-weight="700" fill="#8b2f28">Refiner — deterministic policy</text>
+    <text x="344" y="266" font-size="10.5" fill="#8b2f28">keep what verified · strike what did not · regenerate the</text>
+    <text x="344" y="280" font-size="10.5" fill="#8b2f28">shortfall · hard round cap. Struck claims are SHOWN, not dropped.</text>
+
+    <rect x="660" y="226" width="286" height="62" rx="9" fill="#ffffff" stroke="#e5ded1"/>
+    <text x="674" y="248" font-size="12.5" font-weight="700" fill="#1f1d1a">Quantitative pre-check</text>
+    <text x="674" y="266" font-size="10.5" fill="#5d574c">a figure absent from the cited chunks is struck</text>
+    <text x="674" y="280" font-size="10.5" fill="#5d574c">before any LLM call — deterministic, free</text>
+    <g stroke="#5d574c" fill="#5d574c">
+      <path d="M700 226 L700 180" fill="none" stroke-width="1.3"/>
+      <polygon points="695.5,180 700,171 704.5,180" stroke="none"/>
+    </g>
+
+    <!-- = eval band = -->
+    <g stroke="#5d574c" fill="#5d574c">
+      <line x1="490" y1="298" x2="490" y2="312" stroke-width="1.3"/>
+      <polygon points="485.5,312 490,321 494.5,312" stroke="none"/>
+    </g>
+
+    <rect x="34" y="322" width="912" height="82" rx="10" fill="#ffffff" stroke="#e5ded1"/>
+    <text x="50" y="345" font-size="13" font-weight="700" fill="#1f1d1a">Evaluation — the guarantee is measured, not asserted</text>
+
+    <text x="50" y="368" font-size="11.5" font-weight="700" fill="#5d574c">recall@k</text>
+    <text x="50" y="383" font-size="10.5" fill="#8a8274">did retrieval surface the right page?</text>
+    <text x="50" y="396" font-size="10.5" fill="#8a8274">local and free, so it runs often</text>
+
+    <text x="300" y="368" font-size="11.5" font-weight="700" fill="#5d574c">grounding %</text>
+    <text x="300" y="383" font-size="10.5" fill="#8a8274">how many claims survived the Critic</text>
+    <text x="300" y="396" font-size="10.5" fill="#8a8274">separates retrieval misses from generator faults</text>
+
+    <text x="620" y="368" font-size="11.5" font-weight="700" fill="#8b2f28">adversarial traps</text>
+    <text x="620" y="383" font-size="10.5" fill="#8a8274">planted claims with known defects —</text>
+    <text x="620" y="396" font-size="10.5" fill="#8a8274">measures the Critic itself, not just its output</text>
+
+    <line x1="286" y1="354" x2="286" y2="394" stroke="#e5ded1"/>
+    <line x1="606" y1="354" x2="606" y2="394" stroke="#e5ded1"/>
+  </g>
+</svg>
