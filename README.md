@@ -21,7 +21,9 @@ short_description: Every claim cites a source; a Critic strikes the rest.
 
 **▶ [Try it live](https://huggingface.co/spaces/mohammad778/grounded-forge)** — study mode over three public-domain IETF RFCs (768, 791, 793), so you can check any citation against the source yourself. *Job mode is not demoable: it reads a private vault and sibling repos, and is shown below through [committed sample output](#v2--job-mode-the-same-engine-a-different-corpus) instead.*
 
-![Grounded Forge pipeline: ingest, retrieve, generate, an independent Critic that strikes unsupported claims, and an evaluation layer measuring recall, grounding and adversarial traps](docs/images/architecture.svg)
+![The live demo: a generated quiz item with its answer and two citations, each quoting the RFC text it came from, above the run's own summary line](docs/images/cited-claim.png)
+
+*The live demo, mid-run. Every claim carries the chunk it came from, and the run reports its own tally — `4 kept, 0 struck`.*
 
 Two modes on one engine. **Study mode** turns course PDFs into a cited quiz. **Job mode** turns your git history and project notes into cited CV bullets and STAR interview answers. Swapping the domain changed ingestion and the output schema; retrieval, the Critic, the orchestration loop and the eval harness are the same code.
 
@@ -41,9 +43,11 @@ A plain chat model silently blends your notes with its training knowledge. It an
 
 ## How it works
 
-The diagram above is the whole pipeline. The part that matters is the dashed red
-path: a claim the Critic cannot find in its own cited chunks does not quietly
-disappear — it is struck, shown struck, and the shortfall is regenerated.
+![Grounded Forge pipeline: ingest, retrieve, generate, an independent Critic that strikes unsupported claims, and an evaluation layer measuring recall, grounding and adversarial traps](docs/images/architecture.svg)
+
+The part that matters is the dashed red path: a claim the Critic cannot find in its
+own cited chunks does not quietly disappear — it is struck, shown struck, and the
+shortfall is regenerated.
 
 - **Multi-agent loop is hand-rolled:** no LangChain/LlamaIndex. Generator (temp 0.3) → Critic (temp 0.0, strict) → Refiner (deterministic policy: keep verified, strike failed, regenerate shortfall, hard round cap).
 - **Every run writes a JSONL trace:** every generation and every verdict with its reason. "Why was this claim struck?" is answerable from the trace alone.
@@ -247,6 +251,21 @@ which check should catch it: a rounded `~93%` where the source says `92.7%`, a f
 latency gain, a skill absent from the corpus, a real number cited from the wrong chunk. All 6
 were struck, each by its intended stage — 3 by the deterministic quantity check, 3 by the LLM
 Critic, no mismatches.
+
+The public demo corpus has its own six, written against the literal text of RFC 768/791/793 so
+anyone can check them. **Five of six are struck** — and the sixth is the interesting one:
+
+![The demo's trap panel: five of six planted claims struck, each shown beside the source sentence that contradicts it](docs/images/struck-claim.png)
+
+`dt4` claims the fragment offset is measured in units of **64 octets**. The cited chunk's first
+sentence says *"units of 8 octets (64 bits)"* — the claim's only figure is genuinely present,
+attached to the wrong unit. The deterministic check therefore cannot see it, and the Critic
+answered *supported*, quoting the contradicting sentence back as if it matched. Two prompt fixes
+were attempted and neither worked, so the prompt was reverted and the trap is kept, failing, in
+the set — [notes.md, Finding 9](eval/notes.md).
+
+Reporting 5/6 rather than deleting the inconvenient trap is the point. A trap set where
+everything passes is a trap set that has stopped trying.
 
 That is the measurement that makes the other two trustworthy, and it costs a tenth of a
 grounding run.
