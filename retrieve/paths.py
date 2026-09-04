@@ -30,7 +30,22 @@ as `belongs_to()` deciding a corpus by whether ids resolve rather than by
 reading a filename, and as conftest redirecting TRACE_DIR rather than asking
 each test to remember.
 """
+import os
 from pathlib import Path
+
+# Where both stores live, relative to the working directory by default.
+#
+# GF_STORE_ROOT relocates them for tests. Note what it CANNOT do: it moves the
+# public and private directories together, so the split below survives any value
+# it is given. That is the whole reason it is a root and not a per-corpus
+# override -- an override could aim `job` at the public directory, which is the
+# one mistake this module exists to make impossible.
+#
+# It exists because the test suite was opening the REAL demo store: importing
+# app.py runs _boot(), and two pytest runs at once then contended on one sqlite
+# file -- a 22-second suite took 51 minutes. Same shape as the traces/ problem
+# conftest already fixes: measurement state and test state sharing a directory.
+STORE_ROOT_ENV = "GF_STORE_ROOT"
 
 # Everything except the demo. Gitignored, holds all corpora in one sqlite file.
 PRIVATE_CHROMA_DIR = Path("chroma_db")
@@ -50,15 +65,25 @@ VECTOR_PACK_DIR = Path("index")
 PUBLIC_CORPORA = {"demo"}
 
 
+def store_root() -> Path:
+    """
+    The parent of both stores. Read on every call, not captured at import, so a
+    test can set it after this module is already loaded.
+    """
+    return Path(os.environ.get(STORE_ROOT_ENV, "."))
+
+
 def chroma_dir(corpus: str) -> str:
     """
     The persist directory for `corpus`, as the string Chroma wants.
 
-    Returns the committed public store for `demo` and the gitignored private
-    one for everything else. There is deliberately no override parameter.
+    The public store for `demo`, the private one for everything else. There is
+    deliberately no per-corpus override -- only the shared root can move, and
+    moving it takes both directories along, so `job` can never resolve to the
+    directory the demo publishes from.
     """
     directory = PUBLIC_CHROMA_DIR if corpus in PUBLIC_CORPORA else PRIVATE_CHROMA_DIR
-    return str(directory)
+    return str(store_root() / directory)
 
 
 def vector_pack(corpus: str) -> str:
