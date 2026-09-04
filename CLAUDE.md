@@ -54,4 +54,6 @@ After I explain each in my own words, it goes into my competencies ledger.
 
 - `.gitignore` from day one — never commit `.env`, API keys, `__pycache__`, the vector store, or course PDFs (copyright). Rotate any leaked key immediately.
 - Commit often, small, imperative messages ("add chunker with overlap", not "update").
+- **Never add a `Co-Authored-By` trailer to commits.** No Claude/Anthropic co-authorship — the commits are mine, and the history was rewritten once already to strip them.
+- Commit as `mohammadmassaf <mohammadmassaf1@gmail.com>` (already set repo-local).
 - README must let a stranger clone + run it, show a real usage example + the grounding score, and include a short "why this isn't just ChatGPT" note.
