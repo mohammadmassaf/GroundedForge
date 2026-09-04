@@ -610,10 +610,10 @@ with gr.Blocks(title="Grounded Forge") as demo:   # css/js/theme go to launch() 
         )
         go = gr.Button("Generate cited quiz", variant="primary", scale=1)
 
+    preset_buttons = []
     with gr.Row(elem_id="gf-presets"):
         for preset in PRESETS:
-            btn = gr.Button(preset, size="sm")
-            btn.click(lambda p=preset: p, outputs=topic_box)
+            preset_buttons.append((gr.Button(preset, size="sm"), preset))
 
     status = gr.Markdown("Showing a saved run. Press **Generate** for a live one.")
     quiz_out = gr.HTML(render_quiz(CACHED))
@@ -624,10 +624,28 @@ with gr.Blocks(title="Grounded Forge") as demo:   # css/js/theme go to launch() 
 
     gr.Markdown(FOOTER)
 
+    # Handlers last, once every component they write to exists.
     go.click(generate, inputs=[topic_box, last_run],
              outputs=[status, quiz_out, last_run])
     topic_box.submit(generate, inputs=[topic_box, last_run],
                      outputs=[status, quiz_out, last_run])
+
+    for btn, preset in preset_buttons:
+        # Fill the box AND run, chained with .then(). One click, not two, for
+        # two reasons.
+        #
+        # A preset that only fills a textbox asks a visitor to find and press a
+        # second button before anything happens, which is the whole reason
+        # example buttons exist.
+        #
+        # And filling the box is itself a server round-trip in Gradio, so
+        # "click preset, then Generate" is a race: pressing Generate before the
+        # value lands runs with an EMPTY topic. Seen on the live Space -- the
+        # status came back "Type a topic, or pick one of the examples" with the
+        # box visibly full. .then() sequences them, so it cannot happen.
+        btn.click(lambda p=preset: p, outputs=topic_box).then(
+            generate, inputs=[topic_box, last_run],
+            outputs=[status, quiz_out, last_run])
 
 
 if __name__ == "__main__":
