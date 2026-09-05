@@ -20,3 +20,43 @@ jobs:
 
       - name: Run tests              # 4. the actual gate
         run: pytest -q
+
+  # A SECOND gate, kept separate from pytest on purpose. pytest answers "is the
+  # code correct"; this answers "did retrieval get worse". They fail for
+  # different reasons and want different fixes, and a red build should say which
+  # one it is without opening the log.
+  #
+  # Only the free, deterministic half of the eval is gated. recall@k runs
+  # entirely on this machine: local embeddings, local ChromaDB, no API key.
+  # Grounding % is deliberately NOT here -- it spends Groq tokens and moves with
+  # the model, so it would fail the build for reasons outside the repository.
+  # See scripts/check_recall.py for the argument in full.
+  retrieval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # The embedding weights are ~90MB and identical between runs, since the
+      # revision is pinned in retrieve/model_pins.py. Keyed on that file, so a
+      # deliberate model change busts the cache instead of silently reusing the
+      # old weights and measuring the wrong thing.
+      - name: Cache the embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-${{ hashFiles('retrieve/model_pins.py') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Rebuilds chroma_demo/ from the committed vector pack (~3s, no model
+      # loaded) and then measures. The store is gitignored, so a fresh runner
+      # has to reconstruct it exactly as the Space does.
+      - name: Gate recall@8
+        run: python scripts/check_recall.py
