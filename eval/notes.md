@@ -964,3 +964,76 @@ hypotheses formed in a single session — "the Generator repeats itself" and "th
 6000 tokens" — both shrank on contact with a sample larger than one. **A defect seen once is a
 sample of one**, and the cost of measuring it first was ~35 calls against a prompt change that
 would have cost a free-tier day to re-validate.
+
+---
+
+## Finding 11: the demo eval set was flattering itself, and it hid the re-ranker
+
+Measured 2026-09-05, `eval --corpus demo --limit 0 --no-traps`, zero LLM calls.
+
+### The tell
+
+The six demo retrieval items read **100% at every k** when they were added on 2026-09-04. That
+looked good and meant almost nothing: the questions were drafted **while reading the chunks they
+are scored against**, so they reused the target page's vocabulary. Measured as the fraction of a
+question's content words that appear on its own target page:
+
+| item | overlap | note |
+|---|---|---|
+| d1 | 80% | |
+| d2 | 75% | |
+| d3 | **100%** | the chunk's own sentence, turned into a question |
+| d4 | 86% | |
+| d5 | 86% | |
+| d6 | 82% | |
+
+Retrieval was being asked to find a near-copy of the query. That measures string similarity, not
+whether the corpus can answer a question somebody would actually ask. `eval_set.json`'s own
+`_comment` warns about exactly this, which is the annoying part: the warning was already written
+down and the mistake was made anyway, in a set built in an afternoon to unblock a demo.
+
+### The protocol, stated before the numbers
+
+Rewrite each question once, in a learner's words -- **router** not gateway, **packet** not
+datagram, "smallest" not "minimum" -- then measure ONCE and publish whatever comes out. Tuning
+the wording until the number recovers would re-introduce the same bias by hand, just more
+slowly. Overlap after rewriting: 67, 29, 57, 43, 50, 60 percent.
+
+### Result: 100% was worth 83.3%
+
+| mode | recall@3 | recall@5 | recall@8 | recall@10 |
+|---|---|---|---|---|
+| vector (what the demo runs) | 50.0% | 83.3% | **83.3%** | 83.3% |
+| hybrid | 66.7% | 83.3% | 100% | 100% |
+| rerank | 66.7% | 100% | 100% | 100% |
+
+One miss under vector, and it is a clean case rather than a broken question. `d2` asks "what is
+the smallest packet a router has to pass along in one piece?" RFC 791 answers it on p.31: *"Every
+internet module must be able to forward a datagram of 68 octets without further fragmentation."*
+
+| phrasing | rank of the target page |
+|---|---|
+| old, echoing the source | **#3**, score 0.688 |
+| new, a learner's words | **not in the top 10** (best hit 0.499) |
+
+MiniLM does not bridge **router → gateway** or **packet → datagram**. The demo corpus is
+1981-vintage English and the embedder is trained on modern text, so the vocabulary gap is real
+and it is invisible to any eval written in the source's own words.
+
+### What this changes
+
+**The leaky questions were hiding the re-ranker.** At 100% everywhere, hybrid and rerank bought
+nothing measurable and the M7 work looked like a solution without a problem. Against honest
+questions, at the k that feeds generation, vector reads 83.3% and both hybrid and rerank read
+100%. That is the first measurement on this corpus that argues for two-stage retrieval on its
+own evidence rather than on principle.
+
+**The demo still runs vector-only**, and that stays for now: `cmd_make_quiz` calls `search()`,
+and switching it would invalidate the published grounding number the same way a Critic-prompt
+change would (Finding 5, Finding 9). Recorded as a measured reason to switch later, not as a
+reason to switch quietly today.
+
+**The lesson generalises past this repo.** An eval set written by the person who read the answers
+first will flatter the system, and the flattery is invisible from inside the number. Write the
+question before reading the chunk, or measure the overlap and admit what it says. Same shape as
+Finding 8: the hypothesis felt right and nothing forced a count.

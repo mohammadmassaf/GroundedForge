@@ -1,9 +1,9 @@
 {
-  "_comment": "Eval set for the PUBLIC demo corpus (demo_corpus/ = RFC 768/791/793). Exists so the live demo can show the Critic striking a planted claim without touching the course PDFs, which are gitignored for copyright. Retrieval is correct if a top-k chunk comes from ANY listed (source_file, page) pair. Traps carry {claim, citations, stage, why}: `stage` is which check SHOULD catch it -- quant when the claim states a figure absent from the cited chunk, critic when every figure in the claim IS present but attached to the wrong thing, so the deterministic check cannot see it. Every trap below was written against the literal text of the chunk it cites; the quoted phrase in each `why` is what the RFC actually says.",
+  "_comment": "Eval set for the PUBLIC demo corpus (demo_corpus/ = RFC 768/791/793). Exists so the live demo can show the Critic striking a planted claim without touching the course PDFs, which are gitignored for copyright. Retrieval is correct if a top-k chunk comes from ANY listed (source_file, page) pair. QUESTIONS ARE DELIBERATELY NOT PHRASED LIKE THE SOURCE. The first version of these six was drafted while reading the chunks they are scored against, and reused 75-100% of the target page's vocabulary -- d3 was the chunk's own sentence turned into a question. That scores retrieval on finding a near-copy of the query, which is leakage, not recall. Rewritten 2026-09-05 in a learner's words (router not gateway, packet not datagram, 'smallest' not 'minimum'), then re-measured ONCE and the result published whatever it was. If you add an item, write the question before you read the chunk, or you will flatter the number the same way. Traps carry {claim, citations, stage, why}: `stage` is which check SHOULD catch it -- quant when the claim states a figure absent from the cited chunk, critic when every figure in the claim IS present but attached to the wrong thing, so the deterministic check cannot see it. Every trap below was written against the literal text of the chunk it cites; the quoted phrase in each `why` is what the RFC actually says.",
   "items": [
     {
       "id": "d1",
-      "question": "What is the minimum value of the Length field in a UDP header?",
+      "question": "What is the smallest a UDP datagram can be?",
       "expected": [
         {
           "source_file": "rfc768.txt",
@@ -15,7 +15,7 @@
     },
     {
       "id": "d2",
-      "question": "What size datagram must every internet module be able to forward without fragmenting it?",
+      "question": "What is the smallest packet a router has to pass along in one piece?",
       "expected": [
         {
           "source_file": "rfc791.txt",
@@ -27,7 +27,7 @@
     },
     {
       "id": "d3",
-      "question": "In what units is the fragment offset measured?",
+      "question": "How much data does one step of the fragment offset represent?",
       "expected": [
         {
           "source_file": "rfc791.txt",
@@ -39,7 +39,7 @@
     },
     {
       "id": "d4",
-      "question": "What happens to a datagram when its Time to Live field reaches zero?",
+      "question": "What happens to a packet once its remaining lifetime hits zero?",
       "expected": [
         {
           "source_file": "rfc791.txt",
@@ -53,7 +53,7 @@
     },
     {
       "id": "d5",
-      "question": "Why was 576 octets chosen as the datagram size every destination must accept?",
+      "question": "Where does the 576 figure come from?",
       "expected": [
         {
           "source_file": "rfc791.txt",
@@ -66,7 +66,7 @@
     },
     {
       "id": "d6",
-      "question": "What Time to Live does TCP ask the internet layer to use, and what is the assumed maximum segment lifetime?",
+      "question": "How long does TCP ask IP to let a segment live, and how long can one survive?",
       "expected": [
         {
           "source_file": "rfc793.txt",
