@@ -19,17 +19,17 @@ short_description: Every claim cites a source; a Critic strikes the rest.
 
 **A cite-or-strike artifact generator: every claim cites your own documents, an independent Critic agent strikes anything the sources don't support, and the no-hallucination guarantee is measured, not asserted.**
 
-**▶ [Try it live](https://huggingface.co/spaces/mohammad778/grounded-forge)** — study mode over three public-domain IETF RFCs (768, 791, 793), so you can check any citation against the source yourself. *Job mode is not demoable: it reads a private vault and sibling repos, and is shown below through [committed sample output](#v2--job-mode-the-same-engine-a-different-corpus) instead.*
+**▶ [Try it live](https://huggingface.co/spaces/mohammad778/grounded-forge)**: study mode over three public-domain IETF RFCs (768, 791, 793), so you can check any citation against the source yourself. *Job mode is not demoable: it reads a private vault and sibling repos, and is shown below through [committed sample output](#v2--job-mode-the-same-engine-a-different-corpus) instead.*
 
 ![The live demo: a generated quiz item with its answer and two citations, each quoting the RFC text it came from, above the run's own summary line](docs/images/cited-claim.png)
 
-*The live demo, mid-run. Every claim carries the chunk it came from, and the run reports its own tally — `4 kept, 0 struck`.*
+*The live demo, mid-run. Every claim carries the chunk it came from, and the run reports its own tally: `4 kept, 0 struck`.*
 
 Two modes on one engine. **Study mode** turns course PDFs into a cited quiz. **Job mode** turns your git history and project notes into cited CV bullets and STAR interview answers. Swapping the domain changed ingestion and the output schema; retrieval, the Critic, the orchestration loop and the eval harness are the same code.
 
 > **100% grounding** (40/40 claims independently verified against their cited sources) · **100% recall@10** on a fixed 20-question eval set
 >
-> *Measured 2026-08-21 on `openai/gpt-oss-20b`. Every published number here names the model and date that produced it, because a grounding score measures a specific model — Groq retired the previous one mid-project and it cost 22 points until the prompt was fixed.*
+> *Measured 2026-08-21 on `openai/gpt-oss-20b`. Every published number here names the model and date that produced it, because a grounding score measures a specific model. Groq retired the previous one mid-project and it cost 22 points until the prompt was fixed.*
 
 Point it at a folder of course PDFs, ask for a quiz on any topic, and get a markdown artifact where every question and answer links to the exact page it came from, with unsupported claims struck out, visibly, never silently emitted.
 
@@ -46,13 +46,13 @@ A plain chat model silently blends your notes with its training knowledge. It an
 ![Grounded Forge pipeline: ingest, retrieve, generate, an independent Critic that strikes unsupported claims, and an evaluation layer measuring recall, grounding and adversarial traps](docs/images/architecture.svg)
 
 The part that matters is the dashed red path: a claim the Critic cannot find in its
-own cited chunks does not quietly disappear — it is struck, shown struck, and the
+own cited chunks does not quietly disappear: it is struck, shown struck, and the
 shortfall is regenerated.
 
 - **Multi-agent loop is hand-rolled:** no LangChain/LlamaIndex. Generator (temp 0.3) → Critic (temp 0.0, strict) → Refiner (deterministic policy: keep verified, strike failed, regenerate shortfall, hard round cap).
 - **Every run writes a JSONL trace:** every generation and every verdict with its reason. "Why was this claim struck?" is answerable from the trace alone.
 - **Free tier end to end:** Groq (`openai/gpt-oss-20b`), local sentence-transformers embeddings, local ChromaDB. No paid services.
-- **The local half survives a vendor pulling a model.** When Groq retired the LLM this was built on, every recall@k figure reproduced exactly — embeddings, BM25, the cross-encoder and the vector store all run here. Only the grounding score, which measures a specific model, had to be re-measured.
+- **The local half survives a vendor pulling a model.** When Groq retired the LLM this was built on, every recall@k figure reproduced exactly: embeddings, BM25, the cross-encoder and the vector store all run here. Only the grounding score, which measures a specific model, had to be re-measured.
 
 ## Setup
 
@@ -65,7 +65,7 @@ copy .env.example .env                            # add your free Groq API key (
 ```
 
 **Try it without supplying anything.** The repo ships a small public-domain
-corpus (`demo_corpus/` — the IP, TCP and UDP RFCs) so a fresh clone is runnable:
+corpus (`demo_corpus/`: the IP, TCP and UDP RFCs) so a fresh clone is runnable:
 
 ```bash
 python main.py ingest --corpus demo              # 526 chunks with source metadata
@@ -84,7 +84,7 @@ python main.py make-quiz "your topic" --corpus mycourse -n 5
 
 ### Or run it in Docker
 
-The image carries the dependencies **and the model weights** — both MiniLM
+The image carries the dependencies **and the model weights**: both MiniLM
 models are baked in at pinned commit shas, so a container works with no network
 at all:
 
@@ -93,7 +93,7 @@ copy .env.example .env                            # only needed for generation
 docker compose run --rm gf
 ```
 
-That builds the image and runs the demo end to end — ingest, index, and a
+That builds the image and runs the demo end to end: ingest, index, and a
 retrieval query printing ranked cited chunks. It needs no API key, because
 retrieval is entirely local (embeddings, BM25, the cross-encoder, ChromaDB);
 only generation calls out to Groq.
@@ -117,8 +117,8 @@ docker run --rm --network none -e HF_HUB_OFFLINE=1 grounded-forge:latest
 Same output, no network interface.
 
 > **The `gf-job` service is not runnable from a clone.** Job mode (below) reads a
-> personal corpus — a vault and sibling repos mounted read-only from paths that
-> exist on one machine — plus a `docker/corpus.docker.yaml` that is gitignored
+> personal corpus (a vault and sibling repos mounted read-only from paths that
+> exist on one machine), plus a `docker/corpus.docker.yaml` that is gitignored
 > for the same privacy reason `corpus.yaml` is. `gf` is the service a stranger
 > can run; `gf-job` is the one I run. The split is in `docker-compose.yaml`
 > rather than in a paragraph nobody reads.
@@ -132,15 +132,15 @@ From an actual run against the shipped demo corpus
 >
 > **Answer:** The three-way handshake
 >
-> 📖 `rfc793_p36_c3` — rfc793.txt, p.36: "…The \"three-way handshake\" is the procedure used to establish a connection. This procedure normally is initiated by one TCP and responded to…"
+> 📖 `rfc793_p36_c3`: rfc793.txt, p.36: "…The \"three-way handshake\" is the procedure used to establish a connection. This procedure normally is initiated by one TCP and responded to…"
 
-Full sample artifact: [quiz_demo.md](quiz_demo.md) — reproducible from a clean
+Full sample artifact: [quiz_demo.md](quiz_demo.md): reproducible from a clean
 clone with the three commands above. When the Critic strikes a claim, it appears
 struck-through in a separate section with the reason. See the sample trace in
 [samples/](samples/) for the verdicts behind a full eval run.
 
 The measured numbers below come from a 20-question eval set over three
-networking-course PDFs, which stay out of the repo for copyright reasons — the
+networking-course PDFs, which stay out of the repo for copyright reasons; the
 demo corpus is what's reproducible, the course corpus is what's measured.
 
 ## Evaluation
@@ -150,7 +150,7 @@ demo corpus is what's reproducible, the course corpus is what's measured.
 > **Reproducing these numbers costs most of a free-tier day.** "Runs on a free tier" is true of
 > the product and false of the eval. Grounding spends two LLM calls per claim, so a full
 > 15-question job-mode run is ~90–96k tokens against Groq's ~100k rolling-day cap: one run, one
-> day. That is why the harness takes `--limit` / `--offset` — a set too big for one day's tokens
+> day. That is why the harness takes `--limit` / `--offset`: a set too big for one day's tokens
 > is evaluated in windows and the **claim counts** are added together (averaging the two
 > percentages is wrong whenever the windows produced different numbers of claims, which they
 > always do). The retrieval half is local and free: `--limit 0` runs recall@k on its own.
@@ -159,18 +159,18 @@ demo corpus is what's reproducible, the course corpus is what's measured.
 |---|---|---|
 | recall@3 | 90% | retrieval ranking |
 | recall@5 | 95% | retrieval ranking |
-| recall@8 | 100% | the k the Generator actually reads — the ceiling on grounding |
+| recall@8 | 100% | the k the Generator actually reads: the ceiling on grounding |
 | recall@10 | 100% | is the right chunk findable at all |
 | **grounding** | **100%** | 40/40 claims the Critic verified against their cited sources |
 
 **Why 100% isn't a rubber stamp.** A Critic that approves everything would score exactly this,
 so the number is only worth as much as the judge behind it. Three independent checks:
 
-1. **Adversarial traps on this same corpus** — six authored claims with known defects, each
+1. **Adversarial traps on this same corpus**: six authored claims with known defects, each
    tagged with the stage that should catch it. All six struck, three by the deterministic
    quantity check and three by the Critic, none by the wrong stage. Among them a claim whose
    every figure is genuine (`3000 Hz`, `SNR 3162`, `34,860 bps`) but which attributes a
-   telephone-line calculation to fiber optic cable — quant passes it by design, so only a
+   telephone-line calculation to fiber optic cable; quant passes it by design, so only a
    Critic reading for meaning catches it.
 2. **It strikes when there is something to strike.** The same Critic, same prompt, struck
    **15 of 50 claims on this corpus** two runs earlier, before the generator prompt was fixed.
@@ -193,7 +193,7 @@ Retrieval also runs in hybrid mode: BM25 keyword search fused with vector search
 The honest finding: on a paraphrase-style eval set the pipeline **matched** the baseline rather than beating it. Fusion alone diluted the top-3 with keyword noise, and the re-ranker won it back. What hybrid buys is robustness the headline number doesn't reward: the one question vector missed (a misspelled "sheilded twisted pair") is the one hybrid fixed, via exact-token matching. Full per-question diff in [eval/notes.md](eval/notes.md).
 
 
-## v2 — job mode: the same engine, a different corpus
+## v2: job mode: the same engine, a different corpus
 
 The domain-agnostic claim above is only worth making if it survives a real swap. v2 points the
 identical pipeline at **my own git history, repo docs and project notes** and produces **cited
@@ -205,7 +205,7 @@ python main.py make-bullets "MealWise authentication" --repo mealwise -n 5
 python main.py make-star "Tell me about improving retrieval quality" --repo grounded-forge
 ```
 
-Sample artifact: [bullets_job.md](bullets_job.md) — real bullets with commit-level citations,
+Sample artifact: [bullets_job.md](bullets_job.md): real bullets with commit-level citations,
 and a struck section showing what the Critic rejected and why.
 
 ### What a repo corpus breaks that a textbook doesn't
@@ -220,7 +220,7 @@ and a struck section showing what the Critic rejected and why.
 
 Both measured on `openai/gpt-oss-20b`, August 2026.
 
-**recall@8 is the row that matters** — it is the k the Generator actually reads, and it is the
+**recall@8 is the row that matters**: it is the k the Generator actually reads, and it is the
 ceiling on grounding, because a claim cannot cite evidence that never reached the prompt. The
 study corpus hands the Generator everything it needs; the repo corpus does not. Job mode starts
 behind before a word is written.
@@ -228,7 +228,7 @@ behind before a word is written.
 Three failures that only a repo corpus produces:
 
 - **Prose states things; commits label them.** `feat: add auth with JWT` is seven words
-  covering a week of work, so a CV bullet has to generalise — and a grounding checker punishes
+  covering a week of work, so a CV bullet has to generalise, and a grounding checker punishes
   generalisation. The artifact type and the verifier want opposite things. That tension *is*
   job mode.
 - **Evidence pools are an authorization boundary, not a bag of context.** Asked "how is
@@ -243,26 +243,26 @@ Three failures that only a repo corpus produces:
 ### Adversarial evaluation: measuring the Critic itself
 
 recall@k and grounding % both grade the system on *good* inputs, so neither can detect a broken
-Critic — one that answers "supported" to everything scores **100% grounding**, the best possible
+Critic: one that answers "supported" to everything scores **100% grounding**, the best possible
 number from the worst possible judge.
 
 So the job eval set carries **6 authored traps**, each a claim with a known defect and a tag for
 which check should catch it: a rounded `~93%` where the source says `92.7%`, a fabricated `40%`
 latency gain, a skill absent from the corpus, a real number cited from the wrong chunk. All 6
-were struck, each by its intended stage — 3 by the deterministic quantity check, 3 by the LLM
+were struck, each by its intended stage: 3 by the deterministic quantity check, 3 by the LLM
 Critic, no mismatches.
 
 The public demo corpus has its own six, written against the literal text of RFC 768/791/793 so
-anyone can check them. **Five of six are struck** — and the sixth is the interesting one:
+anyone can check them. **Five of six are struck**: and the sixth is the interesting one:
 
 ![The demo's trap panel: five of six planted claims struck, each shown beside the source sentence that contradicts it](docs/images/struck-claim.png)
 
 `dt4` claims the fragment offset is measured in units of **64 octets**. The cited chunk's first
-sentence says *"units of 8 octets (64 bits)"* — the claim's only figure is genuinely present,
+sentence says *"units of 8 octets (64 bits)"*, the claim's only figure is genuinely present,
 attached to the wrong unit. The deterministic check therefore cannot see it, and the Critic
 answered *supported*, quoting the contradicting sentence back as if it matched. Two prompt fixes
 were attempted and neither worked, so the prompt was reverted and the trap is kept, failing, in
-the set — [notes.md, Finding 9](eval/notes.md).
+the set ([notes.md, Finding 9](eval/notes.md)).
 
 Reporting 5/6 rather than deleting the inconvenient trap is the point. A trap set where
 everything passes is a trap set that has stopped trying.
@@ -280,12 +280,12 @@ might be talked round. The Critic only sees claims that already survived arithme
 ### When the vendor deleted the model
 
 Groq retired `llama-3.3-70b-versatile` mid-project. Every LLM-dependent number became
-historical overnight — and **every recall figure reproduced exactly**, because embeddings, BM25,
+historical overnight, and **every recall figure reproduced exactly**, because embeddings, BM25,
 the re-ranker and the vector store all run locally.
 
 Re-measuring on `gpt-oss-20b` then exposed a defect the old model had been hiding: two prompt
 rules contradicted each other. One demanded 12–25 words per bullet, another forbade saying
-anything the evidence doesn't state — and a seven-word commit often cannot pay for 12 grounded
+anything the evidence doesn't state, and a seven-word commit often cannot pay for 12 grounded
 words, so obeying the first forced padding. The retired model had quietly averaged 8.1 words and
 ignored the rule. The new one obeyed it, and grounding fell to 50%.
 
@@ -297,11 +297,11 @@ told the difference.
 **A grounding score measures a specific model, on a specific date.** Both are now published
 beside every number here.
 
-Full analysis — six findings, each with the measurement that produced it: [eval/notes.md](eval/notes.md).
+Full analysis, with six findings, each with the measurement that produced it: [eval/notes.md](eval/notes.md).
 
 ## The live demo
 
-[huggingface.co/spaces/mohammad778/grounded-forge](https://huggingface.co/spaces/mohammad778/grounded-forge) — study mode over `demo_corpus/`
+[huggingface.co/spaces/mohammad778/grounded-forge](https://huggingface.co/spaces/mohammad778/grounded-forge): study mode over `demo_corpus/`
 (RFC 768, 791, 793). Public domain, so a stranger can verify any citation against the source.
 Job mode is **not** demoable: it reads a personal vault and sibling repos, so it is shown here
 through committed sample output instead.
@@ -310,7 +310,7 @@ through committed sample output instead.
 uses. Three constraints shaped it, and each one is visible in the code:
 
 **The page must be useful before any model loads.** A cold container needs ~16 s for torch and
-the embedder. So the page opens on `samples/cached_quiz.json` — a real frozen run — and touches
+the embedder. So the page opens on `samples/cached_quiz.json`: a real frozen run that touches
 the model only when someone presses Generate. A test imports `app` in a subprocess and asserts
 `torch` is absent, because that property is easy to lose by accident.
 
@@ -320,8 +320,7 @@ reasoning against the same budget. When the budget is gone the page serves the s
 than an error.
 
 **The strike is the product, and a live run may not produce one.** Both committed sample runs
-kept everything. So the struck panel is fed by [adversarial traps](#adversarial-evaluation-measuring-the-critic-itself)
-— authored claims with known defects, shown beside the sentence each one contradicts. It is
+kept everything. So the struck panel is fed by [adversarial traps](#adversarial-evaluation-measuring-the-critic-itself): authored claims with known defects, shown beside the sentence each one contradicts. It is
 always populated, always checkable, and includes the one trap the Critic **fails** to catch.
 
 ### Deploying it
@@ -335,11 +334,11 @@ git remote add space https://huggingface.co/spaces/mohammad778/grounded-forge
 git push space main
 ```
 
-`GROQ_API_KEY` is set as a Space **secret** (not a variable — variables are world-readable).
+`GROQ_API_KEY` is set as a Space **secret** (not a variable; variables are world-readable).
 
 A Gradio Space has no build step: HF installs `requirements.txt` and runs `app.py`, so anything
 not committed must be rebuilt at boot. That is why `index/demo_vectors.npz` (0.75 MB) is in the
-repo and `chroma_demo/` is not — `ensure_store()` reconstructs the vector index from the pack in
+repo and `chroma_demo/` is not; `ensure_store()` reconstructs the vector index from the pack in
 ~3 s **without loading a model**, against ~34 s to re-embed 526 chunks from scratch. The Chroma
 store itself is gitignored because Chroma rewrites its index files on every *read*, so committing
 it left megabytes of binary churn after an ordinary query.
@@ -365,7 +364,7 @@ samples/    a frozen real run and the trap verdicts, so the demo page costs noth
             to open; regenerate them with scripts/, never by hand
 ```
 
-Corpora are fully isolated: one ChromaDB collection per `--corpus`, so subjects never cross-contaminate. Swapping domains = new files in `data/` + a new corpus name, no code changes. v2 does exactly that: the same engine over a git/docs/notes corpus, adding only adapters and output schemas — see [v2 — job mode](#v2--job-mode-the-same-engine-a-different-corpus).
+Corpora are fully isolated: one ChromaDB collection per `--corpus`, so subjects never cross-contaminate. Swapping domains = new files in `data/` + a new corpus name, no code changes. v2 does exactly that: the same engine over a git/docs/notes corpus, adding only adapters and output schemas, see [v2, job mode](#v2--job-mode-the-same-engine-a-different-corpus).
 
 ## How this was built
 
