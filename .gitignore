@@ -51,3 +51,7 @@ out/
 # (/mnt/repos, /mnt/vault). Ignored for the same reason corpus.yaml is -- it
 # still spells out the vault's folder layout.
 docker/corpus.docker.yaml
+CLAUDE.md
+.pip/
+docs/superpowers/
+.githooks/
