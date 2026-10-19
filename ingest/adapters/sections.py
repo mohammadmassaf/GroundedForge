@@ -3,7 +3,7 @@ Shared markdown heading-splitter, used by docs_adapter and vault_adapter.
 
 split_sections(text) walks the text and cuts it into heading sections: a
 heading line (`#`..`######`) plus every line under it up to the next heading.
-Content before the first heading — or a file with no headings at all — becomes
+Content before the first heading - or a file with no headings at all - becomes
 one "(intro)" section. This is exactly the logic worked out in docs_adapter;
 it's factored out here so vault (and anything else markdown) can reuse it.
 
@@ -57,5 +57,5 @@ def split_sections(text: str) -> list[dict]:
         sections.append(_section(current, sec_start, pos))
 
     # drop sections with no real content (e.g. a blank line between a note's
-    # frontmatter and its first heading) — an empty chunk is retrieval noise
+    # frontmatter and its first heading) - an empty chunk is retrieval noise
     return [s for s in sections if s["text"].strip()]

@@ -45,7 +45,7 @@ def test_truncated_with_only_whitespace_is_exhaustion():
 
 def test_a_none_content_is_exhaustion():
     """The SDK may hand back None rather than "". `None.strip()` would raise,
-    so the guard coalesces first — an AttributeError here would surface as a
+    so the guard coalesces first - an AttributeError here would surface as a
     mystery crash on the one path that is supposed to explain itself."""
     assert _reasoning_exhausted(choice("length", None)) is True
 

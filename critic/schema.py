@@ -8,7 +8,7 @@ chunks, the Critic must return:
   "reason": "The chunk on p.53 states the propagation delay formula verbatim."
 }
 
-`supported` is a strict bool — "partially supported" collapses to false:
+`supported` is a strict bool - "partially supported" collapses to false:
 if any part of the claim isn't in the cited text, the claim is not grounded.
 """
 from pydantic import BaseModel, Field

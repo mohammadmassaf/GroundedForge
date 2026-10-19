@@ -32,7 +32,7 @@ def _load_pdf(path: Path) -> list[tuple[int, str]]:
 
 def _load_text(path: Path) -> list[tuple[int, str]]:
     """
-    Plain text is one page — unless the file carries form-feed (\\f) page
+    Plain text is one page - unless the file carries form-feed (\\f) page
     breaks, as paginated formats like IETF RFCs do. Honouring them keeps
     citations at page granularity instead of collapsing a 90-page document
     to "p.1". Files without form feeds are unaffected.

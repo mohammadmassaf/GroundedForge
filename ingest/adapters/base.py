@@ -2,7 +2,7 @@
 The adapter contract for v2 (job mode).
 
 An *adapter* turns one source (a git repo, a folder of docs, a list of vault
-notes, a data/ folder of files) into a list of **chunk dicts** — the same shape
+notes, a data/ folder of files) into a list of **chunk dicts** - the same shape
 the v1 chunker produced, so everything downstream (store -> query -> render)
 keeps working unchanged.
 
@@ -88,7 +88,7 @@ def make_chunk(
 
     Adapters call this so they only have to think about *what* a chunk is
     (a commit? a heading section?) and *what metadata* it deserves (repo, sha,
-    date, section) — passed as keyword args in **metadata. The bookkeeping keys
+    date, section) - passed as keyword args in **metadata. The bookkeeping keys
     are handled here.
     """
     if char_end is None:

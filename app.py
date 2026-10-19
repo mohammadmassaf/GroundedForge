@@ -1,5 +1,5 @@
 """
-Grounded Forge — the public demo (Hugging Face Space, Gradio SDK).
+Grounded Forge - the public demo (Hugging Face Space, Gradio SDK).
 
 WHAT THIS IS
 ------------
@@ -18,7 +18,7 @@ THREE CONSTRAINTS SHAPE EVERY CHOICE BELOW
    AND process-wide per day; when the budget is gone the button serves the
    cached run instead of failing.
 
-3. The strike is the product, and a live run may not produce one — the cached
+3. The strike is the product, and a live run may not produce one - the cached
    run kept 5 of 5, and so does the committed quiz_demo.md. So the struck panel
    is fed by the ADVERSARIAL TRAPS (samples/cached_traps.json), which are
    authored claims with known defects. It is always populated, always
@@ -29,7 +29,7 @@ DEPLOY NOTE
 Docker is a paid SDK on HF's free tier, so this is a Gradio Space on ZeroGPU.
 Gradio Spaces have no build step: HF installs requirements.txt and runs this
 file. Anything not committed has to be reconstructed here at boot, which is
-what `ensure_store` does — rebuilding the Chroma index from the committed
+what `ensure_store` does - rebuilding the Chroma index from the committed
 vector pack in ~3s without loading a model.
 """
 import html
@@ -83,7 +83,7 @@ def _boot():
     Deliberately NOT wrapped in a try: a Space that cannot build its index
     should fail loudly at startup rather than serve a page where every search
     silently returns nothing. An empty result set reads downstream as "the
-    corpus has nothing on this" — a grounding finding — which is exactly the
+    corpus has nothing on this" - a grounding finding - which is exactly the
     wrong story to tell about a broken deployment.
     """
     try:
@@ -220,7 +220,7 @@ def _citation(cid: str, by_id: dict) -> str:
     chunk = by_id.get(cid)
     if chunk is None:                 # cannot happen for a validated run; see tests
         return (f'<div class="gf-cite gf-cite-missing">'
-                f'<span class="gf-cid">{esc(cid)}</span> — source not in this artifact</div>')
+                f'<span class="gf-cid">{esc(cid)}</span>: source not in this artifact</div>')
     return (
         f'<div class="gf-cite">'
         f'<span class="gf-cid">{esc(cid)}</span>'
@@ -256,7 +256,7 @@ def render_quiz(payload: dict) -> str:
     if payload.get("struck"):
         rows = "".join(
             f'<div class="gf-struck-row">'
-            f'  <p class="gf-struck-claim">{esc(s["question"])} — {esc(s["answer"])}</p>'
+            f'  <p class="gf-struck-claim">{esc(s["question"])}: {esc(s["answer"])}</p>'
             f'  <p class="gf-struck-why">Struck because: {esc(s.get("reason", ""))}</p>'
             f'</div>'
             for s in payload["struck"]
@@ -272,20 +272,20 @@ def render_quiz(payload: dict) -> str:
 def render_traps() -> str:
     """
     The strike panel. Authored claims with known defects, each shown beside the
-    sentence that contradicts it — a strike the reader can check rather than
+    sentence that contradicts it - a strike the reader can check rather than
     take on trust.
     """
     caught, total = TRAPS["caught"], TRAPS["total"]
     rows = []
     for t in TRAPS["traps"]:
         if t["struck"]:
-            stage = ("a deterministic figure check — no LLM call"
+            stage = ("a deterministic figure check, no LLM call"
                      if t["caught_by"] == "quant" else "the Critic, reading for meaning")
             badge = f'<span class="gf-badge gf-ok">Struck</span> by {esc(stage)}'
             verdict = esc(t["reason"])
         else:
             badge = ('<span class="gf-badge gf-bad">Not caught</span> '
-                     "— a known gap, kept visible on purpose")
+                     "(a known gap, kept visible on purpose)")
             verdict = ("the Critic answered <em>supported</em>, quoting the very "
                        "sentence that contradicts the claim. Two prompt fixes failed "
                        "and were reverted, so this is reported rather than hidden.")
@@ -317,7 +317,7 @@ def generate(topic: str, last_run: float):
     Run the real pipeline for `topic`, or explain why it did not.
 
     Returns (status_markdown, quiz_markdown, new_last_run). Every failure path
-    falls back to the cached run so the page is never empty — a blank page
+    falls back to the cached run so the page is never empty - a blank page
     teaches a visitor nothing about grounding.
     """
     topic = (topic or "").strip()
@@ -329,12 +329,12 @@ def generate(topic: str, last_run: float):
 
     waited = now - last_run
     if last_run and waited < COOLDOWN_SECONDS:
-        return (f"⏳ One live run every {COOLDOWN_SECONDS}s — "
+        return (f"⏳ One live run every {COOLDOWN_SECONDS}s. "
                 f"{COOLDOWN_SECONDS - waited:.0f}s to go. Showing the saved run.",
                 render_quiz(CACHED), last_run)
 
     if _budget_left() <= 0:
-        return ("🌙 The live demo is resting — today's generation budget is spent. "
+        return ("🌙 The live demo is resting: today's generation budget is spent. "
                 "Below is a saved run over the same corpus.",
                 render_quiz(CACHED), last_run)
 
@@ -357,7 +357,7 @@ def generate(topic: str, last_run: float):
         # The measured failure mode for an off-corpus topic: the model spends its
         # whole output budget reasoning (1998 of 2000 tokens) and returns nothing,
         # three times over. Presenting that as a crash would be both ugly and
-        # misleading — the honest reading is that the corpus cannot answer.
+        # misleading - the honest reading is that the corpus cannot answer.
         return (_no_coverage(topic), render_quiz(CACHED), now)
     except Exception as e:                      # noqa: BLE001 - the UI must not 500
         # The message, not just the type. On a host whose container logs cannot
@@ -391,9 +391,9 @@ def generate(topic: str, last_run: float):
         # a count that does not match the questions on screen is the kind of
         # small dishonesty this project exists to avoid.
         status += (f"  \n{repeats} near-duplicate question"
-                   f"{'s' if repeats > 1 else ''} hidden — the corpus is thin on this topic.")
+                   f"{'s' if repeats > 1 else ''} hidden. The corpus is thin on this topic.")
     if not struck:
-        status += "  \nNothing was struck this time — the panel below shows the Critic on planted claims."
+        status += "  \nNothing was struck this time. The panel below shows the Critic on planted claims."
     return (status, render_quiz(payload), now)
 
 
@@ -472,13 +472,13 @@ def _subject_changed(topic: str) -> str:
 
 
 def _no_coverage(topic: str) -> str:
-    """The honest-gap message. This is not an error state — it is the system
+    """The honest-gap message. This is not an error state - it is the system
     working: the RFCs do not cover the topic, so nothing is invented to fill
     the space."""
     return (
         f"**Nothing in the corpus supports “{topic}”.**  \n"
         "The demo reads only RFC 768, 791 and 793 (UDP, IP, TCP). Rather than "
-        "inventing an answer, it says so — that refusal is the point of the "
+        "inventing an answer, it says so, and that refusal is the point of the "
         "project. Try one of the examples, and see the saved run below."
     )
 
@@ -649,19 +649,19 @@ PRESETS = [
 ]
 
 INTRO = f"""
-# Grounded Forge — cite-or-strike, on public RFCs
+# Grounded Forge: cite-or-strike, on public RFCs
 
 Every claim below cites a specific chunk of a source document. An **independent
 Critic** then re-reads each claim against *only the chunks it cited* and strikes
 anything the sources do not support. Nothing unsupported reaches the page.
 
-The corpus is three public-domain IETF RFCs — **768 (UDP), 791 (IP), 793 (TCP)** —
+The corpus is three public-domain IETF RFCs, **768 (UDP), 791 (IP), 793 (TCP)**,
 so you can check any citation yourself. [Source and measurements]({REPO_URL}).
 """
 
 FOOTER = f"""
 ---
-Shown on load: a real run, frozen so the page costs nothing to open —
+Shown on load: a real run, frozen so the page costs nothing to open:
 *“{CACHED['topic']}”*, {CACHED['model']}, k={CACHED['k']}, {CACHED['generated_at']}.
 Live runs are capped at {N_ITEMS} items and rate limited; this is a free-tier demo.
 """
@@ -693,7 +693,7 @@ with gr.Blocks(title="Grounded Forge") as demo:   # css/js/theme go to launch() 
     status = gr.Markdown("Showing a saved run. Press **Generate** for a live one.")
     quiz_out = gr.HTML(render_quiz(CACHED))
 
-    with gr.Accordion("Does the Critic actually catch anything? — planted claims",
+    with gr.Accordion("Does the Critic actually catch anything? (planted claims)",
                       open=False):
         gr.HTML(render_traps())
 

@@ -39,7 +39,7 @@ def hybrid_search(query_text: str, corpus: str = "default", k: int = 5,
     """
     from retrieve.query import search
 
-    # both retrievers get the same filter — Chroma applies it in the engine,
+    # both retrievers get the same filter - Chroma applies it in the engine,
     # BM25 in Python (see keyword._matches)
     vector = search(query_text,corpus,FETCH_N,where=where)
     bm = search_bm25(query_text,corpus,FETCH_N,where=where)

@@ -27,12 +27,12 @@ def _chunk_metadata(chunk: dict) -> dict:
     Build the ChromaDB metadata dict for one chunk.
 
     Everything on the chunk EXCEPT `text` (that becomes the document's
-    page_content) should be stored as metadata, so any of it — source_type,
-    repo, sha, date, section, type, status — can drive a `where=` filter later.
+    page_content) should be stored as metadata, so any of it - source_type,
+    repo, sha, date, section, type, status - can drive a `where=` filter later.
 
     Two rules ChromaDB imposes on metadata:
-      - values must be scalars (str / int / float / bool) — ours already are
-      - a value may NOT be None — Chroma rejects None, so a key with a None
+      - values must be scalars (str / int / float / bool) - ours already are
+      - a value may NOT be None - Chroma rejects None, so a key with a None
         value (e.g. a vault chunk that has no `status`) must be DROPPED, not
         stored as None.
     """
@@ -49,7 +49,7 @@ def build(corpus: str = "default") -> None:
 
     chunks_path = Path(f"chunks/{corpus}.json")
     if not chunks_path.exists():
-        raise SystemExit(f"No chunks found at {chunks_path} — run 'ingest' first")
+        raise SystemExit(f"No chunks found at {chunks_path} - run 'ingest' first")
 
     chunks = json.loads(chunks_path.read_text(encoding="utf-8"))
     print(f"Loaded {len(chunks)} chunks from {chunks_path}")

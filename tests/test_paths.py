@@ -8,7 +8,7 @@ copyright) in one sqlite file. A bug that sends a private corpus to the public
 directory does not raise, does not look wrong in `git status` (a 9 MB binary
 among other binaries), and is discovered by a stranger reading the repo.
 
-Deterministic and offline, like every other test here — the function is a dict
+Deterministic and offline, like every other test here - the function is a dict
 lookup on a string. No model, no store, nothing touched on disk.
 """
 from pathlib import Path
@@ -34,15 +34,15 @@ def test_private_corpora_use_the_gitignored_store(corpus):
 
 
 def test_an_unknown_corpus_defaults_to_private():
-    """Fail closed. A corpus added later — a second job corpus, a client's
-    documents — must land in the gitignored store until someone deliberately
+    """Fail closed. A corpus added later - a second job corpus, a client's
+    documents - must land in the gitignored store until someone deliberately
     adds it to PUBLIC_CORPORA. The dangerous default is the public one."""
     assert chroma_dir("some-corpus-invented-next-month") == str(store_root() / PRIVATE_CHROMA_DIR)
 
 
 def test_the_two_stores_are_never_the_same_directory():
     """If these ever collapse to one path, every guarantee above is void and
-    every test here passes anyway — each would still equal the other."""
+    every test here passes anyway - each would still equal the other."""
     assert PUBLIC_CHROMA_DIR != PRIVATE_CHROMA_DIR
 
 

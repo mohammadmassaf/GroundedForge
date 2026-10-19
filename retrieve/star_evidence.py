@@ -13,7 +13,7 @@ toward the source type where that kind of evidence lives.
 
 YOU implement gather_evidence. Two real decisions live in it:
 
-  DECISION 1 — how to bias each section's query.
+  DECISION 1 - how to bias each section's query.
     Two levers, and you can use either or both:
       (a) the FILTER: restrict source_type via `where=` (see SECTION_SOURCES)
       (b) the QUERY TEXT: the raw interview question is about the whole story;
@@ -23,13 +23,13 @@ YOU implement gather_evidence. Two real decisions live in it:
     Think about what each section is actually looking for, then decide whether
     a filter alone is enough or the query text should shift too.
 
-  DECISION 2 — the fallback when a filtered pool comes back thin.
+  DECISION 2 - the fallback when a filtered pool comes back thin.
     Filtering is a blade (you scored 9/10 on why). If a section's filtered
-    retrieval returns nothing useful — no chunks, or nothing above a usable
-    score — the section should NOT just fail: the evidence may simply live in
+    retrieval returns nothing useful - no chunks, or nothing above a usable
+    score - the section should NOT just fail: the evidence may simply live in
     an unexpected source. Decide what "thin" means and what to do about it
     (retry unfiltered? widen the source list? accept an empty pool and let the
-    Generator report a gap?). Whatever you choose, be deliberate — this is the
+    Generator report a gap?). Whatever you choose, be deliberate - this is the
     precision/recall tradeoff from M2 showing up in a real decision.
 
 Return shape (what the Generator consumes):
@@ -43,7 +43,7 @@ Each list is that section's evidence pool. A section may cite ONLY chunks from
 its own pool, so pools decide what each part of the answer can say.
 
 Note: `hybrid_search(query, corpus=..., k=..., use_rerank=True, where=...)` is
-the retrieval entry point — you already threaded `where` through it in M3.
+the retrieval entry point - you already threaded `where` through it in M3.
 Chroma wants {"source_type": "git"} for one value, or
 {"$or": [{"source_type": "vault"}, {"source_type": "docs"}]} for several.
 """

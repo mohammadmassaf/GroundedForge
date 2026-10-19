@@ -10,7 +10,7 @@
        an unpainted background leaves dark-mode readers looking at ink on ink. -->
   <rect width="980" height="420" fill="#f7f4ee"/>
 
-  <text x="34" y="40" font-size="19" font-weight="700" fill="#1f1d1a">Grounded Forge — cite-or-strike</text>
+  <text x="34" y="40" font-size="19" font-weight="700" fill="#1f1d1a">Grounded Forge: cite-or-strike</text>
   <text x="34" y="62" font-size="12.5" font-family="ui-sans-serif, system-ui, sans-serif" fill="#5d574c">
     Every claim carries the chunk ids it came from. An independent Critic re-reads each one against only those chunks.
   </text>
@@ -77,14 +77,14 @@
     <text x="404" y="196" font-size="10" font-weight="700" fill="#8b2f28">regenerate</text>
 
     <rect x="330" y="226" width="300" height="62" rx="9" fill="#fdf3f2" stroke="#f0d5d2"/>
-    <text x="344" y="248" font-size="12.5" font-weight="700" fill="#8b2f28">Refiner — deterministic policy</text>
+    <text x="344" y="248" font-size="12.5" font-weight="700" fill="#8b2f28">Refiner: deterministic policy</text>
     <text x="344" y="266" font-size="10.5" fill="#8b2f28">keep what verified · strike what did not · regenerate the</text>
     <text x="344" y="280" font-size="10.5" fill="#8b2f28">shortfall · hard round cap. Struck claims are SHOWN, not dropped.</text>
 
     <rect x="660" y="226" width="286" height="62" rx="9" fill="#ffffff" stroke="#e5ded1"/>
     <text x="674" y="248" font-size="12.5" font-weight="700" fill="#1f1d1a">Quantitative pre-check</text>
     <text x="674" y="266" font-size="10.5" fill="#5d574c">a figure absent from the cited chunks is struck</text>
-    <text x="674" y="280" font-size="10.5" fill="#5d574c">before any LLM call — deterministic, free</text>
+    <text x="674" y="280" font-size="10.5" fill="#5d574c">before any LLM call: deterministic, free</text>
     <g stroke="#5d574c" fill="#5d574c">
       <path d="M700 226 L700 180" fill="none" stroke-width="1.3"/>
       <polygon points="695.5,180 700,171 704.5,180" stroke="none"/>
@@ -97,7 +97,7 @@
     </g>
 
     <rect x="34" y="322" width="912" height="82" rx="10" fill="#ffffff" stroke="#e5ded1"/>
-    <text x="50" y="345" font-size="13" font-weight="700" fill="#1f1d1a">Evaluation — the guarantee is measured, not asserted</text>
+    <text x="50" y="345" font-size="13" font-weight="700" fill="#1f1d1a">Evaluation: the guarantee is measured, not asserted</text>
 
     <text x="50" y="368" font-size="11.5" font-weight="700" fill="#5d574c">recall@k</text>
     <text x="50" y="383" font-size="10.5" fill="#8a8274">did retrieval surface the right page?</text>
@@ -108,7 +108,7 @@
     <text x="300" y="396" font-size="10.5" fill="#8a8274">separates retrieval misses from generator faults</text>
 
     <text x="620" y="368" font-size="11.5" font-weight="700" fill="#8b2f28">adversarial traps</text>
-    <text x="620" y="383" font-size="10.5" fill="#8a8274">planted claims with known defects —</text>
+    <text x="620" y="383" font-size="10.5" fill="#8a8274">planted claims with known defects,</text>
     <text x="620" y="396" font-size="10.5" fill="#8a8274">measures the Critic itself, not just its output</text>
 
     <line x1="286" y1="354" x2="286" y2="394" stroke="#e5ded1"/>

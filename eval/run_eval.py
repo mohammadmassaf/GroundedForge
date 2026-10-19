@@ -253,14 +253,14 @@ def trap_eval(traps: list[dict], corpus: str = "job") -> dict:
     Adversarial eval (V2-M5): does the Critic strike claims we KNOW are wrong?
 
     Why this exists. recall@k and grounding % both measure the system on good
-    inputs, so neither can see a broken Critic — one that answers "supported"
+    inputs, so neither can see a broken Critic - one that answers "supported"
     to everything scores 100% grounding, the best possible number from the
     worst possible judge. Traps measure the other direction: authored claims
     with a known defect, counted by whether they were caught.
 
     Each trap carries {claim, citations, stage, why}. `stage` is which check
     SHOULD catch it: "quant" (a figure absent from the cited chunks) or
-    "critic" (semantically wrong, but every number in it does appear — so the
+    "critic" (semantically wrong, but every number in it does appear - so the
     deterministic check cannot see it).
 
     Each trap carries {claim, citations, stage, why}. `stage` is which check

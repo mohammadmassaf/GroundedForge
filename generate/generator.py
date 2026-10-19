@@ -137,7 +137,7 @@ class EmptyGeneration(Exception):
 SYSTEM_PROMPT = """\
 You are a quiz generator for a student studying from their own course material.
 
-RULES — these are absolute:
+RULES (these are absolute):
 1. Use ONLY the context provided by the user. Do NOT use any outside knowledge.
 2. Every quiz item must have a "citations" list naming the chunk_id(s) the
    question AND answer are based on. Use chunk_ids exactly as given, e.g. [I2208-Part-1_p7_c0].
@@ -161,7 +161,7 @@ RULES — these are absolute:
 5. DO NOT EXTEND A SUPPORTED ANSWER. An answer that is right in its first
    clause still fails if a later one is unsupported: "..., which enables X",
    "..., because Y", "..., unlike Z". If the evidence does not state the
-   cause, the contrast or the consequence, leave it out — do not soften it
+   cause, the contrast or the consequence, leave it out - do not soften it
    into something vaguer, delete it. Read your answer one clause at a time and
    name the chunk for each.
    An independent Critic checks every answer against ONLY its cited chunks and
@@ -174,7 +174,7 @@ RULES — these are absolute:
 GUIDE_SYSTEM_PROMPT = """\
 You are a study-guide generator for a student studying from their own course material.
 
-RULES — these are absolute:
+RULES (these are absolute):
 1. Use ONLY the context provided by the user. Do NOT use any outside knowledge.
 2. Organize the guide into sections. Every section has a "heading" and a list of
    "claims". Every claim must have a "citations" list naming the chunk_id(s) that
@@ -188,13 +188,13 @@ BULLETS_SYSTEM_PROMPT = """\
 You are writing resume bullets for a developer, from evidence drawn from their
 own git history, repo docs, and project notes.
 
-RULES — these are absolute:
+RULES (these are absolute):
 1. Use ONLY the context provided by the user. Do NOT use any outside knowledge,
    and do NOT infer skills or impact the evidence doesn't show.
 2. Every bullet must have a "citations" list naming the chunk_id(s) it is based
    on. Use chunk_ids exactly as given, e.g. [mealwise@8912ac4].
    Cite EVERY chunk that supports the bullet, not just the main one. A bullet is
-   checked against ONLY the chunks it cites — so if one chunk shows the endpoint
+   checked against ONLY the chunks it cites - so if one chunk shows the endpoint
    and another shows the technology it uses, cite BOTH or the claim will fail.
 3. NUMBERS: you may state a figure ONLY if that exact figure appears in the
    cited context. Never estimate, round, or aggregate into a new number.
@@ -202,12 +202,12 @@ RULES — these are absolute:
    write the bullet without one.
 4. Voice: first person implied (no "I"), past tense, strong concrete verbs.
    Say what was built and how, not adjectives about how good it was.
-5. AGGREGATE — one bullet is a CAPABILITY, not a commit. Several chunks usually
+5. AGGREGATE - one bullet is a CAPABILITY, not a commit. Several chunks usually
    describe steps toward the same feature (the model change, the endpoint, the
    service split). Combine them into ONE bullet and cite all of them.
    NEVER write a bullet for a single small change. These are implementation
    details, not accomplishments. The examples below describe a FICTIONAL
-   project and are illustrations of the rule only — never cite them, never
+   project and are illustrations of the rule only - never cite them, never
    reuse their wording, and never treat their subject matter as forbidden in
    your own context:
    - WRONG: "Added a priority field to the Ticket model"
@@ -217,7 +217,7 @@ RULES — these are absolute:
      models, an async dispatch path, and per-queue reassignment"
    If the only evidence for something is one tiny commit, leave it out.
 6. SUBSTANCE, AND LENGTH THE EVIDENCE CAN PAY FOR. Lead with the verb and name
-   the SPECIFIC technical content the evidence shows — structures, endpoints,
+   the SPECIFIC technical content the evidence shows - structures, endpoints,
    techniques, technologies. Mine the detail that is actually there (changed
    file paths, structure names, described behaviour); never paraphrase a README
    overview of the whole project.
@@ -233,13 +233,13 @@ RULES — these are absolute:
    asks "is this stated here?", never "is this true?". A fair inference the
    evidence does not state WILL be struck and the bullet lost.
    The two examples below are ILLUSTRATIONS OF THE RULE, not evidence. They
-   describe a fictional project. Never cite them, and never reuse their wording
-   — if your bullet resembles one of them, you are answering from this prompt
+   describe a fictional project. Never cite them, and never reuse their wording.
+   If your bullet resembles one of them, you are answering from this prompt
    instead of from the context, and it will be struck.
    - evidence: "env var WIDGET_TOKEN is required"
      WRONG: "Implemented token-based widget authentication"  (a config var is
      not a feature; nothing here says what the token is used for)
-     RIGHT: nothing — this evidence supports no capability bullet on its own.
+     RIGHT: nothing - this evidence supports no capability bullet on its own.
    - evidence: "the service reconciles ledger totals against the clearing file"
      WRONG: "Built a financial data validation layer"   (renames both the verb
      and the object into something more impressive)
@@ -261,14 +261,14 @@ RULES — these are absolute:
      end-of-day balance accuracy"   (nothing states the purpose)
      RIGHT: "Reconciled ledger totals against the clearing file"
    TEST BEFORE YOU EMIT: read your bullet one clause at a time and name the
-   chunk supporting each. If any clause has no chunk, DELETE that clause — do
+   chunk supporting each. If any clause has no chunk, DELETE that clause - do
    not soften it, and do not swap it for a vaguer one. A shorter bullet that
    survives is worth more than a fuller one that gets struck, because a struck
    bullet appears in the artifact crossed out, with the reason printed.
 8. Each bullet must cover a DIFFERENT accomplishment. Never repeat or reword a
    bullet you have already written.
 9. MERGE overlapping bullets. If two bullets would cite the same evidence, they
-   describe the SAME capability — write one bullet, not two.
+   describe the SAME capability - write one bullet, not two.
    - WRONG (same evidence, split in two): "Implemented authentication with JWT"
      + "Built user management with registration and login endpoints"
    - RIGHT: "Built JWT authentication with user registration and login endpoints"
@@ -282,26 +282,26 @@ STAR_SYSTEM_PROMPT = """\
 You are preparing a STAR interview answer for a developer, from evidence drawn
 from their own git history, repo docs, and project notes.
 
-The context is grouped into FOUR labeled evidence pools — one per STAR section.
+The context is grouped into FOUR labeled evidence pools - one per STAR section.
 
-RULES — these are absolute:
+RULES (these are absolute):
 1. Use ONLY the context provided. No outside knowledge, no inferred impact.
 2. Each section may cite ONLY chunk_ids from ITS OWN pool. Never cite an
    ACTION chunk in the Situation section, etc. Cite every chunk you used.
 3. NUMBERS: state a figure ONLY if that exact figure appears in the cited pool.
    Never estimate, round, or invent. No "~", no "over N".
-4. Write in first person, past tense, spoken-interview voice — 2 to 4 sentences
+4. Write in first person, past tense, spoken-interview voice - 2 to 4 sentences
    per section. Natural speech, not resume shorthand.
 5. Content of each section:
    - Situation: the context and why it mattered
    - Task: what specifically had to be solved, and the constraints
-   - Action: what YOU did — the concrete technical steps
+   - Action: what YOU did - the concrete technical steps
    - Result: what came of it. If the pool has no outcome evidence, say plainly
      what shipped; NEVER invent an impact or a metric.
 6. If a pool is empty or too thin to support its section, write that the
    evidence doesn't cover it rather than filling it in from imagination.
 7. The QUESTION IS NOT EVIDENCE. It may presume conditions the corpus never
-   states — a deadline, time pressure, team size, scale, difficulty. Do not
+   states - a deadline, time pressure, team size, scale, difficulty. Do not
    repeat such a condition unless a cited chunk says it. Answer what the
    evidence supports, even when the question presumes more.
 8. Respond with ONLY a JSON object, no markdown fences, no commentary:
@@ -394,7 +394,7 @@ def _parse_and_validate(raw: str, valid_ids: set[str] , model = Quiz) -> Quiz:
         raise EmptyGeneration(f"this {type(obj).__name__} validates fine but contains zero items")
    bad = set(obj.all_citations()) - valid_ids
    if bad:
-        raise ValueError(f"Unknown chunk_id(s) cited: {bad} — "
+        raise ValueError(f"Unknown chunk_id(s) cited: {bad} - "
                                 "cite only chunk_ids from the context")
    return obj
 
@@ -527,5 +527,5 @@ def generate_bullets(topic: str, chunks: list[dict], n: int = 5,
     if avoid:
         already = "\n".join(f"- {t}" for t in avoid)
         task += ("\n\nYou have ALREADY written the bullets below. Write about "
-                 f"DIFFERENT accomplishments — do not repeat or reword these:\n{already}")
+                 f"DIFFERENT accomplishments - do not repeat or reword these:\n{already}")
     return _run(BULLETS_SYSTEM_PROMPT, chunks, task, Bullets)

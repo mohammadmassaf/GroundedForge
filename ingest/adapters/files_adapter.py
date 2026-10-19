@@ -2,7 +2,7 @@
 files adapter: wrap the v1 PDF/txt/md loader + character chunker as an adapter.
 
 This is what keeps study mode working through the same corpus.yaml mechanism:
-the 'default' corpus is just {type: files, path: data}. No new chunking logic —
+the 'default' corpus is just {type: files, path: data}. No new chunking logic -
 it reuses loader.load_file + chunker.chunk_pages and tags each chunk with
 source_type="files".
 

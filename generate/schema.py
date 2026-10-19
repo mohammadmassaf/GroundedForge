@@ -15,7 +15,7 @@ The LLM must return JSON matching this shape exactly:
 Validation happens in two layers:
 1. Pydantic (shape): fields exist, types are right, lists non-empty.
 2. Semantic (grounding): every citation must be a chunk_id that was
-   actually in the retrieved context — checked in generator.py, because
+   actually in the retrieved context - checked in generator.py, because
    the schema alone can't know which chunk_ids exist.
 """
 from pydantic import BaseModel, Field

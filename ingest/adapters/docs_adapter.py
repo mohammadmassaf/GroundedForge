@@ -23,7 +23,7 @@ def _find_doc_files(repo_path: str, exclude: set[str] | None = None) -> list[Pat
     """Return the markdown files to ingest: README.md, CLAUDE.md, docs/*.md.
 
     `exclude` holds file NAMES to skip, from the source's optional `exclude:`
-    list in corpus.yaml — some docs describe how to work on a project rather
+    list in corpus.yaml - some docs describe how to work on a project rather
     than what was done, which is noise in an evidence corpus.
     """
     exclude = exclude or set()

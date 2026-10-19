@@ -17,8 +17,8 @@ notices unaltered.
 
 They are plain text (no OCR, matching the digital-inputs-only constraint), they
 are paginated with form-feed characters so citations land on a real page number,
-and they cover the same ground as an introductory networking course — headers,
-delays, connection setup, reliability — so the generated artifacts look like the
+and they cover the same ground as an introductory networking course - headers,
+delays, connection setup, reliability - so the generated artifacts look like the
 real thing rather than a toy.
 
 ## Use

@@ -1,6 +1,6 @@
 """
 <docstring: these four constants are the single source of truth for which
-weights the pipeline loads — the app at runtime and docker/bake_models.py at
+weights the pipeline loads - the app at runtime and docker/bake_models.py at
 build time read the same values, so the image cannot bake one revision and
 load another. Point at D3 for why pinned.>
 """

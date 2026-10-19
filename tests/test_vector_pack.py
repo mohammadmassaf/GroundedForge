@@ -4,7 +4,7 @@ Tests for the committed embeddings and the store rebuilt from them
 
 This is the Space's entire boot path: HF has no build step, so the demo index
 does not exist until ensure_store() reconstructs it from the pack. If that is
-wrong, the Space serves a page whose every search returns nothing — and an
+wrong, the Space serves a page whose every search returns nothing - and an
 empty result set does not raise. It reads downstream as "the corpus has nothing
 on this", which is a grounding FINDING rather than a broken deployment.
 
@@ -40,7 +40,7 @@ def chunks():
 def test_only_public_corpora_have_a_pack():
     """
     An embedding is not anonymous. Vectors of vault notes are still derived
-    from vault notes, and they ship beside the chunk_ids that name them — so
+    from vault notes, and they ship beside the chunk_ids that name them - so
     the same public/private split that governs the store governs the pack.
     """
     assert vector_pack("demo") == str(Path("index/demo_vectors.npz"))
@@ -54,7 +54,7 @@ def test_only_public_corpora_have_a_pack():
 def test_pack_covers_exactly_the_committed_chunks(pack, chunks):
     """Same ids, same order. Order matters: the rebuild pairs vectors to text
     positionally, so a permutation would attach every chunk's text to somebody
-    else's vector — and retrieval would still return results, just wrong ones."""
+    else's vector - and retrieval would still return results, just wrong ones."""
     assert [str(i) for i in pack["ids"]] == [c["chunk_id"] for c in chunks]
 
 
@@ -71,7 +71,7 @@ def test_pack_records_the_revision_it_was_built_with(pack):
 
     Mixing revisions is the quiet failure this guards: stored vectors from one
     revision, query vectors from another, every score subtly wrong, nothing
-    raised. Finding 5 already paid for the general version of this lesson —
+    raised. Finding 5 already paid for the general version of this lesson -
     a model changing under the system without the numbers changing loudly.
     """
     assert str(pack["revision"]) == EMBEDDING_REVISION
@@ -96,7 +96,7 @@ def test_rebuild_produces_a_queryable_store_without_the_model(tmp_path, monkeypa
 
     Queried with a vector taken straight from the pack rather than one the
     model produces: that keeps the test offline and deterministic, and it still
-    proves the thing that matters — that a chunk's own vector finds that chunk.
+    proves the thing that matters - that a chunk's own vector finds that chunk.
     If ids and documents were misaligned, the nearest neighbour would be
     somebody else.
     """
@@ -135,7 +135,7 @@ def test_importing_the_store_module_does_not_import_torch():
     """
     Regression guard. `retrieve.store` imported HuggingFaceEmbeddings at module
     level, which pulls torch in (~8s, ~200MB) before ensure_store() is even
-    called — on the one path that needs neither. The heavy imports now live
+    called - on the one path that needs neither. The heavy imports now live
     inside build(). Moving them back out would silently restore the cost.
     """
     import subprocess

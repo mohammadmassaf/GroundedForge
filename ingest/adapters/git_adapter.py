@@ -17,7 +17,7 @@ YOU implement load_git. It should:
   2. Skip commits that carry no signal:
        - merge commits (--no-merges already drops these)
        - trivial/lockfile-only commits (e.g. only requirements.txt or a lockfile
-         changed) — your call how strict
+         changed) - your call how strict
 
   3. Build ONE chunk per surviving commit with make_chunk(...):
        - text        = message + a short summary of what changed (files, +/-),
@@ -26,7 +26,7 @@ YOU implement load_git. It should:
        - source_type = "git"
        - chunk_id    = something unique, e.g. f"{repo}@{short_sha}"
        - metadata    = repo=..., sha=..., date=...   (extra kwargs to make_chunk)
-     page/char_start/char_end aren't meaningful for a commit — let make_chunk
+     page/char_start/char_end aren't meaningful for a commit - let make_chunk
      default them.
 
 Edge cases to get right (these are where git-log parsing bites):
@@ -35,7 +35,7 @@ Edge cases to get right (these are where git-log parsing bites):
   - the very first commit / empty repo
   - a repo with zero non-merge commits
 
-Return: list[chunk dict]. Empty list is valid (e.g. empty repo) — don't crash.
+Return: list[chunk dict]. Empty list is valid (e.g. empty repo) - don't crash.
 """
 import subprocess
 

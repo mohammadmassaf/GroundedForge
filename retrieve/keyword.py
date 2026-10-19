@@ -81,7 +81,7 @@ def search_bm25(query_text: str, corpus: str = "default", k: int = 5,
     index , chunks = _get_index(corpus)
     scores = index.get_scores(query_tokens)
     # filter BEFORE taking k (same reason as Chroma's where=: taking k first and
-    # filtering after could return fewer than k — or zero — matching chunks)
+    # filtering after could return fewer than k - or zero - matching chunks)
     ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
     top_k = [i for i in ranked if _matches(chunks[i], where)][:k]
 

@@ -3,11 +3,11 @@ The Critic agent: one claim + its cited chunks -> Verdict.
 
 Design rules (why this looks the way it does):
 - INDEPENDENT: a fresh LLM call with no memory of generation. The Critic
-  never sees the Generator's conversation — only the claim and the evidence.
+  never sees the Generator's conversation - only the claim and the evidence.
 - NARROW CONTEXT: only the chunks the claim CITED, not all retrieved
   chunks. If the answer needed a chunk it didn't cite, that's a grounding
-  failure too — the citation is the claim's whole case.
-- STRICT: temperature 0.0 — verification wants determinism, not creativity.
+  failure too - the citation is the claim's whole case.
+- STRICT: temperature 0.0 - verification wants determinism, not creativity.
   "Partially supported" = not supported.
 """
 import json
@@ -24,7 +24,7 @@ and its answer) and the EVIDENCE (the exact source excerpts the claim cites).
 Decide: is every part of the claim directly supported by the evidence?
 
 RULES:
-1. Judge ONLY against the evidence text. Your own knowledge is irrelevant —
+1. Judge ONLY against the evidence text. Your own knowledge is irrelevant -
    a true statement that is not in the evidence is NOT supported.
 2. Computed or derived values count as supported ONLY if the evidence shows
    the result (not merely the formula or the exercise statement).

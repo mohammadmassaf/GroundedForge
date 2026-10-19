@@ -11,11 +11,11 @@ run_loop() orchestrates one full cite-or-strike run:
     stop when: enough kept items, OR max_rounds exhausted.
 
 Returns (kept, struck):
-    kept   = list[QuizItem]                    — survived the Critic
-    struck = list[tuple[QuizItem, str reason]] — failed, with why
+    kept   = list[QuizItem]                    - survived the Critic
+    struck = list[tuple[QuizItem, str reason]] - failed, with why
 
 The Refiner here is POLICY CODE, not an LLM: deciding what to do with
-verdicts (drop, regenerate, stop) is deterministic logic — another case of
+verdicts (drop, regenerate, stop) is deterministic logic - another case of
 "move correctness out of the LLM and into code."
 
 Every step logs to the Tracer, so a run is reconstructable from its trace.
@@ -29,7 +29,7 @@ from critic.trace import Tracer
 MAX_ROUNDS = 2
 
 # Honest gap reporting: if the best retrieved chunk is weaker than this, the
-# corpus doesn't really cover the topic — say so instead of generating filler.
+# corpus doesn't really cover the topic - say so instead of generating filler.
 # Threshold gets tuned against the eval set in M5.
 MIN_EVIDENCE_SCORE = 0.25
 
@@ -77,9 +77,9 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5,
     Cite-or-strike for CV bullets. Same shape as run_loop, with TWO differences:
 
     1. TWO-STAGE verification per bullet:
-         stage 1 (deterministic): check_quantities — any figure not literally in
+         stage 1 (deterministic): check_quantities - any figure not literally in
                   the cited evidence is struck immediately, WITHOUT an LLM call
-         stage 2 (LLM): check_claim — semantic support, only for bullets that
+         stage 2 (LLM): check_claim - semantic support, only for bullets that
                   survived stage 1
        Cheap+certain first, expensive+fuzzy second.
 
@@ -138,7 +138,7 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5,
 
             cited_chunks = [by_id[cid] for cid in bullet.citations]
 
-            # stage 1 — deterministic, no LLM
+            # stage 1 - deterministic, no LLM
             ok, reason = check_quantities(bullet.text, cited_chunks)
             tracer.log("quant_check", round=round_num, bullet=bullet.text,
                        citations=bullet.citations, passed=ok, reason=reason)
@@ -146,7 +146,7 @@ def run_bullets_loop(topic: str, chunks: list[dict], n: int = 5,
                 struck.append((bullet, f"[quant] {reason}"))
                 continue
 
-            # stage 2 — LLM Critic, only for survivors
+            # stage 2 - LLM Critic, only for survivors
             verdict = check_claim("", bullet.text, cited_chunks)
             tracer.log("critic_verdict", round=round_num, bullet=bullet.text,
                        citations=bullet.citations,
@@ -169,7 +169,7 @@ def run_star_loop(question: str, pools: dict[str, list[dict]],
 
     Returns (answer, flagged): `flagged` is a list of (section_name, reason) for
     sections that failed verification. Unlike bullets we DON'T drop a failed
-    section (a STAR answer with no Result is broken) — we keep it and flag it,
+    section (a STAR answer with no Result is broken) - we keep it and flag it,
     so the artifact shows what isn't trustworthy.
     """
     tracer = Tracer("star", corpus=corpus)
@@ -202,7 +202,7 @@ def run_star_loop(question: str, pools: dict[str, list[dict]],
                        supported=False, reason=reason)
             continue
 
-        # stage 1 — deterministic
+        # stage 1 - deterministic
         ok, reason = check_quantities(section.text, cited_chunks)
         tracer.log("quant_check", section=name, citations=section.citations,
                    passed=ok, reason=reason)
@@ -210,7 +210,7 @@ def run_star_loop(question: str, pools: dict[str, list[dict]],
             flagged.append((name, f"[quant] {reason}"))
             continue
 
-        # stage 2 — LLM Critic
+        # stage 2 - LLM Critic
         verdict = check_claim("", section.text, cited_chunks)
         tracer.log("critic_verdict", section=name, citations=section.citations,
                    supported=verdict.supported, reason=verdict.reason)

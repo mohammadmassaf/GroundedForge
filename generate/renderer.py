@@ -13,7 +13,7 @@ def render(items: list[QuizItem], chunks: list[dict], topic: str,
            struck: list[tuple[QuizItem, str]] | None = None) -> str:
     by_id = {c["chunk_id"]: c for c in chunks}
 
-    lines = [f"# Quiz — {topic}", ""]
+    lines = [f"# Quiz: {topic}", ""]
     for i, item in enumerate(items, 1):
         lines.append(f"### Q{i}. {item.question}")
         lines.append("")
@@ -23,7 +23,7 @@ def render(items: list[QuizItem], chunks: list[dict], topic: str,
             chunk = by_id[cid]
             quote = chunk["text"][:QUOTE_LEN].replace("\n", " ").strip()
             lines.append(
-                f"> 📖 `{cid}` — {chunk['source_file']}, p.{chunk['page']}: "
+                f"> 📖 `{cid}`: {chunk['source_file']}, p.{chunk['page']}: "
                 f"“{quote}…”"
             )
         lines.append("")
@@ -34,7 +34,7 @@ def render(items: list[QuizItem], chunks: list[dict], topic: str,
         lines.append("## ⚠️ Struck by the Critic (not supported by sources)")
         lines.append("")
         for item, reason in struck:
-            lines.append(f"- ~~{item.question}~~ — **{item.answer}**")
+            lines.append(f"- ~~{item.question}~~: **{item.answer}**")
             lines.append(f"  - *Struck because:* {reason}")
         lines.append("")
 
@@ -45,7 +45,7 @@ def render_bullets(bullets: list[CVBullet], chunks: list[dict], topic: str,
                    struck: list[tuple[CVBullet, str]] | None = None,
                    gap: str | None = None) -> str:
     by_id = {c["chunk_id"]: c for c in chunks}
-    lines = [f"# CV Bullets — {topic}", ""]
+    lines = [f"# CV Bullets: {topic}", ""]
 
     if gap:                       # honest gap reporting, not filler
         lines.append(f"> ⚠️ {gap}")
@@ -75,8 +75,8 @@ def render_bullets(bullets: list[CVBullet], chunks: list[dict], topic: str,
             quote = chunk["text"][:QUOTE_LEN].replace("\n", " ").strip()
             # git chunks use the same string for both; don't print it twice
             label = (f"`{cid}`" if chunk["source_file"] == cid
-                     else f"`{cid}` — **{chunk['source_file']}**")
-            lines.append(f"{ref_no[cid]}. {label} — “{quote}…”")
+                     else f"`{cid}`, **{chunk['source_file']}**")
+            lines.append(f"{ref_no[cid]}. {label}: “{quote}…”")
         lines.append("")
 
     if struck:
@@ -97,7 +97,7 @@ def render_star(answer, pools: dict[str, list[dict]],
     by_id = {c["chunk_id"]: c for pool in pools.values() for c in pool}
     flags = dict(flagged or [])
 
-    lines = [f"# STAR Answer — {answer.question}", ""]
+    lines = [f"# STAR Answer: {answer.question}", ""]
 
     order: list[str] = []
     for _, section in answer.sections():
@@ -120,8 +120,8 @@ def render_star(answer, pools: dict[str, list[dict]],
             chunk = by_id[cid]
             quote = chunk["text"][:QUOTE_LEN].replace("\n", " ").strip()
             label = (f"`{cid}`" if chunk["source_file"] == cid
-                     else f"`{cid}` — **{chunk['source_file']}**")
-            lines.append(f"{ref_no[cid]}. {label} — “{quote}…”")
+                     else f"`{cid}`, **{chunk['source_file']}**")
+            lines.append(f"{ref_no[cid]}. {label}: “{quote}…”")
         lines.append("")
 
     return "\n".join(lines)
@@ -130,7 +130,7 @@ def render_star(answer, pools: dict[str, list[dict]],
 def render_guide(sections: list[GuideSection], chunks: list[dict], topic: str,
                   struck: list[tuple[GuideClaim, str]] | None = None) -> str:
     by_id = {c["chunk_id"]: c for c in chunks}
-    lines = [f"# Study Guide — {topic}", ""]
+    lines = [f"# Study Guide: {topic}", ""]
 
     for section in sections:
         lines.append(f"## {section.heading}")
@@ -142,7 +142,7 @@ def render_guide(sections: list[GuideSection], chunks: list[dict], topic: str,
                 chunk = by_id[cid]
                 quote = chunk["text"][:QUOTE_LEN].replace("\n", " ").strip()
                 lines.append(
-                    f"> 📖 `{cid}` — {chunk['source_file']}, p.{chunk['page']}: "
+                    f"> 📖 `{cid}`: {chunk['source_file']}, p.{chunk['page']}: "
                     f"“{quote}…”"
                 )
 

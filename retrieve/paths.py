@@ -6,19 +6,19 @@ ONE SOURCE OF TRUTH
 The persist directory is read by the writer (`store.build`) and by the reader
 (`query.search`), and they must agree. A disagreement does not raise: Chroma
 happily opens an empty store at the wrong path and `search` returns [], which
-reads downstream as "the corpus has nothing about this" — a grounding finding
+reads downstream as "the corpus has nothing about this" - a grounding finding
 rather than a configuration bug. So the path is computed here and nowhere else.
 
 WHY THIS IS A FUNCTION OF THE CORPUS, NOT A CONSTANT
 ----------------------------------------------------
 The demo store is COMMITTED, because the Gradio Space has no build step: HF
 runs `app.py` and nothing else, so an index that is not in the repo has to be
-rebuilt on every cold boot (~34s measured for 526 chunks — see the shipping
+rebuilt on every cold boot (~34s measured for 526 chunks - see the shipping
 plan). Committing it is the only way the page is up in under three seconds.
 
 That makes the path a privacy boundary rather than a preference.
 `chroma_db/chroma.sqlite3` is a single 8.9 MB file holding EVERY corpus at
-once — including `job` (vault notes) and `networks` (course PDFs under
+once - including `job` (vault notes) and `networks` (course PDFs under
 copyright). It can never be committed, and one mistyped env var pointing a
 `build-index --corpus job` at the public directory would put vault text in a
 public repo with no error and no obvious symptom.

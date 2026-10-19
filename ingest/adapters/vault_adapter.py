@@ -12,7 +12,7 @@ Source config (from corpus.yaml):
 project are scoped to it at retrieval time. Optional here (unlike the
 siblings, where it is required) because a note need not belong to any repo.
 
-Note: this adapter reads ONLY the paths explicitly listed — it never crawls
+Note: this adapter reads ONLY the paths explicitly listed - it never crawls
 the vault. Flow: read -> strip_frontmatter (returns (meta, body), lifting
 `type`/`status` into chunk metadata) -> split_sections -> make_chunk.
 """
@@ -40,10 +40,10 @@ def strip_frontmatter(text: str) -> tuple[dict, str]:
     Return everything AFTER the closing `---` (the "# Real content..." onward).
 
     Rules / edge cases:
-      - If the note does NOT start with a `---` line, there's no frontmatter —
+      - If the note does NOT start with a `---` line, there's no frontmatter -
         return `text` unchanged.
       - The block is delimited by the FIRST two `---` lines only. A `---` later
-        in the body is a horizontal rule, not a fence — don't strip on that.
+        in the body is a horizontal rule, not a fence - don't strip on that.
       - Be reasonable about a missing closing `---` (a malformed note): decide
         whether to treat it as "no frontmatter" rather than eating the whole file.
 
@@ -55,7 +55,7 @@ def strip_frontmatter(text: str) -> tuple[dict, str]:
 
     lines = text.split("\n")          # lines[0] is "---"
     for i in range(1, len(lines)):
-        if lines[i].strip() == "---":         # the closing fence — stop here
+        if lines[i].strip() == "---":         # the closing fence - stop here
             block = "\n".join(lines[1:i])     # between the fences → YAML
             body  = "\n".join(lines[i+1:])    # after the fence → body
             return yaml.safe_load(block) or {}, body

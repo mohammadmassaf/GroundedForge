@@ -1,7 +1,7 @@
-# Eval notes — v1 (study mode, networks corpus)
+# Eval notes - v1 (study mode, networks corpus)
 
 Corpus: 3 course PDFs (I2208 Computer Networks), 214 chunks of ~700 chars / 100 overlap.
-Eval set: 20 fixed questions with known-right (source_file, page) locations — `eval/eval_set.json`.
+Eval set: 20 fixed questions with known-right (source_file, page) locations - `eval/eval_set.json`.
 Run: `python main.py eval --corpus networks` (add `--limit N` to cap the LLM-costed grounding half).
 
 ## Results
@@ -10,30 +10,30 @@ Run: `python main.py eval --corpus networks` (add `--limit N` to cap the LLM-cos
 |---|---|---|
 | recall@3 | 90% | full 20-question set |
 | recall@5 | 95% | full set |
-| recall@10 | **100%** | full set — every eval answer is findable |
+| recall@10 | **100%** | full set - every eval answer is findable |
 | grounding | **92.7%** | 41 claims over 19/20 questions (1 question failed generation and was excluded); 3 struck |
 
 > **Superseded. Current study-mode number: 100.0%** (40 kept / 0 struck, 40 claims, 20/20
 > questions), `gpt-oss-20b`, measured 2026-08-21.
 >
 > The 92.7% above was measured on `llama-3.3-70b-versatile`, which Groq retired. On the new
-> model the same unchanged prompt scored **70.0%** — all 15 strikes being the padding defect
+> model the same unchanged prompt scored **70.0%** - all 15 strikes being the padding defect
 > rule 7a had already fixed in job mode, which quiz mode never received. Adding quiz rules 4
 > and 5 took it to 100%. Full story in Finding 7 at the end of the v2 notes.
 
 All three full-run strikes follow the patterns below: two are the formula-vs-worked-result
 strictness case, one is an evidence-coverage case. No fabricated claim passed the Critic.
 
-recall@10 = 100% means quality problems downstream are never "the chunk isn't findable" —
+recall@10 = 100% means quality problems downstream are never "the chunk isn't findable" -
 they are ranking (the @3↔@10 gap, the M7 re-ranker's target) or generation issues.
 
 ## The two struck claims, read closely
 
-1. **"Propagation time = Distance × 1000 / speed"** — the slide's `×1000` is a km→m unit
+1. **"Propagation time = Distance × 1000 / speed"** - the slide's `×1000` is a km→m unit
    conversion inside a worked example, not part of the formula. The Generator's phrasing
    didn't match the evidence's exact form and the Critic (rule 2: computed values need the
-   shown result) struck it. Arguably over-strict — the claim is pedagogically fine.
-2. **"data vs communication ... not explicitly discussed"** — an eval question (e5) that
+   shown result) struck it. Arguably over-strict - the claim is pedagogically fine.
+2. **"data vs communication ... not explicitly discussed"** - an eval question (e5) that
    slightly overreaches what p.7 of Part-1 actually states. An honest strike caused by an
    imperfect eval question rather than a generation failure.
 
@@ -42,7 +42,7 @@ Both strikes are the **Critic's precision/recall tradeoff** made visible:
 - Stricter Critic → lower grounding %, stronger guarantee (false positives cost valid items)
 - Looser Critic → higher grounding %, weaker guarantee (false negatives leak hallucinations)
 
-The score is only meaningful **alongside the strictness policy that produced it** — a higher
+The score is only meaningful **alongside the strictness policy that produced it** - a higher
 number from a looser judge certifies less. Calibrating the policy = hand-checking the claims
 whose verdicts *flip* when a rule changes, against the actual slides.
 
@@ -69,7 +69,7 @@ distribution anyway.
 
 Setup: same 20-question eval set, same networks corpus, three retrieval modes via the new
 `--retrieval` flag on `eval`. The hybrid pipeline fetches 20 candidates from vector search
-and 20 from BM25 (rank_bm25), fuses them with Reciprocal Rank Fusion (positions, not scores —
+and 20 from BM25 (rank_bm25), fuses them with Reciprocal Rank Fusion (positions, not scores -
 cosine and BM25 aren't comparable currencies), and optionally re-scores all fused candidates
 with a cross-encoder (ms-marco-MiniLM-L-6-v2) before taking top-k. Wide-then-narrow: every
 stage fetches more than it keeps.
@@ -83,27 +83,27 @@ stage fetches more than it keeps.
 ### Analysis
 
 - **Hybrid alone dropped recall@3 (90% → 80%).** Per-question diff: hybrid flipped 4
-  questions — lost 3, gained 1. The 3 losses share a shape: abstract, wordy eval questions
+  questions - lost 3, gained 1. The 3 losses share a shape: abstract, wordy eval questions
   ("what characteristics of a network system must be evaluated…"). BM25 matches exact
   tokens, and words like "characteristics" / "evaluated" appear all over a textbook, so
-  BM25's top ranks were topically scattered and RRF — which trusts both lists equally —
+  BM25's top ranks were topically scattered and RRF - which trusts both lists equally -
   diluted vector's correct top-3 down to fused ranks 4–6.
 - **Re-ranking recovered the full 90%.** recall@10 stayed 100% in every mode: the right
   chunk never left the 20-candidate pool, and the cross-encoder (which reads query and
   chunk *together*, token-level) promoted it back up. This is two-stage retrieval doing
-  exactly its job — fusion widens the net, the re-ranker sharpens the order. The
+  exactly its job - fusion widens the net, the re-ranker sharpens the order. The
   re-ranker's ceiling is the candidate set's recall, and here the ceiling was 100%.
 - **The one hybrid win is the most instructive case:** the eval question misspelled
   "sheilded twisted pair". Vector@3 missed (embeddings drifted to p.60–61); hybrid@3 hit
   p.62 at rank 2 because BM25 anchored on the exact tokens "twisted pair". That's the
-  exact-token complementarity hybrid retrieval exists for — this eval set just barely
+  exact-token complementarity hybrid retrieval exists for - this eval set just barely
   exercises it.
 
 ### Conclusion
 
 On this corpus there was no headroom: recall@10 was already 100%, and the paraphrase-style
 questions are vector search's home turf. Hybrid + rerank **matched** the baseline rather
-than beating it — the real gain is robustness to keyword-shaped queries (acronyms, error
+than beating it - the real gain is robustness to keyword-shaped queries (acronyms, error
 codes, formula names, misspellings), which the headline number doesn't reward. A negative-ish
 result, but only an eval harness makes it visible at all; without one, "added hybrid
 retrieval" would have shipped as an assumed improvement while silently costing recall@3.
@@ -111,17 +111,17 @@ retrieval" would have shipped as an assumed improvement while silently costing r
 ## Harness behavior worth keeping
 
 - Per-item generation failures (`GenerationError`) are skipped and counted (`failed` in the
-  report) — one flaky item costs one question, not the run.
-- Rate limits (`RateLimitError`) stop the run early but keep partial tallies — the report's
+  report) - one flaky item costs one question, not the run.
+- Rate limits (`RateLimitError`) stop the run early but keep partial tallies - the report's
   denominators stay honest about coverage.
 
 ---
 
-# Eval notes — v2 (job mode, repo corpus)
+# Eval notes - v2 (job mode, repo corpus)
 
 Corpus: two of my own repos (`mealwise`, `grounded-forge`) ingested as commit messages,
-README sections, and project notes — not prose documents. Eval set: 15 questions with
-known-right locations plus 6 adversarial traps — `eval/eval_set_job.json`.
+README sections, and project notes - not prose documents. Eval set: 15 questions with
+known-right locations plus 6 adversarial traps - `eval/eval_set_job.json`.
 Run: `python main.py eval --corpus job --retrieval rerank` (`--no-traps` to skip the
 adversarial half, `--limit N` to cap the LLM-costed grounding half).
 
@@ -146,12 +146,12 @@ which Groq retired on 2026-08-17, and is historical. Job mode on `gpt-oss-20b` s
 change, rule 7a took grounding from 50.0% to 93.8% with nothing else varying. Finding 5 has the full story. recall@k is unaffected in every
 mode: retrieval is entirely local and reproduced exactly through the model swap.
 
-The 87.1% grounding figure predates repo scoping and the k=8 finding — it is the best
+The 87.1% grounding figure predates repo scoping and the k=8 finding - it is the best
 *measured* job-mode number, not the current system's. Re-measuring is blocked on the Groq
 daily token limit, not on anything unknown.
 
 Same engine, same Critic, different corpus shape. Job mode is harder on both axes, and the
-two axes fail for unrelated reasons — which is the entire argument for measuring them
+two axes fail for unrelated reasons - which is the entire argument for measuring them
 separately.
 
 The **recall@8 row is the sharpest single comparison**: on the study corpus the Generator
@@ -162,11 +162,11 @@ already behind, before the Generator writes a word.
 ## Traps: the measurement that makes the other two trustworthy
 
 recall@k and grounding % both grade the system on good inputs, so neither can detect a
-broken Critic. A Critic that answers "supported" to everything scores **100% grounding** —
+broken Critic. A Critic that answers "supported" to everything scores **100% grounding** -
 the best possible number from the worst possible judge. The traps close that hole: 6
 authored claims with known defects, each tagged with the stage that should catch it.
 
-All 6 were struck, each by its authored stage — 3 by `quant`, 3 by `critic`, no stage
+All 6 were struck, each by its authored stage - 3 by `quant`, 3 by `critic`, no stage
 mismatches:
 
 - `quant` caught the rounding inflation (`~93%` where evidence says `92.7%`), a fabricated
@@ -182,7 +182,7 @@ separately rather than folding them into the headline.
 ## Finding 1: job-mode strikes are abstraction, not fabrication
 
 First full job run scored **70.4%**, well under study mode's 92.7%. Reading the strike
-reasons, it was not eight different problems — **9 of 10 strikes said "does not explicitly
+reasons, it was not eight different problems - **9 of 10 strikes said "does not explicitly
 state."** Every one was the same move: the bullet sat one level of abstraction above its
 evidence.
 
@@ -201,7 +201,7 @@ kept     : "Stopped retrying on 429 errors and displayed rate limit messages"
 
 **Why this is structural, not a bug.** Course PDFs are explanatory prose that already states
 things at claim level, so a grounded quiz answer never has to abstract. Commit subjects are
-*labels* — `feat: add auth with JWT` is seven words covering a week of work. A CV bullet that
+*labels* - `feat: add auth with JWT` is seven words covering a week of work. A CV bullet that
 stays at that level isn't a CV bullet. So the artifact type and the verifier want opposite
 things: bullets are supposed to generalise, and a grounding checker punishes generalisation.
 70.4% was the harness correctly reporting that tension, not a regression.
@@ -212,12 +212,12 @@ because it runs second.
 
 ## Finding 2: fixing it at the Generator, and the injection that fix caused
 
-The wrong lever is loosening the Critic — relax it enough to accept
+The wrong lever is loosening the Critic - relax it enough to accept
 "SECRET_key → implemented JWT authentication" and it very likely also accepts the Kubernetes
 trap. Strictness is what the traps are measuring; trading it for a prettier grounding score
 trades the guarantee for the number.
 
-The right lever is the Generator. Added rule 7 ("stay at the evidence's level" — combine
+The right lever is the Generator. Added rule 7 ("stay at the evidence's level" - combine
 facts across cited chunks, never rename or upgrade them), with a carve-out disambiguating it
 from rule 6: **rule 6 governs substance, rule 7 governs vocabulary.**
 
@@ -227,9 +227,9 @@ Measured, same corpus, prompt as the only variable:
 |---|---|---|
 | headline | 70.4% (27 claims, 11/15 q, rate-limited) | **87.1%** (31 claims, 15/15 q) |
 | first 5 items, like-for-like | 53.8% (7/13) | **80.0%** (8/10) |
-| questions with zero strikes | — | 12 of 15 |
+| questions with zero strikes | - | 12 of 15 |
 
-The headline pair isn't a clean comparison — the first run stopped early at 11 questions —
+The headline pair isn't a clean comparison - the first run stopped early at 11 questions -
 so the first-5 like-for-like row is the defensible one. Both runs retrieved with
 hybrid+rerank.
 
@@ -241,19 +241,19 @@ prompt : RIGHT: "Added JWT auth in a dedicated auth router, keyed by a SECRET_ke
 output :        "Added JWT auth in a dedicated auth router, keyed by a SECRET_key"
 ```
 
-Rule 1 says *use ONLY the context provided by the user* — but the system prompt is context
+Rule 1 says *use ONLY the context provided by the user* - but the system prompt is context
 too. On the one question whose evidence hadn't been retrieved (see Finding 3), the closest
 thing to an answer anywhere in the model's context was the example, so it copied it. A
 few-shot example in a grounded generator is an injection vector.
 
 Rule now in force: **examples must use a fictional domain and must not introduce any entity
 absent from the evidence line shown beside them**, and one example's correct answer is
-*write nothing* — thin evidence should produce fewer bullets, not a well-hedged one. The
+*write nothing* - thin evidence should produce fewer bullets, not a well-hedged one. The
 earlier version taught the opposite by demonstrating a rescue.
 
 ## Finding 3: the re-ranker discards the right evidence (j1)
 
-j1 — *"How is authentication implemented in MealWise?"* — is both the sole recall@10 miss in
+j1 - *"How is authentication implemented in MealWise?"* - is both the sole recall@10 miss in
 rerank mode and the source of 2 of the 4 remaining strikes. Excluding it, the run is 27 kept
 / 2 struck = **93.1%**.
 
@@ -269,14 +269,14 @@ chunks (`mealwise@aa2b173`, `mealwise README § API reference`):
 The cross-encoder's rank 1 was `grounded-forge@7f87ab2` at −0.146, while every genuine
 MealWise chunk scored below −3.0. That chunk is a Grounded Forge commit about the quant
 pre-check. It contains the word "implemented" and the literal string `mealwise@8912ac4`
-(quoted as a sha-pollution example) — two of the query's three content words — and **zero
+(quoted as a sha-pollution example) - two of the query's three content words - and **zero
 mention of authentication**. It outranked the actual auth commit.
 
 It is also neatly self-referential: the commit that stopped shas polluting the *quant*
 haystack is now polluting the *retrieval* haystack.
 
 **Root cause.** The job corpus mixes two repos, and one of them talks about the other in its
-commit messages. Nothing in the pipeline treats "about MealWise" as a constraint — it is a
+commit messages. Nothing in the pipeline treats "about MealWise" as a constraint - it is a
 soft topical hint that a relevance scorer is free to overrule. This is the same argument as
 the per-section STAR pools one level up: an evidence pool should be an authorization
 boundary, not a bag of context. A bullet about MealWise must not be evidenced by a Grounded
@@ -293,7 +293,7 @@ that loses j1. Averages hide that; the per-question miss list is what surfaced i
 
 ## Finding 4: the eval measured a k the system does not use
 
-Scoping fixed the cross-project contamination — recall@10 reached **100%**, no misses in
+Scoping fixed the cross-project contamination - recall@10 reached **100%**, no misses in
 any question. j1 still failed. Scoped, its expected evidence ranks:
 
 | mode (scoped to `repo: mealwise`) | rank of j1's evidence |
@@ -304,7 +304,7 @@ any question. j1 still failed. Scoped, its expected evidence ranks:
 
 The Generator retrieves **k=8**. The evidence sat at rank 9. So `recall@10 = 100%` was true
 and useless at the same time: the harness reported success at a k the system never reads.
-Two conclusions that look identical in a report and are not — *the evidence is findable* vs
+Two conclusions that look identical in a report and are not - *the evidence is findable* vs
 *the Generator can cite it*.
 
 `KS` now includes 8, the k `grounding_eval` actually retrieves with, and that row inverts
@@ -317,8 +317,8 @@ the ranking:
 | hybrid + rerank | **73.3%** | 80.0% | 86.7% | **100%** |
 
 The cross-encoder wins the two numbers a README would quote and loses the one that decides
-what the Generator can cite. Same pattern as the v1 M7 result — re-ranking sharpens the very
-top of the list — except here the artifact reads eight chunks deep, so a sharper top-3 is
+what the Generator can cite. Same pattern as the v1 M7 result - re-ranking sharpens the very
+top of the list - except here the artifact reads eight chunks deep, so a sharper top-3 is
 worth less than a fuller top-8.
 
 **Consequence:** job mode should generate with `--retrieval hybrid`, not `rerank`. Untested
@@ -331,7 +331,7 @@ Groq retired `llama-3.3-70b-versatile` on 2026-08-17 (404 `model_not_found`, mid
 Llama chat model remains in the catalogue. Switched to `openai/gpt-oss-20b`, which keeps its
 reasoning in a separate field so `content` stays clean JSON and the parser needed no changes.
 
-Validated the swap on the **traps first** — 6/6 struck, 3 quant / 3 critic, no stage
+Validated the swap on the **traps first** - 6/6 struck, 3 quant / 3 critic, no stage
 mismatches, identical to the retired model. That cost ~5k tokens against ~48k for a grounding
 run, and it is the only measurement that can catch a rubber-stamp Critic. Cheap adversarial
 check first, expensive measurement second, is worth keeping as a habit.
@@ -340,7 +340,7 @@ Then grounding, same 8 questions, same `rerank --gen-k 10`: **50.0%** (11 kept /
 against 84.0% on the retired model. Both agents changed at once, so the number alone cannot
 say whether the Generator got worse or the Critic got stricter. The traces can.
 
-**It was neither.** Every one of the 11 strikes has the same shape — the Critic concedes the
+**It was neither.** Every one of the 11 strikes has the same shape - the Critic concedes the
 main claim and rejects an appended clause:
 
 ```
@@ -363,12 +363,12 @@ Then the word counts explained why:
 on it.** Eight-word bullets say one thing, and one thing is easy to ground. The old traces
 show the same gradient internally: struck bullets averaged 10.2 words, kept ones 7.6. Today
 every bullet sits in the compliant band (kept 13.2, struck 13.5), so length no longer
-discriminates — nothing is short any more.
+discriminates - nothing is short any more.
 
 ### The real defect: rules 6 and 7 contradict each other
 
-- **Rule 6** — 12–25 words, "name the SPECIFIC technical content"
-- **Rule 7** — stay at the evidence's level, never add what it does not state
+- **Rule 6** - 12–25 words, "name the SPECIFIC technical content"
+- **Rule 7** - stay at the evidence's level, never add what it does not state
 
 A commit subject is seven words. There is often no 12–25 words of *grounded* content to be
 had, so obeying rule 6 forces padding, and padding is unsupported by construction. The two
@@ -376,7 +376,7 @@ rules were never compatible; llama-3.3-70b hid it by under-complying with rule 6
 gpt-oss-20b exposed it by obeying.
 
 This is the third time a prompt written against observed behaviour has misfired (after rule
-7's example becoming an answer, and rule 5's becoming a prohibition) — but the first caused by
+7's example becoming an answer, and rule 5's becoming a prohibition) - but the first caused by
 a model swap rather than by wording. **A prompt is tuned to a model, and that tuning is not
 portable.** The eval is the only reason this was visible at all; without it the swap would
 have shipped as "same system, new model" while grounding fell by 34 points.
@@ -385,12 +385,12 @@ Fix: drop rule 6's word floor so a bullet may be as long as the evidence support
 longer, AND name the padding shapes explicitly in rule 7a ("enabling X", "via Y", "to ensure
 Z") so the failure mode is forbidden by description rather than only by principle. Rule 7a
 ends with a procedure rather than a principle: read the bullet one clause at a time, name the
-chunk supporting each, and DELETE any clause without one — delete rather than soften, because
+chunk supporting each, and DELETE any clause without one - delete rather than soften, because
 a vaguer unsupported clause is still unsupported.
 
 ### Result: 50.0% → 93.8%, and the diagnosis was half wrong
 
-Same 8 questions, same model, same flags, prompt as the only variable — the cleanest A/B in
+Same 8 questions, same model, same flags, prompt as the only variable - the cleanest A/B in
 the project:
 
 | | claims | kept / struck | grounding | mean words |
@@ -403,14 +403,14 @@ rounds, so the loop reached `n` instead of regenerating.
 
 **But length is not what fixed it.** 13.6 → 12.1 words is a small move, nowhere near
 llama-3.3-70b's 8.1. If length were the mechanism, 12.1-word bullets should still be failing
-at close to the old rate. They aren't — strikes fell by a factor of eleven while length
+at close to the old rate. They aren't - strikes fell by a factor of eleven while length
 barely moved.
 
 So **rule 7a did the work, not rule 6's floor.** The bullets are still long; they simply stop
 carrying an unsupported trailing clause. Same length, different content.
 
 Which corrects the reading above: word count was a **symptom mistaken for a cause**. The old
-model's 8.1-word bullets were not safe *because* they were short — they were safe because a
+model's 8.1-word bullets were not safe *because* they were short - they were safe because a
 short bullet has no room for a purpose clause. Length correlated with the real variable and
 was easy to measure, which is exactly how a proxy gets mistaken for a mechanism.
 
@@ -419,7 +419,7 @@ visible in the first place, and it was still the wrong causal story. The A/B is 
 it. A correlation strong enough to generate the right fix can still be the wrong explanation.
 
 The one remaining strike has the same shape, smaller: *"Implemented SQLAlchemy ORM **for data
-modeling**"* — the trailing purpose clause again, once in sixteen rather than eleven in
+modeling**"* - the trailing purpose clause again, once in sixteen rather than eleven in
 twenty-two.
 
 **Final M5 number: 96.7%** (29 kept / 1 struck, 30 claims) over **15/15 questions**,
@@ -433,7 +433,7 @@ identical flags, so the counts add:
 | q10–15 | 12 / 0 | 6 |
 | **total** | **29 / 1** | **15** |
 
-No failures, no gaps, no early stop — the first complete job-mode run the project has produced,
+No failures, no gaps, no early stop - the first complete job-mode run the project has produced,
 and only possible after the throttle and network retries in Finding 6. The single strike is the
 trailing-purpose-clause shape ("Implemented SQLAlchemy ORM *for data modeling*"), one in thirty.
 
@@ -452,12 +452,12 @@ per-day exhaustion, and the harness treated both as "stop the run". gpt-oss-20b 
 back-to-back calls hit it constantly. A message reading *"try again in 7.4625s"* was throwing
 away five unevaluated questions. They are now split on the message text: TPM sleeps the stated
 wait and retries, TPD propagates so `grounding_eval` can stop early with honest partial
-tallies. Retrying both would be worse than stopping on both — it would spin for hours against
+tallies. Retrying both would be worse than stopping on both - it would spin for hours against
 a daily cap and report nothing.
 
 **Then the network became the bottleneck.** At ~4800 tokens per call against 8000/minute the
 pipeline sustains roughly 1.5 calls a minute, so an 8-question window is a ~30 minute run
-making ~50 calls — long enough that ordinary flakiness matters. One dropped TCP connect
+making ~50 calls - long enough that ordinary flakiness matters. One dropped TCP connect
 (`APITimeoutError`) ended a run two questions in. Now retried with a 2/5/15s backoff, on a
 budget separate from the throttle budget: they are unrelated failures, and a call that has
 waited out four throttles should still get its full network allowance.
@@ -471,7 +471,7 @@ fix in each case was to stop treating a category of error as a single thing.
 ## Harness caveat, now fixed
 
 `grounding_eval` hardcoded hybrid+rerank at k=8 while `retrieval_eval` honoured
-`--retrieval`, so a single report could describe **two different retrievers** — the recall
+`--retrieval`, so a single report could describe **two different retrievers** - the recall
 rows from the flagged mode, the grounding row always from rerank. Both halves now route
 through one `_retrieve()` helper, so the flag governs the whole run.
 
@@ -481,7 +481,7 @@ Measured cost, job corpus:
 
 | | tokens | per 100k free-tier day |
 |---|---|---|
-| one eval question (k=10, n=2) | ~6,400 | — |
+| one eval question (k=10, n=2) | ~6,400 | - |
 | **full 15-question run** | **~96,000** | 1 run, using 96% of the cap |
 | `make-bullets` (n=5, k=8) | ~8,700 | ~12 artifacts |
 | `make-star` (k=6 × 4 pools) | ~6,800 | ~15 artifacts |
@@ -497,7 +497,7 @@ one still begins part-spent.
 
 That distinction matters because it rules out the tempting fixes. Shrinking the 1,116-token
 generator system prompt (~33k per run, a third of the budget), halving `n`, or swapping in a
-cheaper model would each **degrade the product to fit the measurement** — and rule 7's worked
+cheaper model would each **degrade the product to fit the measurement** - and rule 7's worked
 examples are most of that prompt, i.e. exactly the thing that moved grounding 53.8% → 80%.
 The system is fine; only the measurement is expensive, so the measurement is what bends.
 
@@ -522,13 +522,13 @@ JSONL as it completes and have the report aggregate whatever is on disk:
 The cost is cache invalidation: the checkpoint key has to cover corpus, retrieval mode,
 `gen_k`, `n`, and the generator prompt, or a stale entry silently contributes a claim measured
 under a different system. That is the whole difficulty, and it is why this is a post-M5 task
-rather than a quick win — `--offset` needs no invalidation because the human is holding the
+rather than a quick win - `--offset` needs no invalidation because the human is holding the
 config fixed.
 
 ## Open items
 
-- ~~Project-scoped retrieval for job mode~~ — done; recall@10 100%, no misses in any mode.
-- ~~Thread `--retrieval` through `grounding_eval`~~ — done; one `_retrieve()` for both halves.
+- ~~Project-scoped retrieval for job mode~~ - done; recall@10 100%, no misses in any mode.
+- ~~Thread `--retrieval` through `grounding_eval`~~ - done; one `_retrieve()` for both halves.
 - Measure grounding % under `--retrieval hybrid` vs `rerank`. recall@8 says hybrid should
   win; that prediction is untested against the Critic. Two windowed runs per config, so a
   full A/B is four days on the free tier.
@@ -539,8 +539,8 @@ config fixed.
   valid JSON then keeps writing. Distinct from the empty-list failure; costs a question per
   run when it hits.
 - j6 *"Where is MealWise deployed?"* failed generation in the first run (empty bullet list
-  twice → `GenerationError`) while the gap check passed. Two distinct no-answer paths exist —
-  pre-generation gap and post-generation empty — and only one is reported as a gap.
+  twice → `GenerationError`) while the gap check passed. Two distinct no-answer paths exist -
+  pre-generation gap and post-generation empty - and only one is reported as a gap.
 
 
 ## Finding 7: the defect was the model's, not the bullets prompt's
@@ -559,7 +559,7 @@ same vector retrieval at k=8, same Critic. Only the model differs.
 | recall@3 / @8 / @10 | 90% / 100% / 100% | identical, to the decimal |
 
 **All 15 strikes concede part of the claim and reject an unsupported extension.** Not one is a
-fabrication, and not one is a retrieval miss — recall@8 is 100%, so every answer had its
+fabrication, and not one is a retrieval miss - recall@8 is 100%, so every answer had its
 evidence in the prompt. Exactly the shape rule 7a was written for in job mode.
 
 So the padding behaviour is **a property of gpt-oss-20b, not of the bullets prompt**. Job mode
@@ -582,14 +582,14 @@ The source states *that* STP costs more; it never says *why*. So the question it
 unanswerable from the evidence, and any answer invents a mechanism. Bullets has no question, so
 this failure mode could not appear there.
 
-Fix: two new rules in `SYSTEM_PROMPT`. Rule 4 governs **question selection** — find the sentence
+Fix: two new rules in `SYSTEM_PROMPT`. Rule 4 governs **question selection** - find the sentence
 that IS the answer before writing the item, and prefer a "what" the evidence answers outright to
 a "why" it only gestures at. Rule 5 is the bullets rule ported: do not extend a supported answer,
 delete an unsupported clause rather than softening it.
 
 Cost: the quiz prompt grows 159 → 568 tokens, about +16k across a 20-question run.
 
-`GUIDE_SYSTEM_PROMPT` deliberately left alone — the guide generator has no eval set, so a change
+`GUIDE_SYSTEM_PROMPT` deliberately left alone - the guide generator has no eval set, so a change
 there would be unmeasured.
 
 **Baseline: 70.0%** (35 kept / 15 struck, 50 claims, 20/20 questions), `gpt-oss-20b`, bare
@@ -613,7 +613,7 @@ proportion of explanation-seeking questions fell by nearly two thirds.
 Two things follow from that, both worth noticing:
 
 **Fewer claims is a consequence, not a cost.** 45 → 36 because no strikes means no top-up
-rounds — the loop reached `n` instead of regenerating. It nevertheless **kept more** claims
+rounds - the loop reached `n` instead of regenerating. It nevertheless **kept more** claims
 than before (36 vs 31), so the artifact is strictly better: more usable quiz items, none struck.
 
 **This fix is stronger than job mode's.** Rule 7a deleted a padded clause from an otherwise
@@ -650,15 +650,15 @@ wired them up.
 
 | id | stage | defect |
 |---|---|---|
-| s1 | quant | rounding inflation — "~35,000 bps" where the slide computes 34,860 |
-| s2 | quant | fabricated figures — 4000 Hz / 300–4300 Hz where the slide says 3000 Hz / 300–3300 Hz |
-| s3 | quant | right number, wrong chunk — 2000 km is genuine on Part-1 p.16 but absent from the cited attenuation slide |
-| s4 | critic | absent concept — quantum error correction, which the corpus never mentions |
-| s5 | critic | misattribution with **every figure real** — 3000, 3162 and 34,860 all appear in the cited chunk, so quant must pass it by design; the slide describes a telephone line, not fiber |
-| s6 | critic | the trailing-cause shape rules 4–5 prevent — first clause verbatim from the slide, "because the resistance increases with distance" invented |
+| s1 | quant | rounding inflation - "~35,000 bps" where the slide computes 34,860 |
+| s2 | quant | fabricated figures - 4000 Hz / 300–4300 Hz where the slide says 3000 Hz / 300–3300 Hz |
+| s3 | quant | right number, wrong chunk - 2000 km is genuine on Part-1 p.16 but absent from the cited attenuation slide |
+| s4 | critic | absent concept - quantum error correction, which the corpus never mentions |
+| s5 | critic | misattribution with **every figure real** - 3000, 3162 and 34,860 all appear in the cited chunk, so quant must pass it by design; the slide describes a telephone line, not fiber |
+| s6 | critic | the trailing-cause shape rules 4–5 prevent - first clause verbatim from the slide, "because the resistance increases with distance" invented |
 
 s5 is the load-bearing one: it is the only way to tell a Critic that reads meaning from one
-that only checks arithmetic. s6 is a regression guard — it encodes the exact defect that took
+that only checks arithmetic. s6 is a regression guard - it encodes the exact defect that took
 study grounding from 68.9% to 100%, so a future prompt change that reintroduces padding fails
 a trap instead of silently costing points.
 
@@ -669,7 +669,7 @@ corrected; that is the reason for the order.
 
 ---
 
-## Finding 8: mis-citation is not the dominant strike — over-reach is
+## Finding 8: mis-citation is not the dominant strike - over-reach is
 
 Measured 2026-08-30 at commit `8b16dc4`, `python main.py strikes`, **zero LLM calls**. The
 inputs were traces already on disk; nothing was re-run and nothing was spent.
@@ -677,7 +677,7 @@ inputs were traces already on disk; nothing was re-run and nothing was spent.
 The open-work list had carried this since 2026-08-22:
 
 > *Mis-citation is the dominant remaining strike. [...] Count it on the next run before
-> touching the prompt — if mis-citation is most of the remaining strikes, that is a much
+> touching the prompt - if mis-citation is most of the remaining strikes, that is a much
 > cheaper fix than anything retrieval-side.*
 
 It was a reasonable read of j13, and it is **wrong**.
@@ -687,8 +687,8 @@ It was a reasonable read of j13, and it is **wrong**.
 A strike has two causes that read identically in the Critic's reason string: the support was
 nowhere in the pool (retrieval), or it was in the pool under a chunk the claim did not cite
 (mis-citation). Opposite fixes. Since `22fb586` the trace records `pool` on the generated
-event and `citations` on every verdict, so `pool − citations` — "where the support could have
-been instead" — is recoverable offline. Each leftover chunk is scored against the struck claim
+event and `citations` on every verdict, so `pool − citations` - "where the support could have
+been instead" - is recoverable offline. Each leftover chunk is scored against the struck claim
 with the corpus-wide BM25 index and compared against the best-scoring chunk the claim actually
 cited.
 
@@ -702,8 +702,8 @@ cited.
 
 Of 119 strikes recorded in `traces/`, 83 predate `22fb586` and carry no pool, leaving 36
 attributable. **Five of 36 had a better-scoring uncited chunk. Twenty-seven cited the best
-thing available**, which makes them over-reach — the claim went further than good evidence
-supported — not misdirected citation.
+thing available**, which makes them over-reach - the claim went further than good evidence
+supported - not misdirected citation.
 
 The two job leads read as genuine on inspection:
 
@@ -713,7 +713,7 @@ The two job leads read as genuine on inspection:
   pool. The uncited commit is the claim.
 - *"Added database-backed logic for POST /meal-plan/{id}/regenerate-day"* cited `@f0ebb48`
   (5.32) over `@d1a9001` (13.43). Subtler: the claim spans both commits, so this is an
-  **incomplete** citation rather than a wrong one — a different prompt fix.
+  **incomplete** citation rather than a wrong one - a different prompt fix.
 
 The networks lead is the adjacent-section shape j13 predicted: cited `Part-3_p22` (16.27)
 with `Part-3_p21` (19.47) uncited in the same pool. The pattern is real. It is just rare.
@@ -729,12 +729,12 @@ margins are unknowable.
 Folding them either way corrupts the result in a different direction: as leads they take
 mis-citation from 2 to 6 and reverse the conclusion; as no_leads they add three cases to the
 over-reach count that were never measured, manufacturing evidence for the finding. So they are
-reported separately — the same call already made for gapped questions in `grounding_eval`, and
+reported separately - the same call already made for gapped questions in `grounding_eval`, and
 for `EmptyGeneration` being a sibling of `GenerationError` rather than a subclass.
 
 This is also the limit of the method: **a low score is weak evidence of anything**, because the
 scorer inherits the tokenizer's blindness. The report prints ranked shortlists rather than only
-counts for exactly this reason. The worked example is the warning — `mealwise@0cf0a59` topped a
+counts for exactly this reason. The worked example is the warning - `mealwise@0cf0a59` topped a
 shortlist at 8.61 against a cited 0.12 and, read, is about Gemini scaffolding and supports
 nothing. The tool proposes; reading disposes.
 
@@ -742,7 +742,7 @@ nothing. The tool proposes; reading disposes.
 
 - **Citation-discipline prompt work is not where the remaining points are.** It would address
   5 of 36 strikes, two of which are a different defect (incomplete rather than wrong).
-- **Over-reach at 27 of 36 is the real target**, and it is a Generator-prompt problem —
+- **Over-reach at 27 of 36 is the real target**, and it is a Generator-prompt problem -
   consistent with Findings 1 and 2, where job-mode strikes were abstraction rather than
   fabrication.
 - The `--retrieval hybrid --gen-k 8` comparison keeps its priority: retrieval was never
@@ -752,7 +752,7 @@ nothing. The tool proposes; reading disposes.
 
 **The corpus is decided by measurement, not by filename.** `belongs_to()` asks whether a
 trace's chunk ids resolve against `chunks/<corpus>.json`. Reading the corpus off the filename
-(`quiz_*` → networks) is a guess, and ambiguous besides — quiz runs exist over `networks` and
+(`quiz_*` → networks) is a guess, and ambiguous besides - quiz runs exist over `networks` and
 `demo` both. The two corpora come out exactly complementary (job attributes 21 and calls 15
 foreign; networks the reverse), which is the check that the partition is real. It also covers
 the planned re-ingest: if chunk ids shift, an old trace stops resolving and is reported as
@@ -761,7 +761,7 @@ foreign rather than scored against chunks that no longer mean the same thing.
 **The dataset had to be cleaned before it could be counted.** `test_loop_integration.py` ran
 the real `Tracer`, so every `pytest` invocation appended a genuine trace file full of canned
 content. 81 had accumulated; 28 carried a pool and landed in the attributable bucket, making
-the count read 62 where it is 36 — and it grew by one per test run, so it was not stable
+the count read 62 where it is 36 - and it grew by one per test run, so it was not stable
 between two invocations of the same measurement. Fixed by redirecting `TRACE_DIR` to `tmp_path`
 in an autouse fixture (`eb4b9b9`), which closes the class of bug rather than the instance, and
 the 81 were deleted.
@@ -778,19 +778,19 @@ Measured 2026-08-31, `python main.py eval --corpus demo --limit 0`, 4 Groq calls
 
 ### Why there was a demo trap set to run at all
 
-The live demo has to show a strike or it shows nothing — cite-or-strike is the product, and
+The live demo has to show a strike or it shows nothing - cite-or-strike is the product, and
 a panel that is empty whenever the generator happens not to hallucinate is not a
 demonstration of anything. The fallback in the shipping plan was "show an adversarial trap
 instead", and that fallback did not exist: all six traps in `eval_set.json` cite
 `I2208-2024-2025-Part-3_*`, the course corpus, which is gitignored for copyright. **The one
 corpus a stranger can run was the one corpus with nothing to strike.** Worse, it failed
-quietly — `_eval_path` routed every non-`job` corpus to the v1 set, so `eval --corpus demo`
+quietly - `_eval_path` routed every non-`job` corpus to the v1 set, so `eval --corpus demo`
 handed `trap_eval` citations it could not resolve and landed in the `except` at
 `main.py:156`, printing a report with no adversarial half rather than an error.
 
 So: `eval/eval_set_demo.json`, six traps written against the literal text of RFC 768/791/793,
 three per stage. The stage split was verified offline with `check_quantities` before spending
-a single call — quant traps state a figure absent from the cited chunk, critic traps state
+a single call - quant traps state a figure absent from the cited chunk, critic traps state
 figures that are all present and attached to the wrong thing.
 
 ### Result: 5/6
@@ -802,16 +802,16 @@ figures that are all present and attached to the wrong thing.
 
 The escape is `dt4`, and it is not a badly-authored trap:
 
-> **claim** — "The fragment offset is measured in units of **64 octets**, and the first
+> **claim** - "The fragment offset is measured in units of **64 octets**, and the first
 > fragment has offset zero."
-> **evidence** (`rfc791_p20_c0`, first sentence) — "The fragment offset is measured in units
+> **evidence** (`rfc791_p20_c0`, first sentence) - "The fragment offset is measured in units
 > of **8 octets (64 bits)**. The first fragment has offset zero."
-> **verdict** — supported. **reason** — *"The evidence states the fragment offset is measured
+> **verdict** - supported. **reason** - *"The evidence states the fragment offset is measured
 > in units of 8 octets (64 bits) and that the first fragment has offset zero, matching the
 > claim."*
 
 The Critic **retrieved the contradicting sentence, quoted it correctly, and then concluded it
-matched.** This is not a retrieval failure and not a reading failure — the right text was in
+matched.** This is not a retrieval failure and not a reading failure - the right text was in
 front of it, in its own reason string. It is a comparison failure: `64` appears in the
 evidence, so the unit it is attached to went unchecked. 64 bits and 64 octets differ by a
 factor of eight.
@@ -824,7 +824,7 @@ factor of eight.
   *forward* minimum; the claim asserts it as the *receive* minimum, which is 576). Caught.
 - `dt6` states the opposite of the evidence with no figures at all. Caught.
 
-The distinguishing feature of `dt4` is that the wrong element is a **unit**, not a fact — the
+The distinguishing feature of `dt4` is that the wrong element is a **unit**, not a fact - the
 sentence structure is otherwise identical to the source, and the number matches. That is the
 narrowest possible defect a semantic Critic has to catch, and the one where a
 figure-presence heuristic looks most like understanding.
@@ -835,7 +835,7 @@ The obvious response is to add a units instruction to the Critic prompt. Not her
 reason Finding 5 already paid for: the Critic prompt judges every claim in every mode, so a
 change to it invalidates the published grounding number, which was measured on the current
 one. Patching the prompt in the same commit that introduces the trap would also destroy the
-before/after — the trap would arrive already passing, and the only evidence the bug existed
+before/after - the trap would arrive already passing, and the only evidence the bug existed
 would be this paragraph.
 
 So the traps land with the escape recorded and the rate reported as **83.3%**. The prompt fix
@@ -850,7 +850,7 @@ example in any writeup no longer has to come from PDFs that cannot be shown.
 Two attempts at the Critic prompt, ~10 Groq calls total. Neither caught `dt4`.
 
 **Attempt 1, declarative.** A new rule 3: a figure is supported only if the number AND what
-it is attached to both match — the unit, and the quantity it measures. First draft of it
+it is attached to both match - the unit, and the quantity it measures. First draft of it
 used the literal words `"8 octets (64 bits)"` and `"64 octets"` as the illustration, which
 is teaching to the test: `dt4` would then pass because the prompt names `dt4`. Rewritten
 with an unrelated example (ms vs seconds) before it was ever run. Result: `dt4` supported.
@@ -859,7 +859,7 @@ with an unrelated example (ms vs seconds) before it was ever run. Result: `dt4` 
 in the claim, find it in the evidence, check which unit and which quantity the evidence
 attaches it to, and strike if either differs. Result: `dt4` supported.
 
-Both attempts left `dt5` and `dt6` caught, so neither made the Critic broadly stricter —
+Both attempts left `dt5` and `dt6` caught, so neither made the Critic broadly stricter -
 they simply did not reach this case.
 
 The verdict text is the same each time: the model **quotes the contradicting clause and
@@ -869,15 +869,15 @@ returns supported.**
 > (64 bits) and that the first fragment has offset zero, matching the claim."*
 
 The likely mechanism is the parenthetical. `(64 bits)` puts the digits `64` in the evidence
-with an air of authority, and the comparison the rule asks for — `64 octets` against
-`8 octets` — is one the model does not perform even when instructed to perform it step by
+with an air of authority, and the comparison the rule asks for - `64 octets` against
+`8 octets` - is one the model does not perform even when instructed to perform it step by
 step. This is the Finding 5 lesson in a new place: **a limitation of `openai/gpt-oss-20b` at
 this task, not a gap in the wording.** No third variant was tried, because any variant likely
 to work from here has to name octets and bits, and a trap that passes because the prompt
 describes it measures nothing.
 
 **The prompt is reverted.** A change that catches no additional trap while invalidating the
-published grounding number — measured on the current prompt — is strictly negative. The
+published grounding number - measured on the current prompt - is strictly negative. The
 expensive half of the before/after was never spent: no grounding re-measure was needed,
 because there is no improvement to weigh it against.
 
@@ -889,7 +889,7 @@ down.
 
 ### Method note: the trap harness puts the claim in the ANSWER slot
 
-`trap_eval` calls `check_claim("", trap["claim"], cited)` — empty question, claim as the
+`trap_eval` calls `check_claim("", trap["claim"], cited)` - empty question, claim as the
 answer. Two of the diagnostics above were first run with the arguments the other way round,
 which builds a prompt reading `Question: <the claim>` / `Answer:` (empty). The verdict and
 the reason came back materially the same either way, so nothing above rests on it, but the
@@ -907,13 +907,13 @@ because the alternative is a repo where every investigation happens to confirm i
 
 ### The duplicate questions: one sighting, not a behaviour
 
-A live demo run produced two questions that were the same question — *"What is the purpose of
+A live demo run produced two questions that were the same question - *"What is the purpose of
 the TCP PUSH flag?"* and *"What is the purpose of the PUSH flag in TCP?"*, sharing 8 of 9 words.
 It looked like a Generator weakness worth a prompt fix, since the Generator's rule 3 already
 says to produce FEWER items rather than invent material to fill the count, and restating a
 question is a way of filling the count.
 
-Then it was measured before touching the prompt: **0 duplicate pairs in 11 generations** — six
+Then it was measured before touching the prompt: **0 duplicate pairs in 11 generations** - six
 topics spanning covered, narrow and off-corpus, plus five repeats of the exact topic that
 produced it. Temperature is 0.3, so one sighting is one sample.
 
@@ -930,7 +930,7 @@ Generator returned **one item, not four**. Rule 3 works.
 The same runs surfaced something reproducible: the trigger topic raised `GenerationError` in
 **3 of 5 runs**. gpt-oss-20b bills reasoning tokens as OUTPUT against the answer's cap, so on a
 thin pool it reasons to the cap and returns `finish_reason="length"` with empty content.
-Raising the cap does not help — at 2000 it spent 1998 reasoning, at 4000 it spent 3998.
+Raising the cap does not help - at 2000 it spent 1998 reasoning, at 4000 it spent 3998.
 
 Retrying that is provably useless: there is no malformed output to show the model, and it
 refills whatever budget it gets. So `_reasoning_exhausted()` now short-circuits it instead of
@@ -945,14 +945,14 @@ consuming all three attempts.
 
 One call. The "~6000 tokens per off-corpus query" figure asserted earlier came from
 extrapolating the FIRST observation of this failure, where all three attempts happened to be
-exhaustion. Typically the first response is malformed JSON — which the retry loop is right to
-retry — and exhaustion arrives on attempt two or three, so there is less to skip than predicted.
+exhaustion. Typically the first response is malformed JSON - which the retry loop is right to
+retry - and exhaustion arrives on attempt two or three, so there is less to skip than predicted.
 
 The guard is kept anyway, on two grounds that are not token count:
 
 - It is unconditionally safe. It fires only on `finish_reason="length"` with empty content, a
   state where retrying cannot succeed. Successful generations and malformed-JSON retries are
-  untouched, verified by tests that count calls in both directions — so no published number
+  untouched, verified by tests that count calls in both directions - so no published number
   moves.
 - It makes the failure legible. The caller now gets "the model spent its entire output budget
   reasoning and returned nothing" instead of `Expecting value: line 1 column 1 (char 0)`, which
@@ -960,8 +960,8 @@ The guard is kept anyway, on two grounds that are not token count:
 
 **The lesson is the same one as Finding 8, in the other direction.** There, a hypothesis carried
 for eight days ("mis-citation is the dominant strike") turned out wrong once counted. Here, two
-hypotheses formed in a single session — "the Generator repeats itself" and "the retry loop burns
-6000 tokens" — both shrank on contact with a sample larger than one. **A defect seen once is a
+hypotheses formed in a single session - "the Generator repeats itself" and "the retry loop burns
+6000 tokens" - both shrank on contact with a sample larger than one. **A defect seen once is a
 sample of one**, and the cost of measuring it first was ~35 calls against a prompt change that
 would have cost a free-tier day to re-validate.
 

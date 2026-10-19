@@ -1,5 +1,5 @@
 """
-Throwaway smoke test — verifies your Groq key works.
+Throwaway smoke test - verifies your Groq key works.
 Run once, then you can delete this file.
 
 Usage:
@@ -15,7 +15,7 @@ def main():
 
     key = os.getenv("GROQ_API_KEY")
     if not key:
-        raise SystemExit("GROQ_API_KEY not found in .env — copy .env.example to .env and add your key")
+        raise SystemExit("GROQ_API_KEY not found in .env - copy .env.example to .env and add your key")
 
     client = groq.Groq(api_key=key)
 
