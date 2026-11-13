@@ -1,0 +1,44 @@
+name: keep-space-awake
+
+# Why: Hugging Face puts a Space on free hardware to sleep after 48 hours with no visitors.
+# A visit every 12 hours resets that timer, so the live demo is awake when someone clicks it.
+# If the Space is not up after the visit, this run fails, and GitHub emails the person who
+# last changed this schedule.
+# Note: GitHub turns off scheduled workflows after 60 days with no commits to the repo.
+on:
+  schedule:
+    - cron: "17 */12 * * *"   # twice a day, at minute 17 to avoid the top-of-hour rush
+  workflow_dispatch:           # run it by hand from the Actions tab
+
+permissions: {}
+
+jobs:
+  visit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SPACE_ID: mohammad778/grounded-forge
+      SPACE_URL: https://mohammad778-grounded-forge.hf.space/
+    steps:
+      - name: Visit the Space
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 -L "$SPACE_URL" || true)
+          echo "Space answered with HTTP $code"
+
+      - name: Check that the Space is up
+        run: |
+          sleep 30
+          if ! body=$(curl -sf --max-time 30 "https://huggingface.co/api/spaces/$SPACE_ID"); then
+            echo "::error::Could not reach the Hugging Face API. Check https://huggingface.co/spaces/$SPACE_ID by hand."
+            exit 1
+          fi
+          stage=$(printf '%s' "$body" | python3 -c "import sys, json; print((json.load(sys.stdin).get('runtime') or {}).get('stage', 'UNKNOWN'))")
+          echo "Space stage: $stage"
+          # Running or starting up is fine. Anything else (asleep, paused, an error) means the demo is down.
+          case "$stage" in
+            RUNNING|RUNNING_BUILDING|RUNNING_APP_STARTING|BUILDING|APP_STARTING) ;;
+            *)
+              echo "::error::The Space is $stage. Open https://huggingface.co/spaces/$SPACE_ID to restart or fix it."
+              exit 1
+              ;;
+          esac
